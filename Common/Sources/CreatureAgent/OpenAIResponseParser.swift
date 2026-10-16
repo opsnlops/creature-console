@@ -36,22 +36,35 @@ struct OpenAIResponseParser {
 
     /// What a whole response cost, from its `usage`.
     static func usage(from data: Data) -> LLMUsage? {
-        guard
-            var usage = (try? JSONDecoder().decode(ResponseEnvelope.self, from: data))?.usage?.value
-        else { return nil }
-        usage.raw = rawUsage(in: data)
-        return usage
+        summary(from: data)?.usage
     }
 
     /// What a streamed response cost: the `usage` on `response.completed`.
     static func streamedUsage(fromData json: String) -> LLMUsage? {
+        streamedSummary(fromData: json)?.usage
+    }
+
+    /// What a whole response says about itself: id, model, status, tier, and cost.
+    static func summary(from data: Data) -> OpenAIResponseSummary? {
+        guard let envelope = try? JSONDecoder().decode(ResponseEnvelope.self, from: data) else {
+            return nil
+        }
+        return envelope.summary(raw: rawUsage(in: data))
+    }
+
+    /// The same, from the stream's closing event: `response.completed`, or
+    /// `response.incomplete` / `response.failed` when the answer was cut short.
+    static func streamedSummary(fromData json: String) -> OpenAIResponseSummary? {
         guard json != "[DONE]", let data = json.data(using: .utf8),
             let event = try? JSONDecoder().decode(StreamEvent.self, from: data),
-            event.type == "response.completed", var usage = event.response?.usage?.value
+            Self.closingEvents.contains(event.type), let response = event.response
         else { return nil }
-        usage.raw = rawUsage(in: data)
-        return usage
+        return response.summary(raw: rawUsage(in: data))
     }
+
+    static let closingEvents: Set<String> = [
+        "response.completed", "response.incomplete", "response.failed",
+    ]
 
     /// The `usage` object's own text, wherever it sits, compact.
     private static func rawUsage(in data: Data) -> String {
@@ -83,12 +96,56 @@ struct OpenAIResponseParser {
     }
 }
 
+/// What the Responses API says about one answer, for its span.
+struct OpenAIResponseSummary: Sendable, Equatable {
+    var id: String?
+    var model: String?
+    /// `completed`, `incomplete`, `failed`.
+    var status: String?
+    /// Why an incomplete answer stopped: `max_output_tokens`, `content_filter`.
+    var incompleteReason: String?
+    var serviceTier: String?
+    var usage: LLMUsage?
+
+    /// The conventions' finish reason: `stop`, `tool_calls` when the round asked for
+    /// look-ups, the provider's reason when it was cut short, `error` when it failed.
+    func finishReason(askedForTools: Bool) -> String {
+        switch status {
+        case "incomplete": incompleteReason ?? "incomplete"
+        case "failed": "error"
+        default: askedForTools ? "tool_calls" : "stop"
+        }
+    }
+}
+
 private struct ResponseEnvelope: Decodable {
+    struct IncompleteDetails: Decodable {
+        let reason: String?
+    }
+    let id: String?
+    let model: String?
+    let status: String?
+    let serviceTier: String?
+    let incompleteDetails: IncompleteDetails?
     let output: [ResponseOutputItem]?
     let usage: ResponseUsage?
 
+    private enum CodingKeys: String, CodingKey {
+        case id, model, status, output, usage
+        case serviceTier = "service_tier"
+        case incompleteDetails = "incomplete_details"
+    }
+
     var outputTextValue: String? {
         return output?.compactMap { $0.textValue }.first
+    }
+
+    func summary(raw: String) -> OpenAIResponseSummary {
+        var usage = usage?.value
+        usage?.raw = raw
+        return OpenAIResponseSummary(
+            id: id, model: model, status: status, incompleteReason: incompleteDetails?.reason,
+            serviceTier: serviceTier, usage: usage)
     }
 }
 
@@ -134,26 +191,33 @@ private struct StreamEvent: Decodable {
     let response: ResponseEnvelope?
 }
 
-/// `usage` as the Responses API reports it: `input_tokens`, `output_tokens`, and the cached
-/// part of the input under `input_tokens_details`.
+/// `usage` as the Responses API reports it: `input_tokens`, `output_tokens`, the cached part
+/// of the input under `input_tokens_details`, the reasoning under `output_tokens_details`.
 private struct ResponseUsage: Decodable {
     struct InputDetails: Decodable {
         let cachedTokens: Int?
         private enum CodingKeys: String, CodingKey { case cachedTokens = "cached_tokens" }
     }
+    struct OutputDetails: Decodable {
+        let reasoningTokens: Int?
+        private enum CodingKeys: String, CodingKey { case reasoningTokens = "reasoning_tokens" }
+    }
     let inputTokens: Int?
     let outputTokens: Int?
     let inputTokensDetails: InputDetails?
+    let outputTokensDetails: OutputDetails?
 
     private enum CodingKeys: String, CodingKey {
         case inputTokens = "input_tokens"
         case outputTokens = "output_tokens"
         case inputTokensDetails = "input_tokens_details"
+        case outputTokensDetails = "output_tokens_details"
     }
 
     var value: LLMUsage {
         LLMUsage(
             inputTokens: inputTokens ?? 0, cachedTokens: inputTokensDetails?.cachedTokens ?? 0,
-            outputTokens: outputTokens ?? 0)
+            outputTokens: outputTokens ?? 0,
+            reasoningTokens: outputTokensDetails?.reasoningTokens ?? 0)
     }
 }

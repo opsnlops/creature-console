@@ -118,6 +118,7 @@ World mode keys:
 | `llmBackend` | `local` | `local` (Mistral on the LAN) or `openai` (`2.61.0`): a mind may run on OpenAI's Responses API, streamed sentence by sentence like the local model, so one bird can be compared against Mistral live (`llm.model` is on every span). The key comes from `OPENAI_API_KEY` in `/etc/default/creature-agent-<instance>` (never in git) or `llmApiKey` |
 | `llmReasoningEffort` | none | `low`, `medium`, or `high` for OpenAI reasoning models; when set, no `temperature` is sent |
 | `llmServiceTier` | none | OpenAI `service_tier`: `fast` buys lower latency for a per-token premium (about 2× on the models that support it); a bird in a room may be worth it (`2.62.0`) |
+| `llmCaptureContent` | `output` | `2.88.0`: what was said, on the GenAI spans for Honeycomb - `off`, `output` (the birds' answers), or `all` (also April's words, the facts of the moment, and every look-up). The persona and contracts never ride along. See Observability. |
 | `personaPath` | none | a persona file (`docs/personas/<bird>.yaml`, installed under `/etc/creature/agent/personas/`); with it the mind *is* that persona and `llmSystemPrompt` is ignored in world mode (`2.60.0`) |
 | `timeZone` | the host's zone | an IANA identifier such as `America/Los_Angeles`; the mind is told the local time in words every turn ("It is 11:45 PM on Friday, September 11."). Set it — a server's clock is usually UTC and a model cannot convert zones (`2.59.0`) |
 
@@ -170,7 +171,7 @@ OPENAI_API_KEY=sk-...
 Then `sudo systemctl restart creature-agent@beaky`. The log's `Model chosen` line confirms the
 backend. (`2.62.1`: the stream is read with AsyncHTTPClient — on Linux, a `URLSession` built
 per request aborted the process with `_MultiHandle deallocated with non-zero retain count`
-as each HTTPS stream ended.) Honeycomb's `llm.model` on `agent.consider` / `agent.scene.consider` lets you compare
+as each HTTPS stream ended.) Honeycomb's `gen_ai.request.model` on `agent.consider` / `agent.scene.consider` lets you compare
 turn latency, `chose_silence`, and what the sanitizer had to strip, bird by bird. Everything
 else — persona, facts, the clock, streaming to the room — is identical.
 
@@ -201,7 +202,7 @@ else — persona, facts, the clock, streaming to the room — is identical.
   every ten minutes from `GET /v1/fact-kinds`), bigger but cached at a fraction — and the
   moment item begins "Here now: Beaky, Mango (he/him)." followed by the situation, the
   facts, the story, and the time. A kind the glossary does not know yet rides in the moment
-  until the next refresh. `llm.usage.cached_tokens` is how you know it is working. **The moment is a user item**
+  until the next refresh. `gen_ai.usage.cache_read.input_tokens` is how you know it is working. **The moment is a user item**
   (`2.77.5`): `probe-cache` showed a plain prefix caching 3/3 on every tier, key, effort, and
   format, while the client's own request with the world's own tools cached nothing across
   byte-identical rounds - the provider folds every developer message into one instructions
@@ -226,7 +227,7 @@ else — persona, facts, the clock, streaming to the room — is identical.
   turn is composed and sent sentence by sentence: the first sentence decides silence and
   loses any speaker label or hail, every sentence is speech-clean and stage-direction-free,
   each goes to the world (`piece: n`) as it lands and is spoken there, and the turn ends
-  with "that was the whole line". `llm.first_sentence_ms` on `llm.generate` measures what
+  with "that was the whole line". `creature_agent.first_sentence_ms` on `invoke_agent {bird}` measures what
   April actually hears. If the world cannot take a piece, the turn is retried from the
   cursor and the pieces already taken are recognised by index.
 - **Nobody hails April every line** (`2.60.1`). In a scene, a turn that opens with the name of
@@ -361,8 +362,8 @@ else — persona, facts, the clock, streaming to the room — is identical.
   nobody is waiting at 3:30 AM. With `llmMemoryBatch` on (the default), each stage of the
   night - the day's episodes, then the month's beliefs - is one line of a batch file
   (`OpenAIBatchClient`: upload, batch, poll, output file), the same request `respondJSON`
-  would have posted, parsed the same way, its usage on the same `llm.openai.responses` span
-  with `llm.batch = true` and the batch id. The night in progress is written to
+  would have posted, parsed the same way, its usage on the same `chat {model}` span
+  with `creature_agent.batch = true` and `creature_agent.batch.id`. The night in progress is written to
   `<stateDirectory>/memory-pending.json` (day, run, stage, batch id) the moment a batch is
   submitted, and `MemoryJob.resume` picks it up on the next start - a deploy while the
   provider is still thinking loses nothing. A batch that fails, expires, or is still pending
@@ -466,16 +467,67 @@ showed `cache_write_tokens` of the whole input on every call and `cached_tokens`
 The executable uses the shared OpenTelemetry bootstrap; set `OTEL_EXPORTER_OTLP_ENDPOINT` and
 `OTEL_EXPORTER_OTLP_HEADERS` in `/etc/default/creature-agent` (or the shell) exactly as for
 Creature World. In world mode each consideration is an `agent.consider` span under the trace the
-utterance arrived with (phone → gateway → World → mind), with `llm.mistral.generate` and the
-`creature.world.respond` POST as children. **What a call costs** (`2.76.0`): every OpenAI
-round is its own child span, `llm.openai.responses`, with the provider's `usage` on it -
-`llm.usage.input_tokens`, `llm.usage.cached_tokens` (served from the prompt cache),
-`llm.usage.uncached_tokens`, `llm.usage.output_tokens` - plus `llm.call_kind` (`question`,
-`scene`, `house`, `memory`), `llm.round`, and `llm.tools.offered`; the mind's `llm.generate`
-span carries `llm.call_kind` too. The counter `creature_agent.llm.tokens` (by `token`,
-`kind`, `model`) is the same thing as a metric, and each call logs one `LLM usage` line. In
-Honeycomb, `SUM(llm.usage.uncached_tokens)` grouped by `llm.call_kind` is the bill; the ratio
-of cached to input is whether the prompt layout is working. Span attributes carry IDs, the prompt version, the
+utterance arrived with (phone → gateway → World → mind), with the mind's model work and the
+`creature.world.respond` POST as children.
+
+**The GenAI semantic conventions** (`2.88.0`, #230, `docs/genai-semconv-plan.md`): the model
+work is named the way OpenTelemetry's GenAI conventions name it, so Honeycomb's AI views
+(AI Conversations, per-agent activity, token totals) see the birds. A turn reads:
+
+```
+agent.scene_turn
+└─ invoke_agent Beaky              the mind's work for the turn (INTERNAL)
+   ├─ chat gpt-5.6-sol             one per round (CLIENT)
+   ├─ execute_tool query_entity    a look-up in the world (INTERNAL)
+   └─ chat gpt-5.6-sol
+```
+
+- **`gen_ai.conversation.id`** is the scene for a scene turn, the consideration for a lone
+  question, and the run for the nightly memory - so Honeycomb's conversation is one scene
+  with every bird under it. Never `conversation:april-house`, which would make months one row.
+- **On every round:** `gen_ai.operation.name = chat`, `gen_ai.provider.name = openai`,
+  `gen_ai.request.model`, `openai.api.type = responses`, `gen_ai.request.stream`,
+  `gen_ai.request.reasoning.level` (or `gen_ai.request.temperature`),
+  `openai.request.service_tier`, `gen_ai.response.id`, `gen_ai.response.model`,
+  `openai.response.service_tier`, `gen_ai.response.finish_reasons` (`stop`, `tool_calls`, the
+  provider's reason when cut short, `error`), `gen_ai.response.time_to_first_chunk` (seconds,
+  streamed), and usage: `gen_ai.usage.input_tokens` (cached included),
+  `gen_ai.usage.cache_read.input_tokens`, `gen_ai.usage.output_tokens`,
+  `gen_ai.usage.reasoning.output_tokens`. A failed round carries `error.type` (the HTTP
+  status, or the error's kind).
+- **A look-up's MCP call** is described on its `execute_tool` span (`mcp.method.name =
+  tools/call`, `jsonrpc.request.id`, `server.address` / `server.port`, `network.transport`) -
+  the MCP conventions ask for no second span when a GenAI tool span already covers it - and the
+  trace rides in `params._meta.traceparent`, so the world's `tools/call {tool}` SERVER span is
+  its child (world `0.48.0`). `tools/list` gets a CLIENT span of its own. A tool that answers
+  `isError` is `error.type = tool_error`. Histogram: `mcp.client.operation.duration`.
+- **On `invoke_agent`:** `gen_ai.agent.name`, the conversation, `gen_ai.output.type` (`text`,
+  `json` for the night), the rounds' usage summed, and the last finish reason.
+- **Ours, beside the spec's:** `creature_agent.call_kind` (`question`, `scene`, `house`,
+  `memory`), `creature_agent.round`, `creature_agent.tools_offered`,
+  `creature_agent.first_sentence_ms`, and `creature_agent.batch` / `creature_agent.batch.id`
+  on a batch's answer.
+- **What was said** - `llmCaptureContent`: `output` (the default, April's choice) puts the
+  birds' answers on each round as `gen_ai.output.messages`; `all` adds what the model was
+  handed (`gen_ai.input.messages` - April's words, the facts of the moment, earlier look-ups)
+  and each look-up's `gen_ai.tool.call.arguments` / `.result`; `off` writes no words. The
+  persona, contracts, and glossary never ride along: they are the large cached block, the
+  same on every call.
+- **Metrics:** `gen_ai.client.inference.usage.input_tokens`, `.cache_read.input_tokens`,
+  `.output_tokens`, `.reasoning.output_tokens` (counters, `gen_ai.token.modality = text`),
+  `gen_ai.client.inference.duration`, `gen_ai.client.inference.time_to_first_chunk`,
+  `gen_ai.invoke_agent.duration`, `gen_ai.execute_tool.duration` (histograms in seconds, on
+  the spec's buckets), each by provider, model, `creature_agent.call_kind`, and `error.type`.
+  A batch's answer counts its tokens but not a duration.
+- **The bill** in Honeycomb: `SUM(gen_ai.usage.input_tokens) - SUM(gen_ai.usage.cache_read.input_tokens)`
+  grouped by `creature_agent.call_kind` is the uncached input; the ratio of cache reads to
+  input is whether the prompt layout is working. Each round still logs one `LLM usage` line
+  with the provider's raw `usage` object, for the prompt-cache experiments.
+- The old `llm.*` attributes and the `creature_agent.llm.tokens` counter are gone (April:
+  "Following the standard is better than backwards compatibility"). The spec is still
+  Development; every name lives in `GenAITelemetry.swift`, so following a rename is one file.
+
+Other span attributes carry IDs, the prompt version, the
 model name, the reaction, and the suppression reason — never the text of what anyone said.
 Metrics: `creature_agent.world.events.received`, `creature_agent.world.percepts.received`,
 `creature_agent.world.reconnects`, `creature_agent.considerations`,

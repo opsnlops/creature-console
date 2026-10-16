@@ -1,4 +1,6 @@
 import Foundation
+import Metrics
+import Observability
 import WorldCore
 
 /// WorldMCP: the world for Codex, Claude, and anyone debugging - the Model Context Protocol over
@@ -59,16 +61,84 @@ struct WorldMCP: Sendable {
         guard request.jsonrpc == "2.0" else {
             return encode(failure(id: request.id, code: -32600, message: "jsonrpc must be \"2.0\""))
         }
-        if request.method.hasPrefix("notifications/") { return nil }
-        do {
-            let result = try await dispatch(request.method, params: request.params ?? .object([:]))
-            return encode(
-                .object(["jsonrpc": .string("2.0"), "id": request.id ?? .null, "result": result]))
-        } catch let known as Failure {
-            return encode(failure(id: request.id, code: known.code, message: known.message))
-        } catch let other {
-            return encode(failure(id: request.id, code: -32603, message: "\(other)"))
+        let params = request.params ?? .object([:])
+        return await traced(request, params: params) { span in
+            if request.method.hasPrefix("notifications/") { return nil }
+            do {
+                let result = try await dispatch(request.method, params: params)
+                return .object([
+                    "jsonrpc": .string("2.0"), "id": request.id ?? .null, "result": result,
+                ])
+            } catch let known as Failure {
+                Self.failed(span, code: known.code)
+                return failure(id: request.id, code: known.code, message: known.message)
+            } catch let other {
+                Self.failed(span, code: -32603)
+                return failure(id: request.id, code: -32603, message: "\(other)")
+            }
+        }.map(encode)
+    }
+
+    /// One MCP message, as the MCP conventions trace it: a SERVER span named for the method
+    /// and its tool (`tools/call query_entity`), whose parent is the trace the caller put in
+    /// `params._meta` - a mind's `execute_tool`, so the bird's look-up and the world's answer
+    /// are one trace (#230). A caller that sent none (Claude, Codex) starts a trace of its own.
+    private func traced(
+        _ request: Request, params: WorldJSONValue,
+        _ operation: (any Span) async -> WorldJSONValue?
+    ) async -> WorldJSONValue? {
+        let tool = request.method == "tools/call" ? params["name"]?.stringValue : nil
+        let started = ContinuousClock.now
+        let parent = Self.callerContext(in: params) ?? ServiceContext.current ?? .topLevel
+        var errorType: String?
+        defer {
+            var dimensions = [
+                ("unit", "s"), (MCPTelemetry.Key.methodName, request.method),
+                (MCPTelemetry.Key.protocolVersion, Self.protocolVersion),
+            ]
+            if let tool { dimensions.append((MCPTelemetry.Key.toolName, tool)) }
+            if let errorType { dimensions.append((MCPTelemetry.Key.errorType, errorType)) }
+            Timer(label: MCPTelemetry.Metric.serverOperationDuration, dimensions: dimensions)
+                .record(duration: ContinuousClock.now - started)
         }
+        return await withSpan(
+            MCPTelemetry.spanName(method: request.method, tool: tool), context: parent,
+            ofKind: .server
+        ) { span in
+            span.attributes[MCPTelemetry.Key.methodName] = request.method
+            span.attributes[MCPTelemetry.Key.protocolVersion] = Self.protocolVersion
+            span.attributes[MCPTelemetry.Key.networkTransport] = "tcp"
+            span.attributes[MCPTelemetry.Key.networkProtocolName] = "http"
+            if let text = request.id?.idText {
+                span.attributes[MCPTelemetry.Key.jsonRPCRequestID] = text
+            }
+            if let tool {
+                span.attributes[MCPTelemetry.Key.toolName] = tool
+                span.attributes[MCPTelemetry.Key.operationName] = "execute_tool"
+            }
+            let answer = await operation(span)
+            if case .string(let type)? = span.attributes.get(MCPTelemetry.Key.errorType) {
+                errorType = type
+            }
+            return answer
+        }
+    }
+
+    /// A JSON-RPC error on the span: its code as `error.type` and `rpc.response.status_code`.
+    private static func failed(_ span: any Span, code: Int) {
+        span.attributes[MCPTelemetry.Key.errorType] = "\(code)"
+        span.attributes[MCPTelemetry.Key.rpcResponseStatusCode] = "\(code)"
+        span.setStatus(SpanStatus(code: .error))
+    }
+
+    /// The caller's trace, from `params._meta.traceparent` (and `tracestate`), unprefixed as
+    /// SEP-414 has it; nil when there is none.
+    static func callerContext(in params: WorldJSONValue) -> ServiceContext? {
+        guard case .string(let traceparent)? = params["_meta"]?["traceparent"],
+            traceID(ofTraceparent: traceparent) != nil
+        else { return nil }
+        return serviceContext(
+            traceparent: traceparent, tracestate: params["_meta"]?["tracestate"]?.stringValue)
     }
 
     private func failure(id: WorldJSONValue?, code: Int, message: String) -> WorldJSONValue {
@@ -592,6 +662,15 @@ extension WorldJSONValue {
     fileprivate var stringValue: String? {
         if case .string(let text) = self { return text }
         return nil
+    }
+
+    /// A JSON-RPC id as text: a string as itself, a number without a fraction; nil for null.
+    fileprivate var idText: String? {
+        switch self {
+        case .string(let text): text
+        case .number(let number): number == number.rounded() ? "\(Int(number))" : "\(number)"
+        default: nil
+        }
     }
 
     fileprivate var isObject: Bool {

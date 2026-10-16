@@ -48,6 +48,10 @@ struct AgentConfig: Decodable {
     let llmDecisionsShadow: Bool
     /// The Decisions API's model; in beta it offers only `gpt-6-luna`.
     let llmDecisionsModel: String
+    /// What was said, on the GenAI spans for Honeycomb: `off`, `output` (the birds' own
+    /// words - the default, April's choice), or `all` (also April's words, the facts of the
+    /// moment, and every look-up). The persona and contracts never ride along.
+    let llmCaptureContent: GenAIContentCapture
     let localLlmHost: String
     let localLlmPort: Int
     let localLlmMaxTokens: Int
@@ -155,6 +159,7 @@ struct AgentConfig: Decodable {
         case llmMemoryBatchWaitHours
         case llmDecisionsShadow
         case llmDecisionsModel
+        case llmCaptureContent
         case localLlmHost
         case localLlmPort
         case localLlmMaxTokens
@@ -217,6 +222,9 @@ struct AgentConfig: Decodable {
             try container.decodeIfPresent(Bool.self, forKey: .llmDecisionsShadow) ?? false
         llmDecisionsModel =
             try container.decodeIfPresent(String.self, forKey: .llmDecisionsModel) ?? "gpt-6-luna"
+        llmCaptureContent =
+            try container.decodeIfPresent(GenAIContentCapture.self, forKey: .llmCaptureContent)
+            ?? .output
         guard llmMemoryBatchWaitHours > 0, llmMemoryBatchWaitHours <= 24 else {
             throw DecodingError.dataCorruptedError(
                 forKey: .llmMemoryBatchWaitHours, in: container,

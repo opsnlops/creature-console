@@ -48,7 +48,11 @@ extension CreatureAgent {
         var globalOptions: GlobalOptions
 
         mutating func run() async throws {
-            let otelServices = try bootstrapObservability(serviceName: "creature-agent")
+            let otelServices = try bootstrapObservability(
+                serviceName: "creature-agent",
+                durationHistogramBuckets: GenAI.durationHistogramBuckets.merging(
+                    MCPTelemetry.durationHistogramBuckets
+                ) { ours, _ in ours })
 
             let loggerLevel =
                 (debug || traceOpenAI || traceOpenAICompat)
@@ -438,7 +442,7 @@ private func runWorldMode(
                     answer: { batchID, customID in
                         let output = try await batches.output(
                             of: batchID, deadline: Date().addingTimeInterval(wait))
-                        return try memoryClient.jsonAnswer(
+                        return try await memoryClient.jsonAnswer(
                             fromBatch: try OpenAIBatchClient.result(for: customID, in: output),
                             batchID: batchID)
                     })
@@ -561,7 +565,8 @@ private func runWorldMode(
             // A frontier backend caches the prompt's unchanged prefix; a local chat template
             // wants one system message.
             knowledgePlacement: config.llmBackend == .openai ? .beforeNewest : .withinSystem,
-            glossary: { glossary.current() }
+            glossary: { glossary.current() },
+            contentCapture: config.llmCaptureContent
         ),
         respond: respond,
         respondStreaming: respondStreaming,
@@ -587,7 +592,8 @@ private func runWorldMode(
                 houseID: world.houseID, model: model, cast: { try await responder.cast($0) },
                 client: client, logger: logger,
                 pendingFile: URL(fileURLWithPath: world.stateDirectory, isDirectory: true)
-                    .appending(path: "memory-pending.json"))
+                    .appending(path: "memory-pending.json"),
+                capture: config.llmCaptureContent)
         }
     )
     // The local model's health is only worth watching when a local model is the mind; on a

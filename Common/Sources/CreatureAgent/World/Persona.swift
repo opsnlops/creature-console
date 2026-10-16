@@ -186,6 +186,14 @@ enum CharacterPersona: Equatable, Sendable {
         }
     }
 
+    /// The bird's name as April wrote it ("Beaky"), when the persona has one.
+    var name: String? {
+        switch self {
+        case .structured(let persona): persona.name
+        case .text: nil
+        }
+    }
+
     var pronouns: String? {
         switch self {
         case .structured(let persona): persona.pronouns

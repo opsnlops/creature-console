@@ -42,7 +42,9 @@ struct CreatureWorld: AsyncParsableCommand {
     var logLevel: WorldLogLevel = .debug
 
     mutating func run() async throws {
-        let observabilityServices = try bootstrapObservability(serviceName: "creature-world")
+        let observabilityServices = try bootstrapObservability(
+            serviceName: "creature-world",
+            durationHistogramBuckets: MCPTelemetry.durationHistogramBuckets)
         var logger = Logger(label: "creature-world")
         logger.logLevel = logLevel.loggerLevel
         logger.debug("Parsing the command line options")

@@ -294,6 +294,7 @@ let package = Package(
             name: "CreatureAgentTests",
             dependencies: [
                 "creature-agent",
+                "Observability",
                 "creature-mqtt",
                 "WorldCore",
                 .product(name: "Hummingbird", package: "hummingbird"),
@@ -333,6 +334,7 @@ let package = Package(
             name: "CreatureWorldTests",
             dependencies: [
                 "creature-world",
+                "Observability",
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "HummingbirdTesting", package: "hummingbird"),
                 .product(name: "Instrumentation", package: "swift-distributed-tracing"),

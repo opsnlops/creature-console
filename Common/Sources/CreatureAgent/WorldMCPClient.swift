@@ -1,7 +1,9 @@
 import AsyncHTTPClient
 import Foundation
 import Logging
+import Metrics
 import NIOCore
+import Observability
 import WorldCore
 
 /// The mind's own hand on WorldMCP: `tools/list` once at startup, so the model's tools are
@@ -18,6 +20,10 @@ struct WorldMCPClient: Sendable {
 
     struct Failure: Error, CustomStringConvertible {
         var description: String
+        /// The JSON-RPC error code, when the server answered with one.
+        var code: Int? = nil
+        /// What kind of failure, low-cardinality, for `error.type`.
+        var kind = "_OTHER"
     }
 
     let url: URL
@@ -60,9 +66,10 @@ struct WorldMCPClient: Sendable {
             params: .object([
                 "name": .string(name), "arguments": parsed,
                 "_meta": .object(["audience": .string(FactAudience.minds.rawValue)]),
-            ]))
+            ]), tool: name)
         if case .bool(true)? = result["isError"] {
-            throw Failure(description: Self.text(of: result))
+            GenAI.toolSpan?.attributes[MCPTelemetry.Key.errorType] = "tool_error"
+            throw Failure(description: Self.text(of: result), kind: "tool_error")
         }
         let text = Self.text(of: result)
         guard text.count > Self.maximumOutputCharacters else { return text }
@@ -84,11 +91,65 @@ struct WorldMCPClient: Sendable {
         return "{}"
     }
 
-    private func rpc(_ method: String, params: WorldJSONValue) async throws -> WorldJSONValue {
+    /// One JSON-RPC request, traced by the MCP conventions: a `tools/call` is described on the
+    /// `execute_tool` span already covering it; anything else (`tools/list`) gets a CLIENT span
+    /// of its own. Either way the trace rides in `params._meta`, so the world's span for the
+    /// call is this one's child.
+    private func rpc(_ method: String, params: WorldJSONValue, tool: String? = nil)
+        async throws -> WorldJSONValue
+    {
+        let started = ContinuousClock.now
+        var failure: String?
+        defer {
+            var dimensions = [("unit", "s"), (MCPTelemetry.Key.methodName, method)]
+            if let tool { dimensions.append((MCPTelemetry.Key.toolName, tool)) }
+            if let failure { dimensions.append((MCPTelemetry.Key.errorType, failure)) }
+            Timer(label: MCPTelemetry.Metric.clientOperationDuration, dimensions: dimensions)
+                .record(duration: ContinuousClock.now - started)
+        }
+        func traced(_ span: any Span) async throws -> WorldJSONValue {
+            describe(span, method: method, tool: tool)
+            do {
+                return try await send(method, params: params)
+            } catch {
+                let failed = error as? Failure
+                failure = failed?.kind ?? String(describing: type(of: error))
+                span.attributes[MCPTelemetry.Key.errorType] = failure
+                span.attributes[MCPTelemetry.Key.rpcResponseStatusCode] = failed?.code.map {
+                    "\($0)"
+                }
+                throw error
+            }
+        }
+        if method == "tools/call", let span = GenAI.toolSpan {
+            return try await traced(span)
+        }
+        return try await withSpan(
+            MCPTelemetry.spanName(method: method, tool: tool), ofKind: .client
+        ) { span in
+            try await traced(span)
+        }
+    }
+
+    private func describe(_ span: any Span, method: String, tool: String?) {
+        span.attributes[MCPTelemetry.Key.methodName] = method
+        span.attributes[MCPTelemetry.Key.jsonRPCRequestID] = "1"
+        span.attributes[MCPTelemetry.Key.networkTransport] = "tcp"
+        span.attributes[MCPTelemetry.Key.networkProtocolName] = "http"
+        span.attributes[MCPTelemetry.Key.serverAddress] = url.host
+        span.attributes[MCPTelemetry.Key.serverPort] =
+            url.port ?? (url.scheme == "https" ? 443 : 80)
+        if let tool {
+            span.attributes[MCPTelemetry.Key.toolName] = tool
+            span.attributes[MCPTelemetry.Key.operationName] = "execute_tool"
+        }
+    }
+
+    private func send(_ method: String, params: WorldJSONValue) async throws -> WorldJSONValue {
         let body = try WorldJSON.makeEncoder().encode(
             WorldJSONValue.object([
                 "jsonrpc": .string("2.0"), "id": .number(1), "method": .string(method),
-                "params": params,
+                "params": Self.carryingTheTrace(params),
             ]))
         var request = HTTPClientRequest(url: url.absoluteString)
         request.method = .POST
@@ -98,18 +159,38 @@ struct WorldMCPClient: Sendable {
         let response = try await client.execute(request, timeout: .seconds(20), logger: logger)
         let bytes = try await response.body.collect(upTo: 8 * 1_048_576)
         guard response.status == .ok else {
-            throw Failure(description: "WorldMCP answered \(response.status.code) to \(method)")
+            throw Failure(
+                description: "WorldMCP answered \(response.status.code) to \(method)",
+                kind: "\(response.status.code)")
         }
         let envelope = try WorldJSON.makeDecoder().decode(
             WorldJSONValue.self, from: Data(bytes.readableBytesView))
         if let error = envelope["error"] {
+            let code: Int? =
+                if case .number(let number)? = error["code"] { Int(number) } else { nil }
             throw Failure(
-                description: error["message"]?.stringValue ?? "WorldMCP refused \(method)")
+                description: error["message"]?.stringValue ?? "WorldMCP refused \(method)",
+                code: code, kind: code.map { "\($0)" } ?? "_OTHER")
         }
         guard let result = envelope["result"] else {
             throw Failure(description: "WorldMCP answered \(method) without a result")
         }
         return result
+    }
+
+    /// The params with the current trace in `_meta` (`traceparent`, `tracestate`), beside
+    /// whatever `_meta` already said.
+    static func carryingTheTrace(
+        _ params: WorldJSONValue, headers: [String: String] = currentTraceHeaders()
+    ) -> WorldJSONValue {
+        guard !headers.isEmpty, case .object(var fields) = params else { return params }
+        var meta: [String: WorldJSONValue] = [:]
+        if case .object(let held)? = fields["_meta"] { meta = held }
+        for (key, value) in headers where MCPTelemetry.traceKeys.contains(key) {
+            meta[key] = .string(value)
+        }
+        fields["_meta"] = .object(meta)
+        return .object(fields)
     }
 }
 

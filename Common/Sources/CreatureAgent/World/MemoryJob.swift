@@ -48,6 +48,8 @@ struct MemoryJob: Sendable {
     let cast: @Sendable (WorldEventEnvelope) async throws -> Void
     let client: HTTPClient
     let logger: Logger
+    /// How much of what was said goes on the GenAI spans for Honeycomb.
+    var capture: GenAIContentCapture = .off
     /// Where a night in progress is written down, when the model answers through a batch -
     /// so a restart while the provider is still thinking resumes the night instead of losing
     /// it. Nil: nothing is written and nothing resumes.
@@ -79,7 +81,8 @@ struct MemoryJob: Sendable {
     init(
         worldURL: URL, characterID: EntityID, persona: CharacterPersona, houseID: EntityID,
         model: MemoryModel, cast: @escaping @Sendable (WorldEventEnvelope) async throws -> Void,
-        client: HTTPClient, logger: Logger, pendingFile: URL? = nil
+        client: HTTPClient, logger: Logger, pendingFile: URL? = nil,
+        capture: GenAIContentCapture = .off
     ) {
         self.worldURL = worldURL
         self.characterID = characterID
@@ -90,6 +93,7 @@ struct MemoryJob: Sendable {
         self.client = client
         self.logger = logger
         self.pendingFile = pendingFile
+        self.capture = capture
     }
 
     static let maximumEpisodes = 12
@@ -133,7 +137,7 @@ struct MemoryJob: Sendable {
             span.attributes["agent.character_id"] = characterID.rawValue
             span.attributes["memory.day"] = day
             span.attributes["memory.run"] = run.rawValue
-            span.attributes["llm.model"] = modelName
+            span.attributes[GenAI.Key.requestModel] = modelName
             let digest = try await fetchDigest(day: day)
             span.attributes["memory.happenings"] = digest.happenings.count
             span.attributes["memory.conversation_lines"] = digest.conversation.count
@@ -160,14 +164,14 @@ struct MemoryJob: Sendable {
             "Resuming a night's memory",
             metadata: [
                 "memory.day": "\(pending.day)", "memory.stage": "\(pending.stage.rawValue)",
-                "llm.batch.id": "\(pending.batchID ?? "none")",
+                GenAI.Key.batchID: "\(pending.batchID ?? "none")",
             ])
         try await withSpan("agent.memory.resume") { span in
             span.attributes["agent.character_id"] = characterID.rawValue
             span.attributes["memory.day"] = pending.day
             span.attributes["memory.run"] = pending.run
             span.attributes["memory.stage"] = pending.stage.rawValue
-            span.attributes["llm.model"] = modelName
+            span.attributes[GenAI.Key.requestModel] = modelName
             let digest = try await fetchDigest(day: pending.day)
             guard Self.isWorthRemembering(digest) else {
                 clearPending()
@@ -282,29 +286,24 @@ struct MemoryJob: Sendable {
     private func answer(_ transcript: [LocalLLMClient.Message], pending: PendingMemory)
         async throws -> Data
     {
-        try await withSpan("llm.generate") { inner in
-            inner.attributes["llm.model"] = modelName
-            inner.attributes["llm.json"] = true
-            inner.attributes["llm.call_kind"] = LLMCallKind.memory.rawValue
-            return try await LLMCallKind.$current.withValue(.memory) {
-                guard let batch = model.batch else { return try await model.ask(transcript) }
-                var pending = pending
-                pending.customID =
-                    "\(Self.key(day: pending.day, run: try EventID(validating: pending.run))):\(pending.stage.rawValue)"
-                do {
-                    pending.batchID = try await batch.submit(transcript, pending.customID ?? "")
-                } catch {
-                    logger.warning(
-                        "Could not submit the batch; asking now",
-                        metadata: [
-                            "error": "\(error)", "memory.stage": "\(pending.stage.rawValue)",
-                        ])
-                    return try await model.ask(transcript)
-                }
-                inner.attributes["llm.batch.id"] = pending.batchID ?? ""
-                savePending(pending)
-                return try await collect(transcript, pending: pending)
+        try await asTheBird(pending) { inner in
+            guard let batch = model.batch else { return try await model.ask(transcript) }
+            var pending = pending
+            pending.customID =
+                "\(Self.key(day: pending.day, run: try EventID(validating: pending.run))):\(pending.stage.rawValue)"
+            do {
+                pending.batchID = try await batch.submit(transcript, pending.customID ?? "")
+            } catch {
+                logger.warning(
+                    "Could not submit the batch; asking now",
+                    metadata: [
+                        "error": "\(error)", "memory.stage": "\(pending.stage.rawValue)",
+                    ])
+                return try await model.ask(transcript)
             }
+            inner.attributes[GenAI.Key.batchID] = pending.batchID ?? ""
+            savePending(pending)
+            return try await collect(transcript, pending: pending)
         }
     }
 
@@ -314,19 +313,37 @@ struct MemoryJob: Sendable {
     {
         guard let batch = model.batch, let batchID = pending.batchID,
             let customID = pending.customID
-        else { return try await model.ask(transcript) }
-        do {
-            return try await LLMCallKind.$current.withValue(.memory) {
-                try await batch.answer(batchID, customID)
-            }
-        } catch let error as OpenAIBatchError {
-            logger.warning(
-                "The batch did not answer; asking now",
-                metadata: ["llm.batch.id": "\(batchID)", "error": "\(error)"])
-            return try await LLMCallKind.$current.withValue(.memory) {
-                try await model.ask(transcript)
+        else { return try await inTheBirdsTurn(pending) { try await model.ask(transcript) } }
+        return try await inTheBirdsTurn(pending) {
+            do {
+                return try await batch.answer(batchID, customID)
+            } catch let error as OpenAIBatchError {
+                logger.warning(
+                    "The batch did not answer; asking now",
+                    metadata: [GenAI.Key.batchID: "\(batchID)", "error": "\(error)"])
+                return try await model.ask(transcript)
             }
         }
+    }
+
+    /// The night's model work as the bird's own, by the GenAI conventions: `invoke_agent
+    /// Beaky`, in the conversation of the night's run. Inside one already - a batch collected
+    /// as part of asking - it is that one.
+    private func inTheBirdsTurn<T>(
+        _ pending: PendingMemory, _ operation: () async throws -> T
+    ) async throws -> T {
+        guard GenAI.turn == nil else { return try await operation() }
+        return try await asTheBird(pending) { _ in try await operation() }
+    }
+
+    private func asTheBird<T>(
+        _ pending: PendingMemory, _ operation: (any Span) async throws -> T
+    ) async throws -> T {
+        try await GenAI.invokeAgent(
+            persona.name ?? characterID.rawValue.split(separator: ":").last.map(String.init)?
+                .capitalized ?? characterID.rawValue,
+            conversationID: pending.run, kind: .memory, capture: capture, model: modelName,
+            outputType: "json", operation)
     }
 
     private func savePending(_ pending: PendingMemory) {

@@ -124,6 +124,24 @@ struct AgentConfigTests {
         #expect(try load("llmDecisionsShadow: true").llmDecisionsShadow == true)
     }
 
+    @Test("The birds' words go to Honeycomb unless told otherwise; nonsense is refused (#230)")
+    func parsesContentCapture() throws {
+        func load(_ extra: String) throws -> AgentConfig {
+            try AgentConfig.load(
+                from: writeTemporaryFile(
+                    contents: """
+                        creatureId: 00000000-0000-0000-0000-000000000000
+                        llmSystemPrompt: system
+                        areas: []
+                        \(extra)
+                        """))
+        }
+        #expect(try load("").llmCaptureContent == .output)
+        #expect(try load("llmCaptureContent: off").llmCaptureContent == .off)
+        #expect(try load("llmCaptureContent: all").llmCaptureContent == .all)
+        #expect(throws: (any Error).self) { try load("llmCaptureContent: everything") }
+    }
+
     @Test("The nightly memory goes through the Batch API unless told not to, with a bounded wait")
     func parsesMemoryBatch() throws {
         func load(_ extra: String) throws -> AgentConfig {

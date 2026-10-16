@@ -119,6 +119,8 @@ struct CharacterMind: Sendable {
         /// The world's whole glossary, for the stable item of a `.beforeNewest` prompt; nil,
         /// or empty, and the meanings of the kinds in the envelope are used instead.
         var glossary: (@Sendable () -> [String: String])? = nil
+        /// How much of what was said goes on the GenAI spans for Honeycomb.
+        var contentCapture: GenAIContentCapture = .off
 
         enum KnowledgePlacement: Sendable {
             case withinSystem
@@ -131,6 +133,9 @@ struct CharacterMind: Sendable {
             guard let colon = raw.firstIndex(of: ":") else { return raw }
             return String(raw[raw.index(after: colon)...])
         }
+
+        /// "Beaky": the persona's name, else the id's, capitalized - `gen_ai.agent.name`.
+        var agentName: String { persona.name ?? characterName.capitalized }
     }
 
     let configuration: Configuration
@@ -180,7 +185,7 @@ struct CharacterMind: Sendable {
             span.attributes["world.sequence"] = consideration.worldSequence
             span.attributes["agent.prompt_version"] = Self.promptVersion
             span.attributes["agent.persona_version"] = configuration.persona.versionTag
-            span.attributes["llm.model"] = configuration.modelName
+            span.attributes[GenAI.Key.requestModel] = configuration.modelName
             considerationCounter.increment()
 
             let learning = Learning()
@@ -260,14 +265,12 @@ struct CharacterMind: Sendable {
         let transcript = makeTranscript(for: consideration.percept, route: .communicator, now: now)
         let raw: String
         do {
-            raw = try await withSpan("llm.mistral.generate") { span in
-                span.attributes["llm.model"] = configuration.modelName
-                span.attributes["llm.transcript.turns"] = transcript.count
-                span.attributes["llm.call_kind"] = LLMCallKind.question.rawValue
-                return try await LLMCallKind.$current.withValue(.question) {
-                    try await withTimeout(configuration.modelTimeout) {
-                        try await respond(transcript, configuration.tools)
-                    }
+            raw = try await invokeAgent(
+                .question, conversation: consideration.percept.considerationID.rawValue
+            ) { span in
+                span.attributes["creature_agent.transcript.turns"] = transcript.count
+                return try await withTimeout(configuration.modelTimeout) {
+                    try await respond(transcript, configuration.tools)
                 }
             }
             await learning.note(raw)
@@ -327,19 +330,16 @@ struct CharacterMind: Sendable {
         let spoken = SpokenSentences(room: continuation)
         var modelFailed = false
         do {
-            try await withSpan("llm.mistral.generate") { span in
-                span.attributes["llm.model"] = configuration.modelName
-                span.attributes["llm.transcript.turns"] = transcript.count
-                span.attributes["llm.streaming"] = true
-                span.attributes["llm.call_kind"] = LLMCallKind.question.rawValue
+            try await invokeAgent(
+                .question, conversation: consideration.percept.considerationID.rawValue
+            ) { span in
+                span.attributes["creature_agent.transcript.turns"] = transcript.count
                 // A timeout cancels the model loop; whatever was already offered to the room
                 // stays spoken and recorded.
-                try await LLMCallKind.$current.withValue(.question) {
-                    try await withTimeout(configuration.modelTimeout) {
-                        for await raw in stage.respondStreaming(transcript, configuration.tools) {
-                            await learning.note(raw)
-                            guard await spoken.offer(raw, characterName: name) else { break }
-                        }
+                try await withTimeout(configuration.modelTimeout) {
+                    for await raw in stage.respondStreaming(transcript, configuration.tools) {
+                        await learning.note(raw)
+                        guard await spoken.offer(raw, characterName: name) else { break }
                     }
                 }
                 span.attributes["speech.sentences"] = await spoken.sentences.count
@@ -482,7 +482,7 @@ struct CharacterMind: Sendable {
             span.attributes["scene.id"] = offer.offer.sceneID.rawValue
             span.attributes["world.sequence"] = offer.worldSequence
             span.attributes["agent.persona_version"] = configuration.persona.versionTag
-            span.attributes["llm.model"] = configuration.modelName
+            span.attributes[GenAI.Key.requestModel] = configuration.modelName
             considerationCounter.increment()
             let learning = Learning()
             let decision: SceneDecision
@@ -516,6 +516,16 @@ struct CharacterMind: Sendable {
 
     /// What kind of call a scene turn is, for the cost record: a scene April opened with her
     /// words, or a remark the house asked for.
+    /// The mind's model work for one turn, as the GenAI conventions name it: `invoke_agent
+    /// Beaky`, in its conversation - the scene, or a question of its own.
+    private func invokeAgent<T>(
+        _ kind: LLMCallKind, conversation: String, _ operation: (any Span) async throws -> T
+    ) async throws -> T {
+        try await GenAI.invokeAgent(
+            configuration.agentName, conversationID: conversation, kind: kind,
+            capture: configuration.contentCapture, model: configuration.modelName, operation)
+    }
+
     static func callKind(of offer: SceneTurnOffer) -> LLMCallKind {
         offer.trigger.kind == .personUtterance ? .scene : .house
     }
@@ -548,29 +558,26 @@ struct CharacterMind: Sendable {
         let line = StreamedLine(
             characterName: configuration.characterName, speaker: speaker, startedAt: now)
         do {
-            try await withSpan("llm.generate") { span in
-                span.attributes["llm.model"] = configuration.modelName
-                span.attributes["llm.transcript.turns"] = transcript.count
-                span.attributes["llm.streaming"] = true
-                span.attributes["llm.call_kind"] = Self.callKind(of: offer).rawValue
-                try await LLMCallKind.$current.withValue(Self.callKind(of: offer)) {
-                    try await withTimeout(configuration.modelTimeout) {
-                        for await raw in respondStreaming(transcript, tools(for: offer)) {
-                            await learning.note(raw)
-                            switch await line.offer(raw) {
-                            case .speak(let index, let piece):
-                                try await speak(index, piece)
-                                await line.spoke(piece)
-                            case .skip:
-                                continue
-                            case .done:
-                                return
-                            }
+            try await invokeAgent(
+                Self.callKind(of: offer), conversation: offer.sceneID.rawValue
+            ) { span in
+                span.attributes["creature_agent.transcript.turns"] = transcript.count
+                try await withTimeout(configuration.modelTimeout) {
+                    for await raw in respondStreaming(transcript, tools(for: offer)) {
+                        await learning.note(raw)
+                        switch await line.offer(raw) {
+                        case .speak(let index, let piece):
+                            try await speak(index, piece)
+                            await line.spoke(piece)
+                        case .skip:
+                            continue
+                        case .done:
+                            return
                         }
                     }
                 }
                 if let first = await line.firstSentenceMilliseconds {
-                    span.attributes["llm.first_sentence_ms"] = first
+                    span.attributes["creature_agent.first_sentence_ms"] = first
                 }
             }
         } catch is CancellationError {
@@ -683,14 +690,12 @@ struct CharacterMind: Sendable {
         let transcript = makeSceneTranscript(for: offer, now: now)
         let raw: String
         do {
-            raw = try await withSpan("llm.mistral.generate") { span in
-                span.attributes["llm.model"] = configuration.modelName
-                span.attributes["llm.transcript.turns"] = transcript.count
-                span.attributes["llm.call_kind"] = Self.callKind(of: offer).rawValue
-                return try await LLMCallKind.$current.withValue(Self.callKind(of: offer)) {
-                    try await withTimeout(configuration.modelTimeout) {
-                        try await respond(transcript, tools(for: offer))
-                    }
+            raw = try await invokeAgent(
+                Self.callKind(of: offer), conversation: offer.sceneID.rawValue
+            ) { span in
+                span.attributes["creature_agent.transcript.turns"] = transcript.count
+                return try await withTimeout(configuration.modelTimeout) {
+                    try await respond(transcript, tools(for: offer))
                 }
             }
             await learning.note(raw)

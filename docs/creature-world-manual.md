@@ -893,6 +893,18 @@ incoming W3C context in the canonical envelope when the sender did not provide o
 Malformed context is rejected before acceptance. The actor's task boundary is tested not to break
 the active context.
 
+**WorldMCP by the MCP conventions** (`0.48.0`, #230): each MCP message is a SERVER span named
+for its method and tool (`tools/call query_entity`, `tools/list`), with `mcp.method.name`,
+`gen_ai.tool.name` and `gen_ai.operation.name = execute_tool` on a tool call,
+`jsonrpc.request.id`, `mcp.protocol.version`, and, on a refusal, the JSON-RPC code as
+`error.type` and `rpc.response.status_code`. Its parent is the trace the caller put in
+`params._meta.traceparent` (unprefixed, SEP-414): a mind sends its `execute_tool` span there, so
+in Honeycomb the bird's look-up and the world's answer are one trace across the two services.
+A caller that sends none (Claude, Codex) starts a trace of its own. The histogram
+`mcp.server.operation.duration` (seconds, on the spec's buckets) is by method, tool, and
+`error.type`. No arguments or results are put on the span: a look-up answers with the world's
+facts. The names live in `Observability/MCPTelemetry.swift`, shared with the agent.
+
 Timer operations add `world.timer.schedule`, `world.timer.cancel`, and `world.timer.fire` spans and
 counters for scheduled, canceled, fired, recovered, rejected, and failed timers. Attributes contain
 only the stable timer ID, semantic purpose, disposition, and lateness; timer payload values are not

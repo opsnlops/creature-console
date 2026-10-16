@@ -41,9 +41,13 @@ private func bootstrapLoggingOnce(_ factory: @escaping @Sendable (String) -> any
 /// process with a Swift task-allocator LIFO violation ("freed pointer was not the last
 /// allocation") when a real export races the command's teardown (issue #14). Console
 /// logging is unaffected; long-lived services keep OTLP export.
-package func bootstrapObservability(serviceName: String, exportOTLP: Bool = true) throws
-    -> [any Service]
-{
+///
+/// `durationHistogramBuckets` sets the bucket bounds of named duration histograms (a Swift
+/// Metrics `Timer` by label) - the GenAI conventions give their own, in seconds.
+package func bootstrapObservability(
+    serviceName: String, exportOTLP: Bool = true,
+    durationHistogramBuckets: [String: [Duration]] = [:]
+) throws -> [any Service] {
     let hasEndpoint =
         ProcessInfo.processInfo.environment["OTEL_EXPORTER_OTLP_ENDPOINT"] != nil
 
@@ -57,7 +61,8 @@ package func bootstrapObservability(serviceName: String, exportOTLP: Bool = true
 
     return try bootstrapOTLP(
         serviceName: serviceName, exporter: nil,
-        localLog: { StreamLogHandler.standardError(label: $0) })
+        localLog: { StreamLogHandler.standardError(label: $0) },
+        durationHistogramBuckets: durationHistogramBuckets)
 }
 
 /// Where telemetry goes, given in code rather than by `OTEL_EXPORTER_OTLP_*`: a GUI app started
@@ -111,7 +116,8 @@ public func runTelemetry(_ services: [any Service]) async throws {
 /// Both paths: `exporter` nil reads the endpoint from the environment, as the services do.
 private func bootstrapOTLP(
     serviceName: String, exporter: OTLPExporterSettings?,
-    localLog: @escaping @Sendable (String) -> any LogHandler
+    localLog: @escaping @Sendable (String) -> any LogHandler,
+    durationHistogramBuckets: [String: [Duration]] = [:]
 ) throws -> [any Service] {
     func configured(_ configure: (inout OTel.Configuration) -> Void) -> OTel.Configuration {
         var config = OTel.Configuration.default
@@ -127,6 +133,7 @@ private func bootstrapOTLP(
             config.logs.otlpExporter.endpoint = exporter.endpoint(for: "logs")
             config.logs.otlpExporter.headers = exporter.headerPairs
         }
+        config.metrics.durationHistogramBuckets = durationHistogramBuckets
         configure(&config)
         return config
     }

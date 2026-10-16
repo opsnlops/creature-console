@@ -1,3 +1,25 @@
+creature-cli (2.88.0+world0.48.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.48.0, creature-agent 2.88.0: WorldMCP by the MCP
+    conventions (#230). The world serves each message as a SERVER span,
+    "tools/call query_entity", parented on the trace a mind puts in
+    params._meta, with mcp.server.operation.duration; the mind describes
+    its call on the execute_tool span it already has, and tools/list
+    gets a CLIENT span of its own. A bird's look-up and the world's
+    answer are one trace.
+  * creature-agent 2.88.0: the OpenTelemetry GenAI semantic conventions
+    (#230), so Honeycomb's AI views see the birds. A turn is
+    invoke_agent {bird} > chat {model} per round > execute_tool {tool},
+    with gen_ai.conversation.id the scene (a lone question: its
+    consideration; the nightly memory: its run). Usage, response ids,
+    finish reasons, time to first chunk, and reasoning tokens under the
+    spec's names; the gen_ai.client.inference.* metrics. The old llm.*
+    attributes and the creature_agent.llm.tokens counter are gone.
+    llmCaptureContent (off / output / all, default output) puts what
+    the birds said on the spans.
+
+ -- April White <april@creature.engineering>  Thu, 15 Oct 2026 19:00:00 -0700
+
 creature-cli (2.87.3+world0.47.3+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.47.3, creature-agent 2.87.3: a visit that ends,

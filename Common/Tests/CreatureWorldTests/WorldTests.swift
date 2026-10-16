@@ -572,8 +572,7 @@ struct WorldTests {
 
     @Test("Processing spans preserve parent context and exclude event payloads")
     func processingTelemetryIsPrivacySafeAndConnected() async throws {
-        let tracer = InMemoryTracer()
-        InstrumentationSystem.bootstrap(tracer)
+        let tracer = worldTestTracer
         let store = TestWorldStore()
         let world = World(
             eventStore: store,

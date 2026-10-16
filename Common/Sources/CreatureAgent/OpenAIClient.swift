@@ -2,7 +2,6 @@ import AsyncHTTPClient
 import Foundation
 import Logging
 import NIOCore
-import Tracing
 import WorldCore
 
 #if canImport(FoundationNetworking)
@@ -93,8 +92,10 @@ struct OpenAIClient: Sendable {
             request.timeoutInterval = tools == nil ? 60 : 90
 
             // One span per round: what it cost is on it.
-            let data = try await withSpan("llm.openai.responses") { span in
-                span.attributes["llm.model"] = model
+            let data = try await GenAI.inference(
+                genAIRequest(round: round, toolsOffered: offered.count),
+                input: GenAIMessages.input(transcript, extra: extra)
+            ) { inference in
                 let (data, response) = try await URLSession.shared.data(for: request)
                 guard let httpResponse = response as? HTTPURLResponse else {
                     throw OpenAIClientError.invalidResponse
@@ -105,11 +106,10 @@ struct OpenAIClient: Sendable {
                     throw OpenAIClientError.httpError(
                         code: httpResponse.statusCode, body: message)
                 }
-                if let usage = OpenAIResponseParser.usage(from: data) {
-                    LLMUsageRecord.record(
-                        usage, on: span, model: model, kind: LLMCallKind.current, round: round,
-                        toolsOffered: offered.count, logger: logger)
-                }
+                finish(
+                    inference, OpenAIResponseParser.summary(from: data),
+                    text: (try? OpenAIResponseParser.outputText(from: data)) ?? "",
+                    calls: OpenAIResponseParser.functionCalls(from: data), round: round)
                 return data
             }
             if traceResponses, let bodyString = String(data: data, encoding: .utf8) {
@@ -138,7 +138,11 @@ struct OpenAIClient: Sendable {
             var record = ModelTools.Call(
                 server: tools.serverLabel, name: call.name, arguments: call.arguments)
             do {
-                let output = try await tools.call(call.name, call.arguments)
+                let output = try await GenAI.executeTool(
+                    call.name, callID: call.callID, arguments: call.arguments
+                ) {
+                    try await tools.call(call.name, call.arguments)
+                }
                 record.output = output
                 items.append(.functionCallOutput(callID: call.callID, output: output))
                 logger.info("Looked it up: \(call.name) (\(output.count) chars)")
@@ -190,9 +194,10 @@ struct OpenAIClient: Sendable {
                             for: transcript, stream: true, tools: offered, extra: extra)
                         // One span per round: what it cost is on it, from the stream's
                         // closing event.
-                        let calls = try await withSpan("llm.openai.responses") { span in
-                            span.attributes["llm.model"] = model
-                            span.attributes["llm.streaming"] = true
+                        let calls = try await GenAI.inference(
+                            genAIRequest(stream: true, round: round, toolsOffered: offered.count),
+                            input: GenAIMessages.input(transcript, extra: extra)
+                        ) { inference in
                             var streamRequest = HTTPClientRequest(url: request.url!.absoluteString)
                             streamRequest.method = .POST
                             for (name, value) in request.allHTTPHeaderFields ?? [:] {
@@ -208,7 +213,10 @@ struct OpenAIClient: Sendable {
                             }
                             var parser = ServerSentEventParser()
                             var calls: [OpenAIResponseParser.FunctionCall] = []
+                            var summary: OpenAIResponseSummary?
+                            var text = ""
                             for try await buffer in response.body {
+                                inference.receivedFirstChunk()
                                 for frame in parser.feed(String(buffer: buffer)) {
                                     if let call = OpenAIResponseParser.streamedFunctionCall(
                                         fromData: frame.data)
@@ -216,25 +224,25 @@ struct OpenAIClient: Sendable {
                                         calls.append(call)
                                         continue
                                     }
-                                    if let usage = OpenAIResponseParser.streamedUsage(
+                                    if let closing = OpenAIResponseParser.streamedSummary(
                                         fromData: frame.data)
                                     {
-                                        LLMUsageRecord.record(
-                                            usage, on: span, model: model,
-                                            kind: LLMCallKind.current, round: round,
-                                            toolsOffered: offered.count, logger: logger)
+                                        summary = closing
                                         continue
                                     }
                                     guard
                                         let delta = OpenAIResponseParser.streamedDelta(
                                             fromData: frame.data)
                                     else { continue }
+                                    text += delta
                                     for sentence in assembler.feed(delta) {
                                         emit(sentence, final: false)
                                     }
                                 }
                             }
-                            span.attributes["llm.tool_calls"] = calls.count
+                            // A stream that ended without its closing event broke: the
+                            // round's finish reason says `error`.
+                            finish(inference, summary, text: text, calls: calls, round: round)
                             return calls
                         }
                         guard let tools, !calls.isEmpty else { break }
@@ -288,27 +296,24 @@ struct OpenAIClient: Sendable {
         var request = makeRequest(for: transcript, stream: false, json: true)
         request.timeoutInterval = 600
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw OpenAIClientError.invalidResponse
-        }
-        guard 200..<300 ~= httpResponse.statusCode else {
-            let message = String(data: data, encoding: .utf8) ?? ""
-            logger.error("OpenAI request failed with status \(httpResponse.statusCode)")
-            throw OpenAIClientError.httpError(code: httpResponse.statusCode, body: message)
-        }
-        // The night's cost, on the memory job's own span.
-        if let usage = OpenAIResponseParser.usage(from: data) {
-            withSpan("llm.openai.responses") { span in
-                span.attributes["llm.model"] = model
-                span.attributes["llm.json"] = true
-                LLMUsageRecord.record(
-                    usage, on: span, model: model, kind: LLMCallKind.current, round: 0,
-                    toolsOffered: 0, logger: logger)
+        return try await GenAI.inference(
+            genAIRequest(json: true), input: GenAIMessages.input(transcript)
+        ) { inference in
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw OpenAIClientError.invalidResponse
             }
+            guard 200..<300 ~= httpResponse.statusCode else {
+                let message = String(data: data, encoding: .utf8) ?? ""
+                logger.error("OpenAI request failed with status \(httpResponse.statusCode)")
+                throw OpenAIClientError.httpError(code: httpResponse.statusCode, body: message)
+            }
+            let output = try OpenAIResponseParser.outputText(from: data)
+            finish(
+                inference, OpenAIResponseParser.summary(from: data), text: output, calls: [],
+                round: 0)
+            return Data(output.utf8)
         }
-        let output = try OpenAIResponseParser.outputText(from: data)
-        return Data(output.utf8)
     }
 
     /// The same JSON request as `respondJSON` would post, as one line of a batch file - the
@@ -321,19 +326,49 @@ struct OpenAIClient: Sendable {
 
     /// The answer to a batched `respondJSON`, read from the batch's output: the same parsing,
     /// the night's cost on its own span with the batch named.
-    func jsonAnswer(fromBatch body: Data, batchID: String) throws -> Data {
-        if let usage = OpenAIResponseParser.usage(from: body) {
-            withSpan("llm.openai.responses") { span in
-                span.attributes["llm.model"] = model
-                span.attributes["llm.json"] = true
-                span.attributes["llm.batch"] = true
-                span.attributes["llm.batch.id"] = batchID
-                LLMUsageRecord.record(
-                    usage, on: span, model: model, kind: LLMCallKind.current, round: 0,
-                    toolsOffered: 0, logger: logger)
-            }
+    func jsonAnswer(fromBatch body: Data, batchID: String) async throws -> Data {
+        try await GenAI.inference(genAIRequest(json: true, batchID: batchID)) { inference in
+            let output = try OpenAIResponseParser.outputText(from: body)
+            finish(
+                inference, OpenAIResponseParser.summary(from: body), text: output, calls: [],
+                round: 0)
+            return Data(output.utf8)
         }
-        return Data(try OpenAIResponseParser.outputText(from: body).utf8)
+    }
+
+    // MARK: - Telemetry
+
+    /// This client's request, as the GenAI conventions describe one: the knobs it sends.
+    private func genAIRequest(
+        stream: Bool = false, json: Bool = false, round: Int = 0, toolsOffered: Int = 0,
+        batchID: String? = nil
+    ) -> GenAI.Request {
+        GenAI.Request(
+            model: model, stream: stream, json: json,
+            temperature: reasoningEffort == nil ? temperature : nil,
+            reasoningEffort: reasoningEffort, serviceTier: serviceTier, endpoint: endpoint,
+            round: round, toolsOffered: toolsOffered, batchID: batchID)
+    }
+
+    /// A round's answer onto its span, and its cost into the log - the raw `usage` object is
+    /// how the prompt-cache experiments are read.
+    private func finish(
+        _ inference: GenAI.Inference, _ summary: OpenAIResponseSummary?, text: String,
+        calls: [OpenAIResponseParser.FunctionCall], round: Int
+    ) {
+        inference.finished(summary, text: text, calls: calls)
+        guard let usage = summary?.usage else { return }
+        logger.info(
+            "LLM usage",
+            metadata: [
+                GenAI.Key.callKind: "\(GenAI.turn?.kind.rawValue ?? "unknown")",
+                GenAI.Key.requestModel: "\(model)",
+                GenAI.Key.inputTokens: "\(usage.inputTokens)",
+                GenAI.Key.cacheReadInputTokens: "\(usage.cachedTokens)",
+                GenAI.Key.outputTokens: "\(usage.outputTokens)",
+                GenAI.Key.reasoningOutputTokens: "\(usage.reasoningTokens)",
+                GenAI.Key.round: "\(round)", "creature_agent.usage.raw": "\(usage.raw)",
+            ])
     }
 }
 

@@ -141,7 +141,7 @@ struct AgentEventProcessor: Sendable {
             try await withSpan("agent.process_event") { span in
                 span.attributes["mqtt.topic"] = topic
                 span.attributes["agent.area"] = areaName
-                span.attributes["llm.backend"] = llmBackend.rawValue
+                span.attributes["creature_agent.llm_backend"] = llmBackend.rawValue
 
                 openAIRequestsCounter.increment()
 
@@ -149,7 +149,7 @@ struct AgentEventProcessor: Sendable {
                 // server as soon as it arrives from the LLM, so the creature
                 // starts talking while the LLM is still generating.
                 if let streamingRespond = respondToPromptStreaming {
-                    span.attributes["llm.streaming"] = true
+                    span.attributes[GenAI.Key.requestStream] = true
                     await processEventStreaming(
                         prompt: prompt,
                         topic: topic,
@@ -157,10 +157,10 @@ struct AgentEventProcessor: Sendable {
                         streamingRespond: streamingRespond
                     )
                 } else {
-                    span.attributes["llm.streaming"] = false
+                    span.attributes[GenAI.Key.requestStream] = false
                     let response = try await withSpan("llm.respond") { llmSpan in
-                        llmSpan.attributes["llm.backend"] = llmBackend.rawValue
-                        llmSpan.attributes["llm.model"] = llmModel
+                        llmSpan.attributes["creature_agent.llm_backend"] = llmBackend.rawValue
+                        llmSpan.attributes[GenAI.Key.requestModel] = llmModel
                         return try await respondToPrompt(prompt)
                     }
 

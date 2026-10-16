@@ -46,7 +46,7 @@ struct ProbeBatch: AsyncParsableCommand {
         let output = try await batches.output(
             of: batchID, every: .seconds(every),
             deadline: started.addingTimeInterval(Double(waitMinutes) * 60))
-        let answer = try client.jsonAnswer(
+        let answer = try await client.jsonAnswer(
             fromBatch: try OpenAIBatchClient.result(for: customID, in: output), batchID: batchID)
         print(
             "answer after \(Int(Date().timeIntervalSince(started))) s: \(String(decoding: answer, as: UTF8.self))"

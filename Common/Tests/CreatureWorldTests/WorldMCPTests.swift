@@ -2,8 +2,11 @@ import Foundation
 import HTTPTypes
 import Hummingbird
 import HummingbirdTesting
+import InMemoryTracing
 import Logging
+import Observability
 import Testing
+import Tracing
 import WorldCore
 
 @testable import creature_world
@@ -121,6 +124,71 @@ struct WorldMCPTests {
             let get = try await client.execute(uri: "/world/mcp", method: .get)
             #expect(get.status == .methodNotAllowed)
         }
+    }
+
+    @Test("Each MCP message is a SERVER span by the MCP conventions; a refusal says its code")
+    func tracesEachMessage() async throws {
+        _ = worldTestTracer
+        let world = MCPWorld()
+        let application = makeCreatureWorldApplication(
+            dependencies: .testing(
+                configuration: try CreatureWorldConfiguration(port: 8080),
+                logger: Logger(label: "mcp-tests"),
+                buildInfo: CreatureWorldBuildInfo(version: "mcp-test", schemaVersion: 1),
+                worldService: world,
+                conversationService: UnavailableConversationApplicationService(),
+                characterSessionService: UnavailableCharacterSessionApplicationService()),
+            apiConfiguration: .default)
+        let asked = "trace-\(UUID().uuidString)"
+        let refused = "refused-\(UUID().uuidString)"
+        try await application.test(.router) { client in
+            for json in [
+                #"{"jsonrpc":"2.0","id":"\#(asked)","method":"tools/call","params":{"name":"inspect_world_state","arguments":{"subject_id":"house:aprils-nest"},"_meta":{"audience":"minds","traceparent":"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"}}}"#,
+                #"{"jsonrpc":"2.0","id":"\#(refused)","method":"tools/call","params":{"name":"drop_the_database"}}"#,
+            ] {
+                _ = try await client.execute(
+                    uri: "/world/mcp", method: .post,
+                    headers: [.contentType: "application/json", .accept: "application/json"],
+                    body: ByteBuffer(string: json))
+            }
+        }
+        func span(_ id: String) throws -> FinishedInMemorySpan {
+            try #require(
+                worldTestTracer.finishedSpans.first {
+                    $0.attributes.get(MCPTelemetry.Key.jsonRPCRequestID) == .string(id)
+                })
+        }
+        let served = try span(asked)
+        #expect(served.operationName == "tools/call inspect_world_state")
+        #expect(served.kind == .server)
+        #expect(served.attributes.get(MCPTelemetry.Key.methodName) == .string("tools/call"))
+        #expect(
+            served.attributes.get(MCPTelemetry.Key.toolName) == .string("inspect_world_state"))
+        #expect(served.attributes.get(MCPTelemetry.Key.operationName) == .string("execute_tool"))
+        #expect(
+            served.attributes.get(MCPTelemetry.Key.protocolVersion)
+                == .string(WorldMCP.protocolVersion))
+        #expect(served.attributes.get(MCPTelemetry.Key.errorType) == nil)
+
+        let failed = try span(refused)
+        #expect(failed.operationName == "tools/call drop_the_database")
+        #expect(failed.attributes.get(MCPTelemetry.Key.errorType) == .string("-32601"))
+        #expect(failed.attributes.get(MCPTelemetry.Key.rpcResponseStatusCode) == .string("-32601"))
+        #expect(failed.status?.code == .error)
+    }
+
+    @Test("The caller's trace is read from params._meta; none, or a malformed one, is none")
+    func readsTheCallersTrace() throws {
+        let traced: WorldJSONValue = .object([
+            "_meta": .object([
+                "traceparent": .string("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01")
+            ])
+        ])
+        #expect(WorldMCP.callerContext(in: traced) != nil)
+        #expect(WorldMCP.callerContext(in: .object([:])) == nil)
+        #expect(
+            WorldMCP.callerContext(
+                in: .object(["_meta": .object(["traceparent": .string("not a trace")])])) == nil)
     }
 
     @Test(
