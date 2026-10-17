@@ -196,7 +196,11 @@ private struct StreamEvent: Decodable {
 private struct ResponseUsage: Decodable {
     struct InputDetails: Decodable {
         let cachedTokens: Int?
-        private enum CodingKeys: String, CodingKey { case cachedTokens = "cached_tokens" }
+        let cacheWriteTokens: Int?
+        private enum CodingKeys: String, CodingKey {
+            case cachedTokens = "cached_tokens"
+            case cacheWriteTokens = "cache_write_tokens"
+        }
     }
     struct OutputDetails: Decodable {
         let reasoningTokens: Int?
@@ -217,6 +221,7 @@ private struct ResponseUsage: Decodable {
     var value: LLMUsage {
         LLMUsage(
             inputTokens: inputTokens ?? 0, cachedTokens: inputTokensDetails?.cachedTokens ?? 0,
+            cacheWriteTokens: inputTokensDetails?.cacheWriteTokens ?? 0,
             outputTokens: outputTokens ?? 0,
             reasoningTokens: outputTokensDetails?.reasoningTokens ?? 0)
     }

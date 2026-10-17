@@ -176,6 +176,9 @@ struct LibrarianTests {
         #expect(instructions.contains("You are Beaky"))
         #expect(instructions.contains("never person.flight_landings"))
         #expect(instructions.contains("Never sure about a person from a role alone"))
+        // Old deliveries a bird kept are Beaky's to recommend; the mail's orders settle (#234).
+        #expect(instructions.contains("more than three days ago, retire it"))
+        #expect(instructions.contains("the world settles by itself"))
     }
 
     @Test(

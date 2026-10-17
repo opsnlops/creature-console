@@ -931,6 +931,14 @@ on the page; each upcoming calendar event is folded into one `calendar.event` an
 into one `reminder.item`, like the sensors - for the page only, never stored, `derived_from`
 naming every field.
 
+**Orders become history** (`0.56.0`, #234, docs/order-history-plan.md). Every minute, beside
+the delivery sweep, `DeliveryRule.settle` ends the orders the mail has finished with: delivered
+more than three days ago, or shipped or placed with no further word for two weeks, by the
+mail's own date (`order.updated_at`). Each is one `order.settled` event from `world:orders`
+(`status`, `last_heard`, `reason`), keyed by the status fact it settles; `OrderReducer` ends
+every reported `order.*` fact on the order, and they stay on the record as history. At most
+100 per pass.
+
 **What each scene is** (`0.55.0`, #241, docs/house-scene-descriptions-plan.md). `house_scenes`
 holds a line per scene and whether a bird may ask for it. The packaged config's
 `"house_scenes": {"Sleepy Time": {"description": "…", "askable": true}}` is written at startup

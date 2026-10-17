@@ -9,6 +9,10 @@ struct LLMUsage: Sendable, Equatable {
     /// The part of the input the provider served from its prompt cache (already counted in
     /// `inputTokens`; billed at a fraction).
     var cachedTokens: Int
+    /// The part of the input the provider wrote to its prompt cache on this call (already
+    /// counted in `inputTokens`; billed at 1.25x on GPT-5.6 and later). What a cache point
+    /// costs before anything reads it (#235).
+    var cacheWriteTokens: Int = 0
     var outputTokens: Int
     /// The part of the output spent reasoning (already counted in `outputTokens`).
     var reasoningTokens: Int = 0

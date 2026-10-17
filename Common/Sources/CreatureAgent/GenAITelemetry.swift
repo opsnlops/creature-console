@@ -39,6 +39,7 @@ enum GenAI {
         static let timeToFirstChunk = "gen_ai.response.time_to_first_chunk"
         static let inputTokens = "gen_ai.usage.input_tokens"
         static let cacheReadInputTokens = "gen_ai.usage.cache_read.input_tokens"
+        static let cacheCreationInputTokens = "gen_ai.usage.cache_creation.input_tokens"
         static let outputTokens = "gen_ai.usage.output_tokens"
         static let reasoningOutputTokens = "gen_ai.usage.reasoning.output_tokens"
         static let inputMessages = "gen_ai.input.messages"
@@ -66,6 +67,8 @@ enum GenAI {
     enum Metric {
         static let inputTokens = "gen_ai.client.inference.usage.input_tokens"
         static let cacheReadInputTokens = "gen_ai.client.inference.usage.cache_read.input_tokens"
+        static let cacheCreationInputTokens =
+            "gen_ai.client.inference.usage.cache_creation.input_tokens"
         static let outputTokens = "gen_ai.client.inference.usage.output_tokens"
         static let reasoningOutputTokens = "gen_ai.client.inference.usage.reasoning.output_tokens"
         static let inferenceDuration = "gen_ai.client.inference.duration"
@@ -309,6 +312,7 @@ enum GenAI {
     static func record(_ usage: LLMUsage, on span: any Span) {
         span.attributes[Key.inputTokens] = usage.inputTokens
         span.attributes[Key.cacheReadInputTokens] = usage.cachedTokens
+        span.attributes[Key.cacheCreationInputTokens] = usage.cacheWriteTokens
         span.attributes[Key.outputTokens] = usage.outputTokens
         span.attributes[Key.reasoningOutputTokens] = usage.reasoningTokens
     }
@@ -326,6 +330,7 @@ enum GenAI {
         for (label, count) in [
             (Metric.inputTokens, usage?.inputTokens ?? 0),
             (Metric.cacheReadInputTokens, usage?.cachedTokens ?? 0),
+            (Metric.cacheCreationInputTokens, usage?.cacheWriteTokens ?? 0),
             (Metric.outputTokens, usage?.outputTokens ?? 0),
             (Metric.reasoningOutputTokens, usage?.reasoningTokens ?? 0),
         ] {

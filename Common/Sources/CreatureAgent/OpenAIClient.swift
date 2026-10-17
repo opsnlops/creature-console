@@ -365,6 +365,7 @@ struct OpenAIClient: Sendable {
                 GenAI.Key.requestModel: "\(model)",
                 GenAI.Key.inputTokens: "\(usage.inputTokens)",
                 GenAI.Key.cacheReadInputTokens: "\(usage.cachedTokens)",
+                GenAI.Key.cacheCreationInputTokens: "\(usage.cacheWriteTokens)",
                 GenAI.Key.outputTokens: "\(usage.outputTokens)",
                 GenAI.Key.reasoningOutputTokens: "\(usage.reasoningTokens)",
                 GenAI.Key.round: "\(round)", "creature_agent.usage.raw": "\(usage.raw)",

@@ -2,6 +2,7 @@ import AsyncHTTPClient
 import Foundation
 import Hummingbird
 import HummingbirdTesting
+import InMemoryTracing
 import Logging
 import NIOCore
 import Testing
@@ -239,6 +240,24 @@ struct OpenAIClientTests {
                 fromData: #"{"type":"response.output_text.delta","delta":"Hi"}"#) == nil)
         #expect(OpenAIResponseParser.streamedDelta(fromData: completed) == nil)
         #expect(LLMUsage(inputTokens: 10, cachedTokens: 30, outputTokens: 1).uncachedTokens == 0)
+        // What the call wrote to the cache, as GPT-5.6 and later report it (#235); none
+        // reported is none written.
+        #expect(usage.cacheWriteTokens == 0)
+        let written =
+            #"{"type":"response.completed","response":{"id":"r2","usage":{"input_tokens":10538,"input_tokens_details":{"cached_tokens":4700,"cache_write_tokens":5838},"output_tokens":30}}}"#
+        let write = try #require(OpenAIResponseParser.streamedUsage(fromData: written))
+        #expect((write.cachedTokens, write.cacheWriteTokens) == (4700, 5838))
+    }
+
+    @Test("A cache write is on the span by the conventions' name (#235)")
+    func cacheWriteOnTheSpan() {
+        let tracer = InMemoryTracer()
+        let span = tracer.startSpan("chat gpt-6-luna")
+        GenAI.record(
+            LLMUsage(inputTokens: 100, cachedTokens: 40, cacheWriteTokens: 60, outputTokens: 5),
+            on: span)
+        #expect(span.attributes.get("gen_ai.usage.cache_creation.input_tokens") == .int64(60))
+        #expect(span.attributes.get("gen_ai.usage.cache_read.input_tokens") == .int64(40))
     }
 
     @Test("The same request is the same bytes, tools and all - the cached prefix depends on it")

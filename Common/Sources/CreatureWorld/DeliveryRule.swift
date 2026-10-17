@@ -95,6 +95,64 @@ actor DeliveryRule {
         return inForce
     }
 
+    /// How long a delivered order stays current, and how long a shipped or placed one does with
+    /// no further word from the mail (#234; April chose three days and two weeks). After that
+    /// the order is history: its `order.*` facts end, and stay on the record.
+    static let deliveredFor: TimeInterval = 3 * 86_400
+    static let quietFor: TimeInterval = 14 * 86_400
+    /// The most orders settled in one pass, so a first sweep of a month's backlog is gentle.
+    static let maximumSettledPerSweep = 100
+
+    /// Ends the orders the mail has finished with: delivered three days ago, or shipped and
+    /// silent for two weeks. The order on 2026-09-14 that had the birds expecting a June DJI
+    /// mic "tomorrow" was a `shipped` from June, still current in September. Returns the
+    /// orders settled.
+    @discardableResult
+    func settle(now: Date) async throws -> [EntityID] {
+        let statuses = try await facts.currentFacts(
+            about: [], predicate: "order.status", limit: 2_000, at: now)
+        var settled: [EntityID] = []
+        for status in statuses where status.subjectID.rawValue.hasPrefix("order:") {
+            guard settled.count < Self.maximumSettledPerSweep,
+                case .string(let state) = status.value
+            else { continue }
+            let order = try await facts.currentFacts(subjectID: status.subjectID, at: now)
+            let updated = order.first { $0.predicate == "order.updated_at" }
+            let spoken =
+                (updated.flatMap { fact -> Date? in
+                    if case .string(let raw) = fact.value { return WorldJSON.date(from: raw) }
+                    return nil
+                }) ?? status.validFrom
+            let age = now.timeIntervalSince(spoken)
+            let reason: String
+            if state == "delivered" {
+                guard age >= Self.deliveredFor else { continue }
+                reason = "delivered more than three days ago"
+            } else {
+                guard age >= Self.quietFor else { continue }
+                reason = "\(state), and no word from the mail in two weeks"
+            }
+            try await accept(
+                try WorldEventEnvelope(
+                    type: OrderReducer.settled,
+                    occurredAt: now,
+                    // Keyed by the status it settles: a later word from the mail is a new
+                    // status, and settles again in its time.
+                    source: EventSource(
+                        id: Self.sourceID, kind: "world",
+                        sourceEventID: "settled:\(status.factID.rawValue)"),
+                    subjectIDs: [status.subjectID],
+                    epistemic: EpistemicState(type: .observed, confidence: 1),
+                    payload: [
+                        "status": .string(state),
+                        "last_heard": .string(WorldJSON.timestamp(spoken)),
+                        "reason": .string(reason),
+                    ]))
+            settled.append(status.subjectID)
+        }
+        return settled
+    }
+
     private func endOfDay(_ now: Date) -> Date {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = zone
@@ -107,4 +165,23 @@ actor DeliveryRule {
         "delivery.arrived":
             "a package the carrier says it delivered to the house, in the last few hours",
     ]
+}
+
+/// `order.settled` → every reported `order.*` fact on the order ends, and stays on the record
+/// as what was (#234). Not a deletion: the Viewer and the tools can still say what happened.
+struct OrderReducer: WorldReducer {
+    static let settled = WorldEventType(rawValue: "order.settled")!
+    static let prefix = "order."
+
+    let eventTypes: Set<WorldEventType> = [Self.settled]
+
+    func reduce(_ event: WorldEventEnvelope) throws -> WorldReduction {
+        guard let order = event.subjectIDs.first else { return WorldReduction() }
+        return WorldReduction(retractions: [
+            FactRetraction(
+                subjectID: order, predicatePrefix: Self.prefix, except: [],
+                producer: FactProducer(kind: PresenceFacts.producerKind, id: "orders", version: "1")
+            )
+        ])
+    }
 }

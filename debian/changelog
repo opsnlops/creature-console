@@ -1,3 +1,17 @@
+creature-cli (2.96.0+world0.56.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.56.0: orders become history (#234). A delivered
+    order stops being current three days after the mail said so; a
+    shipped or placed one with no further word, after two weeks. Each
+    is one order.settled event; its order facts end and stay on the
+    record. The age is the mail's own date, not the backfill's.
+  * creature-agent 2.96.0: the librarian recommends retiring deliveries
+    a bird kept that are more than three days old (#234). Every chat
+    span records the tokens written to the prompt cache,
+    gen_ai.usage.cache_creation.input_tokens, beside those read (#235).
+
+ -- April White <april@creature.engineering>  Sat, 17 Oct 2026 00:45:00 -0700
+
 creature-cli (2.95.0+world0.55.1+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.55.1: the packaged scene drafts carry April's own

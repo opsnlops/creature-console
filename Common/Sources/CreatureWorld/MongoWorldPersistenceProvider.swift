@@ -85,7 +85,7 @@ struct MongoWorldPersistenceConnection: Sendable {
             factStore: persistence.facts,
             reducers: [
                 CharacterPresenceReducer(), AssumedPersonPresenceReducer(), SceneMemoryReducer(),
-                GivenFactReducer(), FilingReducer(), HouseReducer(),
+                GivenFactReducer(), FilingReducer(), HouseReducer(), OrderReducer(),
             ],
             clock: clock
         )
@@ -241,6 +241,8 @@ struct MongoWorldPersistenceConnection: Sendable {
                 do {
                     try await visitorRule.sweep(now: await clock.now)
                     try await deliveryRule.sweep(now: await clock.now)
+                    // And the orders the mail has finished with become history (#234).
+                    try await deliveryRule.settle(now: await clock.now)
                     try await departureRule.sweep(now: await clock.now)
                     try await reminderRule.sweep(now: await clock.now)
                 } catch {

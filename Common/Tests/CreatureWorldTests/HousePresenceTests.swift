@@ -785,6 +785,67 @@ struct RecentHappeningsTests {
         #expect(!anything.contains { $0.subjectID == stale })
     }
 
+    @Test("Orders the mail has finished with become history: three days delivered, two weeks quiet")
+    func ordersSettle() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "delivery-rule-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let now = Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down))
+        let clock = ManualWorldClock(now: now)
+        let world = World(
+            eventStore: persistence.events, factStore: persistence.facts,
+            reducers: [OrderReducer()], clock: clock)
+        func order(_ name: String, _ status: String, heard daysAgo: Double) async throws
+            -> EntityID
+        {
+            let id = try EntityID(validating: "order:\(name)-\(suffix)")
+            for (predicate, value) in [
+                ("order.merchant", WorldJSONValue.string("Adafruit")),
+                ("order.status", .string(status)),
+                (
+                    "order.updated_at",
+                    .string(WorldJSON.timestamp(now - daysAgo * 86_400))
+                ),
+            ] {
+                try await persistence.facts.save(
+                    try Fact(
+                        subjectID: id, predicate: predicate, value: value,
+                        epistemic: EpistemicState(type: .reported, confidence: 1),
+                        validFrom: now - 60, validTo: now + 3_600, derivedFrom: [],
+                        producer: FactProducer(kind: "bridge", id: "mail", version: "1"),
+                        origin: SourceID(validating: "bridge:mail")))
+            }
+            return id
+        }
+        let delivered = try await order("delivered", "delivered", heard: 4)
+        let justDelivered = try await order("just", "delivered", heard: 1)
+        let lost = try await order("lost", "shipped", heard: 20)
+        let onTheWay = try await order("way", "shipped", heard: 5)
+        let rule = DeliveryRule(
+            house: try EntityID(validating: "house:aprils-nest"), facts: persistence.facts,
+            zone: TimeZone(identifier: "America/Los_Angeles")!
+        ) { _ = try await world.accept($0) }
+
+        let settled = try await rule.settle(now: now)
+        #expect(settled.contains(delivered))
+        #expect(settled.contains(lost))
+        #expect(!settled.contains(justDelivered))
+        #expect(!settled.contains(onTheWay))
+        // Settled: nothing current on the order; the facts stay on the record as what was.
+        for id in [delivered, lost] {
+            #expect(try await persistence.facts.currentFacts(subjectID: id, at: now + 5).isEmpty)
+        }
+        for id in [justDelivered, onTheWay] {
+            #expect(
+                try await persistence.facts.currentFacts(subjectID: id, at: now + 5).count == 3)
+        }
+        // Said once: the next pass finds nothing more to settle among these.
+        let again = try await rule.settle(now: now + 60)
+        #expect(!again.contains(delivered) && !again.contains(lost))
+    }
+
     @Test("A world-only kind never reaches a mind; a link brings the linked entity along")
     func audienceAndLinks() async throws {
         let uri = try #require(mongoTestURI)

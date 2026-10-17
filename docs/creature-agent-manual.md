@@ -276,6 +276,12 @@ else — persona, facts, the clock, streaming to the room — is identical.
   one, whoever the world says is present or spoke that day — and guesses person or place only
   for names it does not know. The learned contract also asks for a kind the world already has
   before inventing one, and not to keep what another bird just kept in the same scene.
+- **Old deliveries, and what the cache costs** (`2.96.0`, #234, #235). The librarian is told
+  that a delivery a bird kept is news only for a few days, and to recommend retiring it once
+  it arrived or was due more than three days ago; the mail's own orders the World settles by
+  itself. Every chat span now carries `gen_ai.usage.cache_creation.input_tokens` (OpenAI's
+  `cache_write_tokens`, billed at 1.25x) beside the cache reads, with the matching metric
+  and usage log field.
 - **What each scene is** (`2.95.0`, #241). The house-ask contract lists each scene on its own
   line with what it does, as `/v1/house/asks` describes it ("- Sleepy Time: Late at night,
   dims the outside lights…"); a scene with no description is listed by name, and a scene set

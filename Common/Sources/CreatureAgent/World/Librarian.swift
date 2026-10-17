@@ -185,7 +185,10 @@ struct Librarian: Sendable {
         said - never less, never anything they did not say. A replaced value under \
         "written over" may be folded back in.
         - Retire what is no longer so: news that is old now, a plan whose day is past, \
-        something a newer fact contradicts. Never retire something only because it is old.
+        something a newer fact contradicts. Never retire something only because it is old. \
+        A delivery a bird kept - a package delivered, on its way, or expected - is news only \
+        for a few days: once it arrived, or was due, more than three days ago, retire it. \
+        The mail's own orders (order:...) the world settles by itself; leave those.
         - Same is for ids that are one thing: one place, one person, one plan. Sure only when \
         the record itself says so - the same name, the same description. Never sure about a \
         person from a role alone: two people can both clean a house. When not sure, it is \
