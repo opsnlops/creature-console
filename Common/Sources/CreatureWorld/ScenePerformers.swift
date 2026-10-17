@@ -134,8 +134,8 @@ struct CreatureServerScenePerformer: ScenePerforming, Sendable {
             let request = try configuration.request(path: "api/v1/animation/dialog", body: body)
             let now = await clock.now
             do {
-                let response = try await client.execute(
-                    request, timeout: .seconds(30), logger: logger)
+                let response = try await CreatureServerConfiguration.execute(
+                    request, on: client, timeout: .seconds(30), logger: logger, span: span)
                 let data = Data(try await response.body.collect(upTo: 1_048_576).readableBytesView)
                 span.attributes["http.response.status_code"] = Int(response.status.code)
                 guard (200..<300).contains(response.status.code) else {
@@ -180,6 +180,56 @@ struct CreatureServerScenePerformer: ScenePerforming, Sendable {
 }
 
 extension CreatureServerConfiguration {
+    /// How many times a request dropped before it was read is sent again: a pool can hold
+    /// several dead connections in a row.
+    static let droppedConnectionRetries = 2
+    /// A drop sooner than this never reached a handler: a start takes ~60 ms (#237).
+    static let droppedBeforeRead: Duration = .milliseconds(50)
+
+    /// Sends `request`, and sends it again when Creature Server closed the connection before
+    /// reading it. On 2026-10-16 four of five scenes went quiet: every dialog-stream start came
+    /// back `remoteConnectionClosed` in under a millisecond, with no span on the server - the
+    /// request never reached a handler - and the World gave up on the first (#237). Only a
+    /// fast drop is retried, so nothing the server acted on is sent twice; for that reason
+    /// this is for a start or a whole dialog, never a turn, which would be spoken twice.
+    static func execute(
+        _ request: HTTPClientRequest, on client: HTTPClient, timeout: TimeAmount,
+        logger: Logger, span: any Span
+    ) async throws -> HTTPClientResponse {
+        var attempt = 0
+        while true {
+            let started = ContinuousClock.now
+            do {
+                return try await client.execute(request, timeout: timeout, logger: logger)
+            } catch {
+                guard Self.isDroppedConnection(error), attempt < droppedConnectionRetries,
+                    ContinuousClock.now - started < droppedBeforeRead
+                else { throw error }
+                attempt += 1
+                span.attributes["http.request.resend_count"] = attempt
+                logger.info(
+                    "Creature Server closed the connection before reading the request; sending again",
+                    metadata: ["attempt": "\(attempt)", "error": "\(error)"])
+            }
+        }
+    }
+
+    /// A connection closed under the request: `remoteConnectionClosed` from a pooled one;
+    /// `ioOnClosedChannel` or a reset when a fresh one is closed as it opens - which of them
+    /// depends on the timing.
+    static func isDroppedConnection(_ error: any Error) -> Bool {
+        if let error = error as? HTTPClientError { return error == .remoteConnectionClosed }
+        if let error = error as? ChannelError { return error == .ioOnClosedChannel }
+        if let error = error as? IOError { return error.errnoCode == ECONNRESET }
+        #if canImport(Network)
+            // On Apple platforms the client runs on Network.framework, and says it so.
+            if let error = error as? HTTPClient.NWPOSIXError {
+                return error.errorCode == .ECONNRESET
+            }
+        #endif
+        return false
+    }
+
     /// A JSON POST to Creature Server, through the proxy when one is configured.
     func request(path: String, body: [String: Any]) throws -> HTTPClientRequest {
         var request = HTTPClientRequest(url: url.appending(path: path).absoluteString)
@@ -354,8 +404,8 @@ actor StreamingScenePerformer: ScenePerforming {
                         "creature_ids": creatureIDs, "stage_id": stageID,
                         "resume_playlist": true,
                     ])
-                let response = try await client.execute(
-                    request, timeout: .seconds(15), logger: logger)
+                let response = try await CreatureServerConfiguration.execute(
+                    request, on: client, timeout: .seconds(15), logger: logger, span: span)
                 let data = Data(try await response.body.collect(upTo: 65_536).readableBytesView)
                 span.attributes["http.response.status_code"] = Int(response.status.code)
                 guard response.status.code == 200,
@@ -404,8 +454,10 @@ actor StreamingScenePerformer: ScenePerforming {
                 let response = try await client.execute(
                     request, timeout: .seconds(15), logger: logger)
                 span.attributes["http.response.status_code"] = Int(response.status.code)
+                // Read every body, a 200's too: one left unread keeps the connection from
+                // going back to the pool whole.
+                let data = Data(try await response.body.collect(upTo: 65_536).readableBytesView)
                 if response.status.code != 200 {
-                    let data = Data(try await response.body.collect(upTo: 65_536).readableBytesView)
                     logger.error(
                         "Creature Server dropped a scene turn",
                         metadata: [

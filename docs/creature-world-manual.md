@@ -930,6 +930,14 @@ on the page; each upcoming calendar event is folded into one `calendar.event` an
 into one `reminder.item`, like the sensors - for the page only, never stored, `derived_from`
 naming every field.
 
+**A dropped connection is sent again** (`0.53.1`, #237). A dialog-stream start, or a whole
+dialog for Creature Server to render, whose connection closes in under 50 ms is sent again,
+twice at most. That covers `remoteConnectionClosed` from a pooled connection, and
+`ioOnClosedChannel` or a reset from a fresh one. A failure that fast never reached a handler,
+so nothing is done twice. The span carries `http.request.resend_count`. Turns are never
+re-sent: one the server did read would be spoken twice. On 2026-10-16 every start in a
+four-minute window failed this way, and four of five scenes went quiet.
+
 **Applying a night's filing** (`0.52.0`, #229 Ship 2, `docs/durable-learning-plan.md`). The
 librarian proposes (`memory.filed`, watching); April applies from the World Viewer. Two
 nights of proposals showed why the World checks each item first: the rewrites were good, but a

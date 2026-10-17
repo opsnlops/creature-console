@@ -1,3 +1,17 @@
+creature-cli (2.92.0+world0.53.1+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.53.1: a scene survives a connection Creature Server
+    drops before reading (#237). On 2026-10-16 four of five scenes went
+    quiet: every dialog-stream start came back remoteConnectionClosed in
+    under a millisecond, never reaching a handler, and the World gave
+    up on the first. A start or a whole dialog that fails that fast
+    (under 50 ms, so nothing was acted on) is sent again, twice at most;
+    a turn never is, since it would be spoken twice. Every turn's
+    response body is read, a 200's too, so its connection goes back to
+    the pool whole.
+
+ -- April White <april@creature.engineering>  Fri, 16 Oct 2026 21:30:00 -0700
+
 creature-cli (2.92.0+world0.53.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.92.0, creature-world 0.53.0: the librarian renames
