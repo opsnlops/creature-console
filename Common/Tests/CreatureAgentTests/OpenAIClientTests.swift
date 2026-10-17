@@ -249,6 +249,50 @@ struct OpenAIClientTests {
         #expect((write.cachedTokens, write.cacheWriteTokens) == (4700, 5838))
     }
 
+    @Test(
+        "Explicit cache points: the stable parts and the conversation so far, nothing else (#235)")
+    func explicitCachePoints() throws {
+        let request = ResponseRequest(
+            model: "gpt-6-luna",
+            transcript: [
+                .init(role: .system, cachedParts: ["The contract.", "You are Mango."]),
+                .init(role: .user, content: "Hello", cachePoint: true),
+                .init(role: .user, content: "The moment."),
+            ],
+            temperature: 1, reasoningEffort: nil, stream: true, cacheKey: "gpt-6-luna")
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        let json = String(decoding: try encoder.encode(request), as: UTF8.self)
+        let point = #""prompt_cache_breakpoint":{"mode":"explicit"}"#
+        #expect(json.contains(#""prompt_cache_options":{"mode":"explicit"}"#))
+        #expect(json.contains(#""prompt_cache_key":"gpt-6-luna""#))
+        #expect(
+            json.contains(
+                #"{"content":[{\#(point),"text":"The contract.","type":"input_text"},{\#(point),"text":"You are Mango.","type":"input_text"}],"role":"developer"}"#
+            ))
+        #expect(
+            json.contains(
+                #"{"content":[{\#(point),"text":"Hello","type":"input_text"}],"role":"user"}"#))
+        #expect(
+            json.contains(
+                #"{"content":[{"text":"The moment.","type":"input_text"}],"role":"user"}"#))
+        #expect(json.components(separatedBy: "prompt_cache_breakpoint").count - 1 == 3)
+        // A night's memory marks nothing, so nothing of it is written to the cache.
+        let night = ResponseRequest(
+            model: "gpt-6-astra", transcript: [.init(role: .user, content: "The day.")],
+            temperature: 1, reasoningEffort: "medium", stream: false, json: true)
+        let nightJSON = String(decoding: try encoder.encode(night), as: UTF8.self)
+        #expect(nightJSON.contains(#""prompt_cache_options":{"mode":"explicit"}"#))
+        #expect(!nightJSON.contains("prompt_cache_breakpoint"))
+        // And the old way, for a model that wants it.
+        let implicit = ResponseRequest(
+            model: "gpt-6-luna", transcript: [.init(role: .user, content: "Hi")], temperature: 1,
+            reasoningEffort: nil, stream: false, cache: LLMCacheSettings(explicit: false))
+        #expect(
+            !String(decoding: try encoder.encode(implicit), as: UTF8.self).contains(
+                "prompt_cache_options"))
+    }
+
     @Test("A cache write is on the span by the conventions' name (#235)")
     func cacheWriteOnTheSpan() {
         let tracer = InMemoryTracer()

@@ -276,6 +276,16 @@ else — persona, facts, the clock, streaming to the room — is identical.
   one, whoever the world says is present or spoke that day — and guesses person or place only
   for names it does not know. The learned contract also asks for a kind the world already has
   before inventing one, and not to keep what another bird just kept in the same scene.
+- **The chorus shares one prompt cache** (`2.97.0`, #235, docs/token-costs-plan.md). Every
+  OpenAI request is in explicit cache mode (`llmCache.explicit`, default true): only marked
+  parts are written to the cache. The stable item is one developer message in two cached
+  parts, what every bird on the model is told alike first (contract, house scenes, glossary)
+  and this bird's persona after it, and the last turn of the conversation so far is a cache
+  point too. The moment and a night's memory are never written. `prompt_cache_key` is the
+  model name, so Mango, Kenny and Caroll read one cached copy of the shared part; caches cross
+  API keys within the organization, so each bird keeps its own key. The usage log line now
+  uses `llm.usage.*` names, never the spans' `gen_ai.usage.*`. A local model's single system
+  message is unchanged, persona first.
 - **Old deliveries, and what the cache costs** (`2.96.0`, #234, #235). The librarian is told
   that a delivery a bird kept is news only for a few days, and to recommend retiring it once
   it arrived or was due more than three days ago; the mail's own orders the World settles by

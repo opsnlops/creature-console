@@ -794,7 +794,7 @@ struct CharacterMind: Sendable {
                 isLead: offer.turns.isEmpty,
                 mayDecline: offer.trigger.kind == .houseConsideration)
         }
-        let stable = configuration.persona.renderedForEveryone() + "\n\n" + core
+        let persona = configuration.persona.renderedForEveryone()
         let moment = Self.hereNow(present, pronouns: pronouns) + " " + situation
         var script = ""
         switch offer.trigger.kind {
@@ -810,7 +810,7 @@ struct CharacterMind: Sendable {
         }
         script += "\(configuration.characterName.capitalized):"
         return layered(
-            stable: stable, moment: moment, facts: offer.worldFacts,
+            shared: core, persona: persona, moment: moment, facts: offer.worldFacts,
             happenings: offer.recentHappenings, meanings: offer.factMeanings,
             recentLines: offer.recentLines, now: now,
             turns: [LocalLLMClient.Message(role: .user, content: script)])
@@ -1128,11 +1128,11 @@ struct CharacterMind: Sendable {
             + FactPhrasing.presentCharacters(in: percept.worldFacts)
         let pronouns = FactPhrasing.pronouns(in: percept.worldFacts)
         let house = HouseTag.contract(configuration.houseAsks?())
-        let stable =
-            configuration.persona.renderedForEveryone()
-            + "\n\n" + Self.contract(for: route)
+        let shared =
+            Self.contract(for: route)
             + (configuration.tools == nil ? "" : " " + ModelTools.contract)
             + (house.isEmpty ? "" : " " + house)
+        let persona = configuration.persona.renderedForEveryone()
         let moment = Self.hereNow(present, pronouns: pronouns)
         let prior = percept.priorConversationItems
             .sorted { ($0.createdAt, $0.itemID.rawValue) < ($1.createdAt, $1.itemID.rawValue) }
@@ -1146,7 +1146,7 @@ struct CharacterMind: Sendable {
         turns.append(LocalLLMClient.Message(role: .user, content: percept.utterance.text))
         turns = Self.openingWithTheUser(Self.coalescingConsecutiveTurns(turns))
         return layered(
-            stable: stable, moment: moment, facts: percept.worldFacts,
+            shared: shared, persona: persona, moment: moment, facts: percept.worldFacts,
             happenings: percept.recentHappenings, meanings: percept.factMeanings,
             recentLines: percept.recentLines, now: now, turns: turns)
     }
@@ -1175,17 +1175,22 @@ struct CharacterMind: Sendable {
     /// it whole, so a moment sent as developer text - changing every minute - emptied the
     /// cache on every call (found with `probe-cache`, 2026-09-17: 0 of 3,847 tokens cached as
     /// developer, 3,798 as user). It says it is the world's note, not April's message.
+    /// The prompt in its layers. `shared` is what every bird on a model is told alike - the
+    /// contract, the house's scenes, the glossary - and goes first, so the chorus reads one
+    /// cached copy of it; `persona` is this bird's own, after it (#235). April: "only the
+    /// first bird has a cold cache and everyone else is reading from a warm one."
     func layered(
-        stable: String, moment: String, facts: [Fact], happenings: [Happening],
-        meanings: [String: String], recentLines: [SpokenLine] = [], now: Date,
-        turns: [LocalLLMClient.Message]
+        shared: String, persona: String, moment: String, facts: [Fact],
+        happenings: [Happening], meanings: [String: String], recentLines: [SpokenLine] = [],
+        now: Date, turns: [LocalLLMClient.Message]
     ) -> [LocalLLMClient.Message] {
         switch configuration.knowledgePlacement {
         case .withinSystem:
+            // A local chat template wants one system message, persona first as it always was.
             return [
                 LocalLLMClient.Message(
                     role: .system,
-                    content: stable + (moment.isEmpty ? "" : "\n\n" + moment)
+                    content: persona + "\n\n" + shared + (moment.isEmpty ? "" : "\n\n" + moment)
                         + knowledgeBlock(
                             facts, happenings: happenings, meanings: Self.byFamily(meanings),
                             recentLines: recentLines, now: now))
@@ -1199,7 +1204,7 @@ struct CharacterMind: Sendable {
                 glossary.isEmpty
                 ? [:] : Self.byFamily(meanings).filter { glossary[$0.key] == nil }
             let stableItem = LocalLLMClient.Message(
-                role: .system, content: stable + Self.meaningsBlock(known))
+                role: .system, cachedParts: [shared + Self.meaningsBlock(known), persona])
             let momentItem = LocalLLMClient.Message(
                 role: .user,
                 content: Self.momentPreface + "\n" + (moment.isEmpty ? "" : moment + "\n")
@@ -1208,7 +1213,11 @@ struct CharacterMind: Sendable {
                             facts, happenings: happenings, meanings: extra,
                             recentLines: recentLines, now: now
                         ).drop(while: \.isNewline)))
-            return [stableItem] + turns.dropLast() + [momentItem] + turns.suffix(1)
+            // The conversation so far is cached too, for this bird's next turn; the moment,
+            // which changes every call, never is.
+            var prior = Array(turns.dropLast())
+            if let last = prior.indices.last { prior[last].cachePoint = true }
+            return [stableItem] + prior + [momentItem] + turns.suffix(1)
         }
     }
 

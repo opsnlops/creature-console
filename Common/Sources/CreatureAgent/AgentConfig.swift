@@ -214,7 +214,8 @@ struct AgentConfig: Decodable {
         llmServiceTier = try container.decodeIfPresent(String.self, forKey: .llmServiceTier)
         let cache = try container.decodeIfPresent(CacheKnobs.self, forKey: .llmCache)
         llmCache = LLMCacheSettings(
-            store: cache?.store ?? false, key: cache?.key ?? true, retention: cache?.retention)
+            store: cache?.store ?? false, key: cache?.key ?? true, retention: cache?.retention,
+            explicit: cache?.explicit ?? true)
         llmMemoryModel = try container.decodeIfPresent(String.self, forKey: .llmMemoryModel)
         llmMemoryBatch = try container.decodeIfPresent(Bool.self, forKey: .llmMemoryBatch) ?? true
         llmMemoryBatchWaitHours =
@@ -366,9 +367,10 @@ struct AgentConfig: Decodable {
     }
 }
 
-/// `llmCache` in the config file: `store`, `key`, `retention`.
+/// `llmCache` in the config file: `store`, `key`, `retention`, `explicit`.
 private struct CacheKnobs: Decodable {
     let store: Bool?
     let key: Bool?
     let retention: String?
+    let explicit: Bool?
 }

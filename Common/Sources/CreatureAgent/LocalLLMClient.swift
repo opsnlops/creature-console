@@ -52,6 +52,25 @@ struct LocalLLMClient {
 
         let role: Role
         let content: String
+        /// Ends a part of the prompt the provider should cache, for the calls that follow:
+        /// the conversation so far (#235). A local model ignores it.
+        var cachePoint = false
+        /// The same content in parts, each ending in a cache point, for a provider that takes
+        /// them: the stable part every bird on a model shares, then this bird's persona. Empty,
+        /// and the content goes as one part.
+        var parts: [String] = []
+
+        init(role: Role, content: String, cachePoint: Bool = false) {
+            self.role = role
+            self.content = content
+            self.cachePoint = cachePoint
+        }
+
+        /// One message of cached parts, read as one text by anything that takes no parts.
+        init(role: Role, cachedParts parts: [String]) {
+            self.init(role: role, content: parts.joined(separator: "\n\n"))
+            self.parts = parts
+        }
     }
 
     /// Non-streaming response — waits for the full LLM output.

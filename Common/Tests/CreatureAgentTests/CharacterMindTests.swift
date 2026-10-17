@@ -135,13 +135,17 @@ struct CharacterMindTests {
 
         let transcript = mind.makeTranscript(for: percept, now: now)
 
-        // Persona and contract, then the turns, then the moment - a user item, since a second
-        // developer item would be folded into the instructions and hashed with them - then
-        // the newest.
+        // The stable item in two cached parts - what every bird on the model shares (the
+        // contract, the glossary), then this bird's persona (#235) - then the turns, the last
+        // of them cached, then the moment - a user item, since a second developer item would
+        // be folded into the instructions and hashed with them - then the newest.
         #expect(transcript.map(\.role) == [.system, .user, .assistant, .user, .user])
-        #expect(transcript[0].content.hasPrefix("You are Beaky."))
-        #expect(transcript[0].content.contains("The conversation so far is shown above"))
+        #expect(transcript[0].parts.count == 2)
+        #expect(transcript[0].parts[0].contains("The conversation so far is shown above"))
+        #expect(!transcript[0].parts[0].contains("You are Beaky."))
+        #expect(transcript[0].parts[1].hasPrefix("You are Beaky."))
         #expect(!transcript[0].content.contains("What you know right now"))
+        #expect(transcript.map(\.cachePoint) == [false, false, true, false, false])
         #expect(transcript[3].content.hasPrefix(CharacterMind.momentPreface + "\nHere now: April."))
         #expect(transcript[3].content.contains("What you know right now"))
         #expect(transcript[3].content.contains("It is "))
@@ -155,6 +159,8 @@ struct CharacterMindTests {
         let plain = makeMind { _, _ in "unused" }.makeTranscript(for: percept, now: now)
         #expect(plain.map(\.role) == [.system, .user, .assistant, .user])
         #expect(plain[0].content.contains("What you know right now"))
+        #expect(plain[0].content.hasPrefix("You are Beaky."))
+        #expect(plain.allSatisfy { $0.parts.isEmpty && !$0.cachePoint })
     }
 
     @Test(
@@ -250,6 +256,27 @@ struct CharacterMindTests {
             now: now)
         #expect(novel[0].content == first[0].content)
         #expect(novel[1].content.contains("- weather.alert: a warning"))
+
+        // Another bird on the model opens with the same first part, byte for byte, so the
+        // chorus reads one cached copy of it; only the persona after it is its own (#235).
+        var mangoConfiguration = CharacterMind.Configuration(
+            persona: .text("You are Mango."), characterID: mango,
+            personID: try EntityID(validating: "person:april"), maximumReplyAge: 3_600,
+            maximumContextTurns: 20, modelTimeout: .seconds(5), modelName: "test-model")
+        mangoConfiguration.knowledgePlacement = .beforeNewest
+        mangoConfiguration.glossary = configuration.glossary
+        let mangoMind = CharacterMind(
+            configuration: mangoConfiguration, respond: { _, _ in "unused" },
+            logger: Logger(label: "character-mind-tests"))
+        let mangos = try mangoMind.makeSceneTranscript(
+            for: offer(
+                participants: [beaky, mango, kenny], turns: [], facts: [], meanings: [:],
+                kind: .worldEvent),
+            now: now.addingTimeInterval(5))
+        #expect(mangos[0].parts.count == 2 && first[0].parts.count == 2)
+        #expect(mangos[0].parts[0] == first[0].parts[0])
+        #expect(mangos[0].parts[1] == "You are Mango.")
+        #expect(first[0].parts[1] == "You are Beaky.")
     }
 
     @Test("A question from April carries the world's tools and their contract; a scene turn never")

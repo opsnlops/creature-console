@@ -399,7 +399,9 @@ private func runWorldMode(
             reasoningEffort: config.llmReasoningEffort,
             serviceTier: config.llmServiceTier,
             minSentenceChars: config.minSentenceChars,
-            cacheKey: characterID.rawValue,
+            // One key per model, not per bird: a per-bird key kept Mango, Kenny, and Caroll
+            // from ever reading each other's cache (#235, probed 2026-10-17).
+            cacheKey: config.llmModel,
             cache: config.llmCache,
             streamingClient: modelClient,
             logger: logger,

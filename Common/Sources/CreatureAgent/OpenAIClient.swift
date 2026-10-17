@@ -363,12 +363,14 @@ struct OpenAIClient: Sendable {
             metadata: [
                 GenAI.Key.callKind: "\(GenAI.turn?.kind.rawValue ?? "unknown")",
                 GenAI.Key.requestModel: "\(model)",
-                GenAI.Key.inputTokens: "\(usage.inputTokens)",
-                GenAI.Key.cacheReadInputTokens: "\(usage.cachedTokens)",
-                GenAI.Key.cacheCreationInputTokens: "\(usage.cacheWriteTokens)",
-                GenAI.Key.outputTokens: "\(usage.outputTokens)",
-                GenAI.Key.reasoningOutputTokens: "\(usage.reasoningTokens)",
-                GenAI.Key.round: "\(round)", "creature_agent.usage.raw": "\(usage.raw)",
+                // Its own names: log metadata is text, and under the spans' names it fixed
+                // the token columns as strings in Honeycomb (2026-10-17).
+                "llm.usage.input_tokens": "\(usage.inputTokens)",
+                "llm.usage.cached_tokens": "\(usage.cachedTokens)",
+                "llm.usage.cache_write_tokens": "\(usage.cacheWriteTokens)",
+                "llm.usage.output_tokens": "\(usage.outputTokens)",
+                "llm.usage.reasoning_tokens": "\(usage.reasoningTokens)",
+                "llm.round": "\(round)", "creature_agent.usage.raw": "\(usage.raw)",
             ])
     }
 }
@@ -382,27 +384,40 @@ struct ResponseRequest: Encodable {
     /// the model made and what the mind found, so the model can carry on.
     enum Item: Encodable {
         struct Content: Encodable {
+            struct CachePoint: Encodable { let mode = "explicit" }
             let type: String
             let text: String
+            var cachePoint: CachePoint? = nil
+
+            enum CodingKeys: String, CodingKey {
+                case type, text
+                case cachePoint = "prompt_cache_breakpoint"
+            }
         }
         case message(role: String, content: [Content])
         case functionCall(OpenAIResponseParser.FunctionCall)
         case functionCallOutput(callID: String, output: String)
 
         init(_ message: LocalLLMClient.Message) {
-            switch message.role {
-            case .system:
-                self = .message(
-                    role: "developer", content: [Content(type: "input_text", text: message.content)]
-                )
-            case .user:
-                self = .message(
-                    role: "user", content: [Content(type: "input_text", text: message.content)])
-            case .assistant:
-                self = .message(
-                    role: "assistant",
-                    content: [Content(type: "output_text", text: message.content)])
-            }
+            let (role, type) =
+                switch message.role {
+                case .system: ("developer", "input_text")
+                case .user: ("user", "input_text")
+                case .assistant: ("assistant", "output_text")
+                }
+            // Parts, each a cache point - the shape probed on 2026-10-17, a point on a content
+            // part of one developer message - or the whole as one.
+            let content =
+                message.parts.isEmpty
+                ? [
+                    Content(
+                        type: type, text: message.content,
+                        cachePoint: message.cachePoint ? Content.CachePoint() : nil)
+                ]
+                : message.parts.map {
+                    Content(type: type, text: $0, cachePoint: Content.CachePoint())
+                }
+            self = .message(role: role, content: content)
         }
 
         private enum CodingKeys: String, CodingKey {
@@ -475,12 +490,17 @@ struct ResponseRequest: Encodable {
     let promptCacheKey: String?
     /// How long the provider keeps the cached prefix (`prompt_cache_retention`), when set.
     let promptCacheRetention: String?
+    /// `{"mode": "explicit"}`: only the marked cache points are written (#235).
+    let promptCacheOptions: CacheOptions?
+
+    struct CacheOptions: Encodable, Equatable { let mode: String }
 
     private enum CodingKeys: String, CodingKey {
         case model, input, temperature, reasoning, text, stream, store, tools
         case serviceTier = "service_tier"
         case promptCacheKey = "prompt_cache_key"
         case promptCacheRetention = "prompt_cache_retention"
+        case promptCacheOptions = "prompt_cache_options"
     }
 
     init(
@@ -501,6 +521,7 @@ struct ResponseRequest: Encodable {
         self.store = cache.store
         self.promptCacheKey = cache.key ? cacheKey : nil
         self.promptCacheRetention = cache.retention
+        self.promptCacheOptions = cache.explicit ? CacheOptions(mode: "explicit") : nil
     }
 }
 
@@ -510,6 +531,11 @@ struct LLMCacheSettings: Sendable, Equatable {
     var store = false
     var key = true
     var retention: String? = nil
+    /// Explicit cache points (`prompt_cache_options.mode: explicit`, GPT-5.6 and later): only
+    /// what a message marks as a cache point is written to the cache, at 1.25x. Without it the
+    /// provider writes the whole prompt on every call - the moment, the conversation, a whole
+    /// night of memory - and 43% of the input was written and never read (#235).
+    var explicit = true
 }
 
 enum OpenAIClientError: Error, LocalizedError {

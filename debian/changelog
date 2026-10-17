@@ -1,3 +1,17 @@
+creature-cli (2.97.0+world0.56.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.97.0: the chorus shares one prompt cache (#235).
+    Explicit cache points: only the stable part, the bird's persona and
+    the conversation so far are written to the cache; the moment and a
+    night's memory no longer are (43% of input was written at 1.25x and
+    never read). What every bird on a model is told alike goes first,
+    the persona after it, and the cache key is the model, not the bird,
+    so Mango, Kenny and Caroll read one copy. The usage log line uses
+    its own names, so it no longer types the spans' token columns as
+    text in Honeycomb. llmCache.explicit: false restores the old way.
+
+ -- April White <april@creature.engineering>  Sat, 17 Oct 2026 11:30:00 -0700
+
 creature-cli (2.96.0+world0.56.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.56.0: orders become history (#234). A delivered
