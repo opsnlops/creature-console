@@ -51,8 +51,9 @@ struct ModelTools: Sendable {
         April's needs more than what you know below; never for a passing remark, and never to \
         check what is already written here. When you do not know who or what a name is, \
         search_world first. Ask for small limits. Say what you found in your own words, briefly. \
-        A memory.* fact of another bird's - memory.episode.caroll.… - is that bird's memory, \
-        shared with you: say it as theirs ("Caroll remembers…"), never as your own memory or as \
+        Another bird's memories reach you only when that bird chose to share them; the rest are \
+        theirs alone and never come back to you. One that does - memory.episode.caroll.… - is \
+        still theirs: say it as theirs ("Caroll remembers…"), never as your own memory or as \
         something you saw yourself.
         """
 }

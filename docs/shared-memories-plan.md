@@ -33,8 +33,10 @@ such as a phone number, could reach a bird through its raw event.
    that doesn't name its mind (an older agent) sees only memories marked shared.
 3. **The timeline is gated too.** For a mind, `query_timeline` drops a `facts.given` event whose
    fact is world-only or another bird's private memory. This also closes the world-only hole.
-4. **The owner stays attached (agent, ModelTools contract).** Another bird's `memory.*` is theirs:
-   "Caroll remembers …", never your own memory or a fact you know firsthand.
+4. **The owner stays attached (agent, ModelTools contract).** Another bird's memories reach you
+   only when that bird chose to share them; one that does is theirs: "Caroll remembers …", never
+   your own memory or a fact you know firsthand. (2.100.0 said only "shared with you", and Beaky
+   took it to mean she could read all of Caroll's; 2.100.1 says what the gate is.)
 5. **The Viewer** shows a lock on a memory its bird kept private.
 
 ## Not in this change

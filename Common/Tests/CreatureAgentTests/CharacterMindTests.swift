@@ -382,6 +382,11 @@ struct CharacterMindTests {
         #expect(await handed.labels == ["world"])
         #expect(
             await handed.contracts.first?.contains("You have tools that look things up") == true)
+        // Another bird's memories are only what that bird shared, and stay theirs (#243): told
+        // only "shared with you", Beaky said she could look Caroll's up when none were shared.
+        #expect(
+            await handed.contracts.first?.contains(
+                "reach you only when that bird chose to share them") == true)
 
         // The same mind without tools hands the model nothing to reach for, and says nothing
         // about tools.

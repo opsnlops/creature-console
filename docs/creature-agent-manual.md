@@ -423,7 +423,9 @@ else — persona, facts, the clock, streaming to the room — is identical.
   tool call (`_meta.mind`), so the World can hand it its own memories and those the others
   shared, never one kept private. The tool contract keeps the owner attached: another bird's
   `memory.*` is said as theirs ("Caroll remembers…"), never as the bird's own memory or
-  something it saw.
+  something it saw. Since `2.100.1` it also says another bird's memories reach a bird *only*
+  when that bird chose to share them. Told only "shared with you", Beaky answered "Yes, April,
+  I can look up Caroll's memories" before Caroll had shared any.
 - **The night goes through the Batch API** (`2.79.0`, #201). April: "let's look at using the
   batch API to reduce the cost of the nightly memory processor." gpt-6-astra is $10 per
   million in and $50 out; the Batch API is half of both, with an answer within the day - and

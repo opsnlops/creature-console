@@ -1,3 +1,14 @@
+creature-cli (2.100.1+world0.58.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.100.1: the birds are told what the memory gate is
+    (#243). The tool contract said another bird's memory was "shared
+    with you", and Beaky answered "Yes, April, I can look up Caroll's
+    memories" before Caroll had shared any. It now says another bird's
+    memories reach a bird only when that bird chose to share them, and
+    one that does is still theirs.
+
+ -- April White <april@creature.engineering>  Sat, 17 Oct 2026 16:00:00 -0700
+
 creature-cli (2.100.0+world0.58.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * Each memory is its bird's to share (#243). The birds could look each
