@@ -374,8 +374,15 @@ enum HouseTag {
     /// The contract, when the bird decides house asks: the scenes, and how to ask for one.
     static func contract(_ asks: HouseAsks?) -> String {
         guard let asks, asks.askedBy == .mind, !asks.scenes.isEmpty else { return "" }
+        // Each with what it is, when the world knows (#241): "Sleepy Time" dims the outside
+        // lights for the neighbors, and its name alone offered it for "cozy".
+        let scenes = asks.scenes.map { name in
+            asks.descriptions[name].map { "- \(name): \($0)" } ?? "- \(name)"
+        }.joined(separator: "\n")
         return """
-            The house's lighting scenes: \(asks.scenes.joined(separator: ", ")). When April \
+            The house's lighting scenes, and what each does:
+            \(scenes)
+            When April \
             asks you to set one of them now - however she puts it: "make the evening normal" is \
             Normal Evening, "lower the key" is Low Key - start your reply with [house: the \
             scene's exact name from that list], then answer her as you would; the house sets \

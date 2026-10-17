@@ -127,8 +127,10 @@ struct HousePresenceTests {
                 subjectIDs: [house], epistemic: EpistemicState(type: .reported, confidence: 1),
                 payload: ["scene": .string(asked)], causedBy: [])
         }
-        let mind = HouseAskDesk(mode: .mind, facts: persistence.facts, clock: clock)
-        let words = HouseAskDesk(mode: .words, facts: persistence.facts, clock: clock)
+        let mind = HouseAskDesk(
+            mode: .mind, facts: persistence.facts, notes: persistence.houseScenes, clock: clock)
+        let words = HouseAskDesk(
+            mode: .words, facts: persistence.facts, notes: persistence.houseScenes, clock: clock)
 
         // What a mind is told.
         #expect(try await mind.asks().askedBy == .mind)
@@ -147,6 +149,73 @@ struct HousePresenceTests {
         // The world's own word rule is never stopped by it.
         let own = try request(scene, from: "world")
         #expect(try await words.check(own) == own)
+    }
+
+    @Test("Scenes are described from drafts, April's word wins, and a set-aside scene is refused")
+    func scenesAreDescribed() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "house-presence-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let house = try EntityID(validating: "house:\(suffix)")
+        let sleepy = "Sleepy Time \(suffix)"
+        let carport = "Carport Motion \(suffix)"
+        let gone = "Old Party \(suffix)"
+        let start = Date(timeIntervalSince1970: 1_789_600_000)
+        let clock = ManualWorldClock(now: start)
+        try await persistence.facts.save(
+            try Fact(
+                subjectID: house, predicate: WorldFacts.houseScenes,
+                value: .array([.string(sleepy), .string(carport)]),
+                epistemic: EpistemicState(type: .observed, confidence: 1),
+                validFrom: start, derivedFrom: [],
+                producer: FactProducer(kind: "reducer", id: "house", version: "1")))
+        let notes = persistence.houseScenes
+        try await notes.seed(
+            [
+                sleepy: HouseSceneDraft(description: "dims the outside lights"),
+                carport: HouseSceneDraft(description: "an automation's", askable: false),
+                gone: HouseSceneDraft(description: "no longer in the house"),
+            ], at: start)
+        let desk = HouseAskDesk(mode: .mind, facts: persistence.facts, notes: notes, clock: clock)
+
+        // The page: every offered scene with its note, and the noted one the house dropped.
+        let page = try await desk.scenes().scenes.filter { $0.name.hasSuffix(suffix) }
+        #expect(page.map(\.name) == [carport, gone, sleepy])
+        #expect(page.first { $0.name == gone }?.offered == false)
+        #expect(page.first { $0.name == sleepy }?.updatedBy == HouseSceneRepository.draftEditor)
+        // A bird is told only what it may ask for, with what it does.
+        let asks = try await desk.asks()
+        #expect(asks.scenes.contains(sleepy))
+        #expect(!asks.scenes.contains(carport))
+        #expect(!asks.scenes.contains(gone))
+        #expect(asks.descriptions[sleepy] == "dims the outside lights")
+        // And may not ask for one set aside.
+        let ask = try WorldEventEnvelope(
+            type: HouseEvents.sceneRequested, occurredAt: start,
+            source: EventSource(
+                id: SourceID(validating: "mind:beaky"), kind: "mind",
+                sourceEventID: "response:\(suffix):house"),
+            subjectIDs: [house], epistemic: EpistemicState(type: .reported, confidence: 1),
+            payload: ["scene": .string(carport)], causedBy: [])
+        await #expect(throws: WorldContractError.self) { try await desk.check(ask) }
+
+        // A changed draft replaces a draft; April's word is never replaced by one.
+        _ = try await notes.set(
+            sleepy,
+            HouseSceneUpdate(
+                description: "outside only, for the neighbors", askable: true,
+                updatedBy: "wizard:april"), at: start)
+        try await notes.seed(
+            [
+                sleepy: HouseSceneDraft(description: "a newer draft"),
+                carport: HouseSceneDraft(description: "lights the carport", askable: false),
+            ], at: start.addingTimeInterval(60))
+        let stored = try await notes.all()
+        #expect(stored[sleepy]?.description == "outside only, for the neighbors")
+        #expect(stored[sleepy]?.updatedBy == "wizard:april")
+        #expect(stored[carport]?.description == "lights the carport")
     }
 }
 

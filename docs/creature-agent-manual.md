@@ -276,6 +276,10 @@ else — persona, facts, the clock, streaming to the room — is identical.
   one, whoever the world says is present or spoke that day — and guesses person or place only
   for names it does not know. The learned contract also asks for a kind the world already has
   before inventing one, and not to keep what another bird just kept in the same scene.
+- **What each scene is** (`2.95.0`, #241). The house-ask contract lists each scene on its own
+  line with what it does, as `/v1/house/asks` describes it ("- Sleepy Time: Late at night,
+  dims the outside lights…"); a scene with no description is listed by name, and a scene set
+  aside in the Viewer is never listed. A World older than 0.55.0 sends no descriptions.
 - **The bird asks the house** (`2.94.0`, #240, docs/house-tag-plan.md). When the World says
   the mind decides house asks (`GET /v1/house/asks`, refreshed every ten minutes like the
   glossary), the contract lists the house's scenes and asks for `[house: the exact name]` at

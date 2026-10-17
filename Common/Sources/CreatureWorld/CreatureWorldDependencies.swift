@@ -33,6 +33,7 @@ struct CreatureWorldDependencies: Sendable {
             reminders: configuration.reminders,
             house: configuration.house,
             houseAsks: configuration.houseAsks,
+            houseScenes: configuration.houseScenes,
             logger: logger
         )
         await persistence.connectIfNeeded()

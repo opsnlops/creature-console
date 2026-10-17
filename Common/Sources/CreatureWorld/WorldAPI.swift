@@ -132,6 +132,9 @@ protocol WorldApplicationService: Sendable {
     func kindCandidates() async throws -> KindCandidatePage
     /// Who decides a house ask, and the scenes a mind may ask for (#240).
     func houseAsks() async throws -> HouseAsks
+    /// Every scene the house offers, with what it is and whether a bird may ask (#241).
+    func houseScenes() async throws -> HouseScenePage
+    func setHouseScene(_ name: String, _ update: HouseSceneUpdate) async throws -> HouseScene
 }
 
 extension WorldApplicationService {
@@ -152,6 +155,12 @@ extension WorldApplicationService {
         throw WorldAPIError.databaseUnavailable
     }
     func houseAsks() async throws -> HouseAsks {
+        throw WorldAPIError.databaseUnavailable
+    }
+    func houseScenes() async throws -> HouseScenePage {
+        throw WorldAPIError.databaseUnavailable
+    }
+    func setHouseScene(_ name: String, _ update: HouseSceneUpdate) async throws -> HouseScene {
         throw WorldAPIError.databaseUnavailable
     }
     func applyFiling(_ filing: EventID, _ selection: FilingSelection) async throws

@@ -931,6 +931,17 @@ on the page; each upcoming calendar event is folded into one `calendar.event` an
 into one `reminder.item`, like the sensors - for the page only, never stored, `derived_from`
 naming every field.
 
+**What each scene is** (`0.55.0`, #241, docs/house-scene-descriptions-plan.md). `house_scenes`
+holds a line per scene and whether a bird may ask for it. The packaged config's
+`"house_scenes": {"Sleepy Time": {"description": "…", "askable": true}}` is written at startup
+as `world:draft`; a changed draft replaces a draft, never an edit from the Viewer
+(`PUT /v1/house/scenes/{name}` with `{description, askable, updated_by}`).
+`GET /v1/house/scenes` lists every offered scene with its note, plus described scenes the
+house dropped (`offered: false`). `/v1/house/asks` now sends only offered, askable scenes, with
+a `descriptions` map, and the guard refuses a set-aside scene. On the first live run, "make it
+cozy" offered Sleepy Time, which only dims the outside lights; with the descriptions it offers
+Low Key or Lazy Afternoon.
+
 **The bird asks the house** (`0.54.0`, #240, docs/house-tag-plan.md). An experiment. With
 `"house_asks": "mind"`, the word rule (`SceneRequestRule`) no longer runs when April speaks.
 The bird answering her decides: `GET /v1/house/asks` gives it `{"asked_by", "scenes"}`, and

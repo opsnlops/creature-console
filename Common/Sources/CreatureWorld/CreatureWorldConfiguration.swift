@@ -74,6 +74,9 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     /// Who decides that April is asking the house for a scene: the word rule at ingress, or the
     /// bird answering her, with a `[house: …]` tag (#240).
     let houseAsks: HouseAskMode
+    /// What each house scene is and whether a bird may ask for it, as drafts the store takes
+    /// unless April has said otherwise (#241).
+    let houseScenes: [String: HouseSceneDraft]
 
     init(
         host: String = defaultHost,
@@ -94,7 +97,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         departures: DepartureRuleConfiguration = DepartureRuleConfiguration(),
         reminders: ReminderRuleConfiguration = ReminderRuleConfiguration(),
         house: EntityID = defaultHouse,
-        houseAsks: HouseAskMode = .words
+        houseAsks: HouseAskMode = .words,
+        houseScenes: [String: HouseSceneDraft] = [:]
     ) throws {
         let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedHost.isEmpty else {
@@ -137,6 +141,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         self.reminders = reminders
         self.house = house
         self.houseAsks = houseAsks
+        self.houseScenes = houseScenes
     }
 
     static let defaultHouse = try! EntityID(validating: "house:aprils-nest")
@@ -173,7 +178,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
                 departures: raw.departures ?? DepartureRuleConfiguration(),
                 reminders: raw.reminders ?? ReminderRuleConfiguration(),
                 house: try raw.house.map(EntityID.init(validating:)) ?? defaultHouse,
-                houseAsks: raw.houseAsks ?? .words
+                houseAsks: raw.houseAsks ?? .words,
+                houseScenes: raw.houseScenes ?? [:]
             )
         } else {
             fileConfiguration = try CreatureWorldConfiguration()
@@ -226,7 +232,8 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             departures: departures,
             reminders: reminders,
             house: house,
-            houseAsks: houseAsks
+            houseAsks: houseAsks,
+            houseScenes: houseScenes
         )
     }
 
@@ -250,6 +257,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         let reminders: ReminderRuleConfiguration?
         let house: String?
         let houseAsks: HouseAskMode?
+        let houseScenes: [String: HouseSceneDraft]?
 
         private enum CodingKeys: String, CodingKey {
             case host
@@ -271,6 +279,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
             case reminders
             case house
             case houseAsks = "house_asks"
+            case houseScenes = "house_scenes"
         }
     }
 

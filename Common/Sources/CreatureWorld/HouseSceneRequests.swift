@@ -84,12 +84,38 @@ struct HouseSceneRequests: HouseCommandRecognizing {
 struct HouseAskDesk: Sendable {
     let mode: HouseAskMode
     let facts: FactRepository
+    let notes: HouseSceneRepository
     let clock: any WorldClock
 
+    /// The scenes a mind may ask for, with what each is: offered by the house and not set
+    /// aside. Only when the mind decides.
     func asks() async throws -> HouseAsks {
         guard mode == .mind else { return HouseAsks(askedBy: mode, scenes: []) }
+        let askable = try await scenes().scenes.filter { $0.offered && $0.askable }
+        return HouseAsks(
+            askedBy: mode, scenes: askable.map(\.name),
+            descriptions: Dictionary(
+                askable.filter { !$0.description.isEmpty }.map { ($0.name, $0.description) },
+                uniquingKeysWith: { a, _ in a }))
+    }
+
+    /// Every scene the house offers, with its note or none; and every noted scene the house no
+    /// longer offers, so a description is never lost from sight.
+    func scenes() async throws -> HouseScenePage {
         let offered = try await HouseSceneRequests.offered(by: facts, at: await clock.now)
-        return HouseAsks(askedBy: mode, scenes: offered.flatMap(\.scenes))
+            .flatMap(\.scenes)
+        var notes = try await notes.all()
+        var scenes = offered.map { name in
+            var scene = notes.removeValue(forKey: name) ?? HouseScene(name: name)
+            scene.offered = true
+            return scene
+        }
+        scenes += notes.values.map { note in
+            var scene = note
+            scene.offered = false
+            return scene
+        }
+        return HouseScenePage(scenes: scenes.sorted { $0.name < $1.name })
     }
 
     /// The event as the world keeps it; a mind's request it may not make is refused.
@@ -103,7 +129,8 @@ struct HouseAskDesk: Sendable {
         guard case .string(let asked)? = event.payload["scene"],
             let scene = try await asks().scene(named: asked)
         else {
-            throw WorldContractError.refusedHouseAsk("the house offers no such scene")
+            throw WorldContractError.refusedHouseAsk(
+                "the house offers no such scene, or it is not for asking")
         }
         var checked = event
         checked.payload["scene"] = .string(scene)

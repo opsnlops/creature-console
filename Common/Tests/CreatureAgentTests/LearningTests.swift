@@ -311,8 +311,15 @@ struct HouseTagTests {
         #expect(HouseTag.contract(HouseAsks(askedBy: .words, scenes: scenes)).isEmpty)
         #expect(HouseTag.contract(HouseAsks(askedBy: .mind, scenes: [])).isEmpty)
         let contract = HouseTag.contract(HouseAsks(askedBy: .mind, scenes: scenes))
-        #expect(contract.contains("Movie Time, Goodnight"))
+        #expect(contract.contains("- Movie Time\n- Goodnight\n"))
         #expect(contract.contains("[house: the scene's exact name"))
+        // Each scene on its own line, with what it does when the world says.
+        let described = HouseTag.contract(
+            HouseAsks(
+                askedBy: .mind, scenes: scenes,
+                descriptions: ["Goodnight": "everything off for the night"]))
+        #expect(described.contains("- Goodnight: everything off for the night"))
+        #expect(described.contains("- Movie Time\n"))
         // April may say it her way.
         #expect(contract.contains("\"make the evening normal\" is Normal Evening"))
     }

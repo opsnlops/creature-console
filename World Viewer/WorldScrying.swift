@@ -35,6 +35,8 @@ protocol WorldScrying: Sendable {
     /// Exactly what a mind would be handed right now: its page.
     func perspective(of characterID: EntityID, mentionedIn words: String?) async throws
         -> CharacterPerspective
+    /// The house's scenes, each with what it is and whether a bird may ask for it (#241).
+    func houseScenes() async throws -> HouseScenePage
 }
 
 /// The Viewer's writes, kept apart from the reads on purpose: a Wizard casting a meaning into
@@ -48,6 +50,9 @@ protocol WorldCasting: Sendable {
     /// April's checked items of a night's filing, applied where they still stand.
     func applyFiling(_ filing: EventID, _ selection: FilingSelection) async throws
         -> FilingApplyResult
+    /// Describes one of the house's scenes, or sets it aside from the birds.
+    func setHouseScene(_ name: String, description: String, askable: Bool, by wizard: String)
+        async throws -> HouseScene
 }
 
 /// The real thing: the typed viewer client for reads and the world stream, and the conversation
@@ -130,9 +135,18 @@ struct LiveWorldScryer: WorldScrying {
     func explain(_ factID: FactID) async throws -> FactExplanation? {
         try await viewer.explain(factID)
     }
+
+    func houseScenes() async throws -> HouseScenePage { try await viewer.houseScenes() }
 }
 
 extension LiveWorldScryer: WorldCasting {
+    func setHouseScene(_ name: String, description: String, askable: Bool, by wizard: String)
+        async throws -> HouseScene
+    {
+        try await viewer.setHouseScene(
+            name, HouseSceneUpdate(description: description, askable: askable, updatedBy: wizard))
+    }
+
     func applyFiling(_ filing: EventID, _ selection: FilingSelection) async throws
         -> FilingApplyResult
     {

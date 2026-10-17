@@ -238,6 +238,16 @@ of a spell: the record with the magic taken out, for when you need to see the wi
 
 **Scry again** in the toolbar drops the connection and starts over with a fresh snapshot.
 
+### House (`0.16.0`, #241)
+
+The house's lighting scenes as the birds are told them. **Birds may ask for** lists the
+scenes the house offers that a bird may set; **Set aside** lists the rest: scenes switched off
+here, and described scenes the house no longer offers. Each row's description is edited in
+place (Return or clicking away saves it), and the **Birds may ask** switch takes a scene off the
+birds' list; the World then refuses it too. A row says "draft" until you change it; after that
+the World keeps your words and a new draft never replaces them. The drafts came from the scene
+YAML in ha-config. The birds pick up a change within ten minutes, when they next refresh.
+
 ## How it follows the world
 
 `WorldStore` is the app's single `@MainActor @Observable` model. It runs two tasks:

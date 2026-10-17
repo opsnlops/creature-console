@@ -317,6 +317,32 @@ final class WorldStore {
         case failed
     }
 
+    /// The house's scenes, each with what it is and whether a bird may ask for it (#241).
+    func houseScenes() async -> [HouseScene] {
+        do {
+            return try await makeScryer().houseScenes().scenes
+        } catch {
+            lastError = ErrorAlert(
+                title: "The World Could Not Show the House's Scenes", error: error)
+            return []
+        }
+    }
+
+    /// Wizard Mode on a scene: say what it is, or set it aside from the birds. The world
+    /// remembers who did; nil when it did not take it.
+    func describeScene(_ name: String, description: String, askable: Bool) async -> HouseScene? {
+        do {
+            guard let caster = try makeScryer() as? any WorldCasting else {
+                throw WorldConversationClientError.unexpectedResponse
+            }
+            return try await caster.setHouseScene(
+                name, description: description, askable: askable, by: "wizard:april")
+        } catch {
+            lastError = ErrorAlert(title: "The World Did Not Take The Scene", error: error)
+            return nil
+        }
+    }
+
     /// Who a kind of fact is for, as the glossary says; `minds` when it says nothing.
     func audience(of predicate: String) -> FactAudience {
         if WorldKnowledgeLimits.worldOnlyPredicates.contains(predicate) { return .world }

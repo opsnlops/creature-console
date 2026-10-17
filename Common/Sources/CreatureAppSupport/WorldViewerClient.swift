@@ -111,6 +111,24 @@ public struct WorldViewerClient: Sendable {
         return try WorldJSON.makeDecoder().decode(FactKind.self, from: data)
     }
 
+    /// Every scene the house offers, with what it is and whether a bird may ask for it (#241).
+    public func houseScenes() async throws -> HouseScenePage {
+        try await get(HouseScenePage.self, pathComponents: ["house", "scenes"])
+    }
+
+    /// Describes one scene, or sets it aside from the birds.
+    public func setHouseScene(_ name: String, _ update: HouseSceneUpdate) async throws
+        -> HouseScene
+    {
+        var request = try request(pathComponents: ["house", "scenes", name])
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try WorldJSON.makeEncoder().encode(update)
+        let (data, response) = try await loader.data(for: request)
+        try Self.validate(response)
+        return try WorldJSON.makeDecoder().decode(HouseScene.self, from: data)
+    }
+
     /// One entity, whole: its facts (every audience), what points at it, its recent events.
     /// Why a fact is what it is: the events and facts behind it, and what superseded it.
     /// `nil` when the world no longer holds the fact at all - not an error, an answer.

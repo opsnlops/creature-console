@@ -508,6 +508,30 @@ struct WorldHTTPAPI: Sendable {
             }
         }
 
+        // What each of the house's scenes is, and whether a bird may ask for it (#241).
+        router.get("v1/house/scenes") { _, _ in
+            await respond {
+                try await execute { try jsonResponse(await service.houseScenes()) }
+            }
+        }
+
+        router.put("v1/house/scenes/:scene") { request, context in
+            await respond {
+                try requireJSON(request)
+                guard let raw = context.parameters.get("scene"),
+                    let name = raw.removingPercentEncoding, !name.isEmpty, name.count <= 120
+                else { throw WorldAPIError.invalidQuery(name: "scene") }
+                let update = try await decode(
+                    HouseSceneUpdate.self, from: request, maximumBytes: limits.maximumBodyBytes)
+                guard update.description.count <= 500 else {
+                    throw WorldAPIError.invalidQuery(name: "description")
+                }
+                return try await execute {
+                    try jsonResponse(await service.setHouseScene(name, update))
+                }
+            }
+        }
+
         // April's checked items, applied where they still stand: each item's outcome.
         router.post("v1/filings/:filingID/apply") { request, context in
             await respond {

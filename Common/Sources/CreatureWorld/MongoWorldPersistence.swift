@@ -52,6 +52,7 @@ struct MongoWorldPersistence: Sendable {
     let characterSessions: MongoCharacterSessionRepository
     let scenes: MongoSceneRepository
     let factKinds: FactKindRepository
+    let houseScenes: HouseSceneRepository
 
     static func connect(
         to uri: String, logger: Logger, retention: RetentionPolicy = RetentionPolicy()
@@ -119,7 +120,8 @@ struct MongoWorldPersistence: Sendable {
                 characterDeliveries: MongoCharacterDeliveryRepository(database: database),
                 characterSessions: MongoCharacterSessionRepository(database: database),
                 scenes: MongoSceneRepository(database: database),
-                factKinds: FactKindRepository(database: database)
+                factKinds: FactKindRepository(database: database),
+                houseScenes: HouseSceneRepository(database: database)
             )
         } catch {
             logger.error(
@@ -162,4 +164,5 @@ enum MongoWorldCollection {
     static let characterSessions = "character_sessions"
     static let scenes = "scenes"
     static let factKinds = "fact_kinds"
+    static let houseScenes = "house_scenes"
 }
