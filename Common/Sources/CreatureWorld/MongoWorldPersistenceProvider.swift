@@ -1822,20 +1822,24 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
     /// Everyone the world can describe: by April's words (`person.description`), by the address
     /// book (`contact.name`), or by what they are to her (`person.relationship`).
     func knownPeople(at now: Date) async throws -> [WorldMentions.Known] {
-        var people: [EntityID: String?] = [:]
+        // Who is known, and what some of them are to April, kept apart: a dictionary of
+        // optional relationships once stored "no relationship" by assigning a double-optional
+        // nil, which removed the person instead, so only people with a relationship could ever
+        // be named (#246).
+        var people: Set<EntityID> = []
         for predicate in [WorldFacts.personDescription, "contact.name"] {
-            for subject in try await facts.subjects(withPredicate: predicate, at: now) {
-                people[subject] = people[subject] ?? nil
-            }
+            people.formUnion(try await facts.subjects(withPredicate: predicate, at: now))
         }
+        var relationships: [EntityID: String] = [:]
         for fact in try await facts.currentFacts(
             about: [], predicate: WorldFacts.personRelationship, limit: 500, at: now)
         {
             if case .string(let relationship) = fact.value {
-                people[fact.subjectID] = relationship
+                relationships[fact.subjectID] = relationship
             }
         }
-        return people.map { WorldMentions.Known(entityID: $0.key, relationship: $0.value) }
+        return people.union(relationships.keys)
+            .map { WorldMentions.Known(entityID: $0, relationship: relationships[$0]) }
             .sorted { $0.entityID.rawValue < $1.entityID.rawValue }
     }
 

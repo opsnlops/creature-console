@@ -956,6 +956,12 @@ up is gathered from what is new in them alone (whoever they name, the kinds aske
 fortnight on a time word, the searches), beside the standing page; `0.59.0` gathered the whole
 page a second time and added ~200 ms to the live line.
 
+**Everyone the world can describe can be named** (`0.59.2`, #246). A name in the words calls up
+a person known by April's words (`person.description`) or the address book (`contact.name`), as
+well as one known by a relationship. Before, only people with a `person.relationship` could be
+named: storing "no relationship" in a dictionary of optional relationships removed the person
+instead. On 2026-10-17 that hid 2 of the 11 people the world knew.
+
 **The day record, trimmed** (`0.57.0`, #242, docs/day-record-trim-plan.md). `GET
 /v1/days/{day}` is the record as the nightly memory sees it, and it no longer repeats itself: a
 cast fact is a `learned` line, never also a happening; `learned` leaves out the minds' own
