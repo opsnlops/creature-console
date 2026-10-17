@@ -1,3 +1,12 @@
+creature-cli (2.95.0+world0.55.1+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.55.1: the packaged scene drafts carry April's own
+    descriptions (#241), so a fresh World starts with her words: Low Key
+    is the school-night 9 PM scene, Kitchen Cleanup plays music, and
+    Bedtime, Sleepy Time, Up Late and Blue Fire are set aside.
+
+ -- April White <april@creature.engineering>  Sat, 17 Oct 2026 00:15:00 -0700
+
 creature-cli (2.95.0+world0.55.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * What each house scene is (#241). The World keeps a line per scene
