@@ -1,3 +1,12 @@
+creature-cli (2.94.0+world0.54.1+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.54.1: the packaged config turns the house-tag
+    experiment on ("house_asks": "mind", #240): the bird answering April
+    decides when she is asking for a lighting scene. Set it to "words"
+    to go back to the trigger-word rule.
+
+ -- April White <april@creature.engineering>  Fri, 16 Oct 2026 22:45:00 -0700
+
 creature-cli (2.94.0+world0.54.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * The bird asks the house, an experiment (#240). With the World's

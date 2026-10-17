@@ -27,6 +27,16 @@ struct CreatureWorldConfigurationTests {
         #expect(try loaded.overriding(host: nil, port: nil).houseAsks == .mind)
     }
 
+    @Test("The packaged config loads, with the bird deciding house asks (#240)")
+    func packagedConfigurationLoads() throws {
+        let packaged = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("debian/creature-world.json")
+        let loaded = try CreatureWorldConfiguration.load(from: packaged, environment: [:])
+        #expect(loaded.houseAsks == .mind)
+    }
+
     @Test("JSON configuration loads and command values override it")
     func configurationLoadsAndOverrides() throws {
         let loaded = try CreatureWorldConfiguration.load(from: fixtureURL, environment: [:])

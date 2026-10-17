@@ -4,6 +4,7 @@
   "port": 8001,
   "creature_server": { "url": "http://localhost:8000" },
   "scene_performance": "streaming",
+  "house_asks": "mind",
   "presence": {
     "assumed": {
       "person:april": { "state": "home", "physically_audible": true, "confidence": 0.9 }
