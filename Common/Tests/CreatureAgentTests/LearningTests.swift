@@ -288,3 +288,49 @@ private actor ScriptedKindJudge: EntityKindJudging {
         return kind
     }
 }
+
+@Suite("The house tag (#240)")
+struct HouseTagTests {
+    @Test("The first tag's scene, trimmed; none without one")
+    func readsTheScene() {
+        #expect(HouseTag.scene(in: "[house: Movie Time] Popcorn!") == "Movie Time")
+        #expect(HouseTag.scene(in: "[house:Goodnight]") == "Goodnight")
+        #expect(HouseTag.scene(in: "[house: A] and [house: B]") == "A")
+        #expect(HouseTag.scene(in: "No tag here.") == nil)
+        #expect(HouseTag.scene(in: "[house: ]") == nil)
+        // Never spoken.
+        #expect(
+            CharacterMind.validate("[house: Movie Time] Popcorn mode, April!", spokenBy: "beaky")
+                == "Popcorn mode, April!")
+    }
+
+    @Test("The contract names the scenes only when the mind decides")
+    func contract() {
+        let scenes = ["Movie Time", "Goodnight"]
+        #expect(HouseTag.contract(nil).isEmpty)
+        #expect(HouseTag.contract(HouseAsks(askedBy: .words, scenes: scenes)).isEmpty)
+        #expect(HouseTag.contract(HouseAsks(askedBy: .mind, scenes: [])).isEmpty)
+        let contract = HouseTag.contract(HouseAsks(askedBy: .mind, scenes: scenes))
+        #expect(contract.contains("Movie Time, Goodnight"))
+        #expect(contract.contains("[house: the scene's exact name"))
+        // April may say it her way.
+        #expect(contract.contains("\"make the evening normal\" is Normal Evening"))
+    }
+
+    @Test("A reply asks once, as soon as the tag has arrived")
+    func asksOnceAtTheTag() async {
+        let asked = AskedScenes()
+        let learning = CharacterMind.Learning(askHouse: { await asked.note($0) })
+        await learning.note("[house: Movie")
+        #expect(await asked.scenes.isEmpty)
+        await learning.note(" Time] Popcorn")
+        #expect(await asked.scenes == ["Movie Time"])
+        await learning.note("[house: Goodnight] and more.")
+        #expect(await asked.scenes == ["Movie Time"])
+    }
+}
+
+private actor AskedScenes {
+    private(set) var scenes: [String] = []
+    func note(_ scene: String) { scenes.append(scene) }
+}

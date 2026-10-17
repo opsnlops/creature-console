@@ -17,15 +17,7 @@ struct HouseSceneRequests: HouseCommandRecognizing {
 
     func request(in utterance: PersonUtterance) async throws -> Fact? {
         let now = await clock.now
-        // Which house offers scenes, and which: one house today, but the facts say so.
-        for house in try await facts.subjects(withPredicate: WorldFacts.houseScenes, at: now) {
-            let offered = try await facts.currentFacts(subjectID: house, at: now)
-                .first { $0.predicate == WorldFacts.houseScenes }
-            guard case .array(let names)? = offered?.value else { continue }
-            let scenes = names.compactMap { value -> String? in
-                if case .string(let name) = value { return name }
-                return nil
-            }
+        for (house, scenes) in try await Self.offered(by: facts, at: now) {
             guard let scene = rule.scene(in: utterance.text, offered: scenes) else { continue }
             let event = try WorldEventEnvelope(
                 type: HouseEvents.sceneRequested,
@@ -62,5 +54,59 @@ struct HouseSceneRequests: HouseCommandRecognizing {
             )
         }
         return nil
+    }
+
+    /// Which house offers scenes, and which: one house today, but the facts say so.
+    static func offered(by facts: FactRepository, at now: Date) async throws
+        -> [(house: EntityID, scenes: [String])]
+    {
+        var offered: [(house: EntityID, scenes: [String])] = []
+        for house in try await facts.subjects(withPredicate: WorldFacts.houseScenes, at: now) {
+            let fact = try await facts.currentFacts(subjectID: house, at: now)
+                .first { $0.predicate == WorldFacts.houseScenes }
+            guard case .array(let names)? = fact?.value else { continue }
+            offered.append(
+                (
+                    house,
+                    names.compactMap { value -> String? in
+                        if case .string(let name) = value { return name }
+                        return nil
+                    }
+                ))
+        }
+        return offered
+    }
+}
+
+/// The mind's side of asking the house (#240): what `GET /v1/house/asks` tells a mind, and the
+/// guard on a mind's own `house.scene_requested` - accepted only when the mind decides, only
+/// for a scene the house offers, and named as the house names it.
+struct HouseAskDesk: Sendable {
+    let mode: HouseAskMode
+    let facts: FactRepository
+    let clock: any WorldClock
+
+    func asks() async throws -> HouseAsks {
+        guard mode == .mind else { return HouseAsks(askedBy: mode, scenes: []) }
+        let offered = try await HouseSceneRequests.offered(by: facts, at: await clock.now)
+        return HouseAsks(askedBy: mode, scenes: offered.flatMap(\.scenes))
+    }
+
+    /// The event as the world keeps it; a mind's request it may not make is refused.
+    func check(_ event: WorldEventEnvelope) async throws -> WorldEventEnvelope {
+        guard event.type == HouseEvents.sceneRequested, event.source.kind == "mind" else {
+            return event
+        }
+        guard mode == .mind else {
+            throw WorldContractError.refusedHouseAsk("the world decides house asks by its words")
+        }
+        guard case .string(let asked)? = event.payload["scene"],
+            let scene = try await asks().scene(named: asked)
+        else {
+            throw WorldContractError.refusedHouseAsk("the house offers no such scene")
+        }
+        var checked = event
+        checked.payload["scene"] = .string(scene)
+        return checked
     }
 }

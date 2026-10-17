@@ -544,6 +544,9 @@ private func runWorldMode(
     // The world's whole glossary, held by the mind and refreshed every ten minutes, so the
     // prompt's stable item is the same text call after call and the provider's cache serves it.
     let glossary = Glossary(worldURL: world.worldURL, client: client, logger: logger)
+    // Who decides a house ask, and the house's scenes: in the stable item when the bird does
+    // (#240).
+    let houseAsks = HouseAskReference(worldURL: world.worldURL, client: client, logger: logger)
     let mind = CharacterMind(
         configuration: CharacterMind.Configuration(
             persona: persona,
@@ -562,7 +565,8 @@ private func runWorldMode(
             knowledgePlacement: config.llmBackend == .openai ? .beforeNewest : .withinSystem,
             glossary: { glossary.current() },
             contentCapture: config.llmCaptureContent,
-            kindJudge: kindJudge
+            kindJudge: kindJudge,
+            houseAsks: { houseAsks.current() }
         ),
         respond: respond,
         respondStreaming: respondStreaming,
@@ -600,7 +604,7 @@ private func runWorldMode(
     )
     // The local model's health is only worth watching when a local model is the mind; on a
     // frontier backend the check would poke a machine that no longer runs one.
-    var services: [any Service] = observabilityServices + [mindService, glossary]
+    var services: [any Service] = observabilityServices + [mindService, glossary, houseAsks]
     if config.llmBackend == .local {
         services.append(
             LocalLLMHealthCheck(

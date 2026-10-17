@@ -124,6 +124,9 @@ struct CharacterMind: Sendable {
         /// Asked what kind a bare new name in a learned tag is; nil, and such a tag is not
         /// filed (#239).
         var kindJudge: (any EntityKindJudging)? = nil
+        /// Who decides that April is asking the house for a scene, and its scenes; when the
+        /// mind does, the bird asks with a `[house: …]` tag (#240).
+        var houseAsks: (@Sendable () -> HouseAsks?)? = nil
 
         enum KnowledgePlacement: Sendable {
             case withinSystem
@@ -174,7 +177,8 @@ struct CharacterMind: Sendable {
     /// Throws only when the world could not be asked for the stage, so the caller retries the
     /// same consideration from its cursor; every other trouble becomes a recorded decision.
     func consider(
-        _ consideration: WorldConsideration, now: Date, learn: Learn? = nil
+        _ consideration: WorldConsideration, now: Date, learn: Learn? = nil,
+        askHouse: AskHouse? = nil
     ) async throws -> CharacterDecision {
         let percept = consideration.percept
         // Inside an `agent.turn` span this nests naturally; on its own it continues the trace
@@ -191,7 +195,10 @@ struct CharacterMind: Sendable {
             span.attributes[GenAI.Key.requestModel] = configuration.modelName
             considerationCounter.increment()
 
-            let learning = Learning()
+            // Only an answer to April may ask the house for anything.
+            let learning = Learning(
+                askHouse: percept.utterance.speakerID == configuration.personID
+                    ? recorded(askHouse, on: span) : nil)
             let decision = try await decide(consideration, now: now, learning: learning)
             let (learned, unnamed) = await learning.facts(
                 names: names(for: consideration.percept), judge: configuration.kindJudge,
@@ -477,12 +484,25 @@ struct CharacterMind: Sendable {
     typealias SpeakPiece = @Sendable (Int, String) async throws -> Void
     /// What April told the mind, parsed from the reply's tags, handed to the caller to cast.
     typealias Learn = @Sendable ([LearnedFact]) async -> Void
+    /// Asks the house for the named scene, for April (#240).
+    typealias AskHouse = @Sendable (String) async -> Void
+
+    /// `askHouse`, with the scene asked for written on `span`; nil unless the world says the
+    /// bird decides house asks.
+    func recorded(_ askHouse: AskHouse?, on span: any Span) -> AskHouse? {
+        guard let askHouse, configuration.houseAsks?()?.askedBy == .mind else { return nil }
+        return { @Sendable scene in
+            span.attributes["house.asked"] = scene
+            await askHouse(scene)
+        }
+    }
 
     /// The world has offered this character the floor. With `speak`, the line is streamed:
     /// each sentence goes out as it is composed and the returned turn carries no text ("that
     /// was the whole line"); without it, the line is composed whole.
     func consider(
-        _ offer: WorldSceneConsideration, now: Date, speak: SpeakPiece? = nil, learn: Learn? = nil
+        _ offer: WorldSceneConsideration, now: Date, speak: SpeakPiece? = nil, learn: Learn? = nil,
+        askHouse: AskHouse? = nil
     ) async throws -> SceneDecision {
         let context = ServiceContext.current ?? Self.traceContext(for: offer.envelope)
         return try await withSpan("agent.scene.consider", context: context) { span in
@@ -492,7 +512,10 @@ struct CharacterMind: Sendable {
             span.attributes["agent.persona_version"] = configuration.persona.versionTag
             span.attributes[GenAI.Key.requestModel] = configuration.modelName
             considerationCounter.increment()
-            let learning = Learning()
+            let answersApril =
+                offer.offer.trigger.kind == .personUtterance
+                && offer.offer.trigger.speakerID == configuration.personID
+            let learning = Learning(askHouse: answersApril ? recorded(askHouse, on: span) : nil)
             let decision: SceneDecision
             if let speak, let respondStreaming {
                 span.attributes["scene.turn.streamed"] = true
@@ -755,9 +778,11 @@ struct CharacterMind: Sendable {
         let situation: String
         switch offer.trigger.kind {
         case .personUtterance:
+            let house = HouseTag.contract(configuration.houseAsks?())
             core =
                 Self.sceneContractCore
                 + (configuration.tools == nil ? "" : " " + ModelTools.contract)
+                + (house.isEmpty ? "" : " " + house)
             situation = Self.sceneCompany(others: others)
         case .worldEvent, .houseConsideration:
             let presence = FactPhrasing.presence(of: Self.april, in: offer.worldFacts)
@@ -1008,7 +1033,19 @@ struct CharacterMind: Sendable {
     /// whole at the end - a tag may span two streamed chunks.
     actor Learning {
         private var raw = ""
-        func note(_ chunk: String) { raw += chunk + "\n" }
+        private var askedHouse = false
+        private let askHouse: AskHouse?
+
+        /// `askHouse` is given only when the reply answers April: the first `[house: …]` tag
+        /// asks, as soon as it has arrived - before the first sentence is spoken.
+        init(askHouse: AskHouse? = nil) { self.askHouse = askHouse }
+
+        func note(_ chunk: String) async {
+            raw += chunk + "\n"
+            guard let askHouse, !askedHouse, let scene = HouseTag.scene(in: raw) else { return }
+            askedHouse = true
+            await askHouse(scene)
+        }
         func facts(names: EntityNames, judge: (any EntityKindJudging)?, conversation: String)
             async -> (facts: [LearnedFact], unnamed: [String])
         {
@@ -1090,10 +1127,12 @@ struct CharacterMind: Sendable {
             [percept.utterance.speakerID]
             + FactPhrasing.presentCharacters(in: percept.worldFacts)
         let pronouns = FactPhrasing.pronouns(in: percept.worldFacts)
+        let house = HouseTag.contract(configuration.houseAsks?())
         let stable =
             configuration.persona.renderedForEveryone()
             + "\n\n" + Self.contract(for: route)
             + (configuration.tools == nil ? "" : " " + ModelTools.contract)
+            + (house.isEmpty ? "" : " " + house)
         let moment = Self.hereNow(present, pronouns: pronouns)
         let prior = percept.priorConversationItems
             .sorted { ($0.createdAt, $0.itemID.rawValue) < ($1.createdAt, $1.itemID.rawValue) }

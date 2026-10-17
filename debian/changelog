@@ -1,3 +1,15 @@
+creature-cli (2.94.0+world0.54.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * The bird asks the house, an experiment (#240). With the World's
+    "house_asks": "mind", the trigger-word rule no longer decides when
+    April is asking for a lighting scene; the bird answering her does,
+    starting its reply with [house: <scene>] however she put it. The
+    agent casts house.scene_requested the moment the tag arrives, before
+    the first sentence; the World accepts a mind's request only in mind
+    mode and only for a scene the house offers. Default stays "words".
+
+ -- April White <april@creature.engineering>  Fri, 16 Oct 2026 22:30:00 -0700
+
 creature-cli (2.93.0+world0.53.1+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.93.0: the bird says the kind, a model judges the

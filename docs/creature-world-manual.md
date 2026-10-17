@@ -88,6 +88,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | House scenes | `scenes.house_maximum_turns`, `scenes.house_gap_seconds`, `scenes.quiet_hours` | — | — | `3`, `0`, none |
 | Reminders | `reminders.all_day_hour`, `reminders.nudge_window_minutes` | — | — | `9`, `120` |
 | Chorus | `scenes.chorus` | — | — | `always` (`when_invited`: after the lead answers April, the others get the floor only if her line asks for more) |
+| House asks | `house_asks` | — | — | `words` (`mind`: the bird answering April decides, with a `[house: …]` tag, #240) |
 | Calendar rule | `calendar.at_home` (words that make a location the house) | — | — | `["home","house"]` |
 | Audience | `fact_kinds.audience` per kind (`PUT /v1/fact-kinds/{p}` with `"audience": "world"`) | — | — | `minds` |
 | Memory | `memory.hour`, `minute`, `time_zone`, `episode_days`, `episodes_in_prompt`, `reflections_in_prompt` | — | — | `3`, `30`, `America/Los_Angeles`, `30`, `10`, `2` |
@@ -929,6 +930,18 @@ World Viewer's Page panel.
 on the page; each upcoming calendar event is folded into one `calendar.event` and each reminder
 into one `reminder.item`, like the sensors - for the page only, never stored, `derived_from`
 naming every field.
+
+**The bird asks the house** (`0.54.0`, #240, docs/house-tag-plan.md). An experiment. With
+`"house_asks": "mind"`, the word rule (`SceneRequestRule`) no longer runs when April speaks.
+The bird answering her decides: `GET /v1/house/asks` gives it `{"asked_by", "scenes"}`, and
+when she asks for a scene, however she puts it ("make the evening normal"), the bird starts its
+reply with `[house: Normal Evening]`. The agent casts `house.scene_requested` from
+`mind:<bird>` as soon as the tag arrives, before the first sentence is spoken. The World
+accepts a mind's request only in `mind` mode and only for a scene the house offers, rewritten
+to the house's own name for it; anything else is refused with a 400. The house adapter checks
+it against Home Assistant as before. With `words` (the default), nothing changes and a mind's
+request is refused. Tried on 2026-10-16 with the house's 26 scenes on both models: every clear
+ask and every mention right; vague ones ("cozy and dim") get a question or a reasonable pick.
 
 **A dropped connection is sent again** (`0.53.1`, #237). A dialog-stream start, or a whole
 dialog for Creature Server to render, whose connection closes in under 50 ms is sent again,

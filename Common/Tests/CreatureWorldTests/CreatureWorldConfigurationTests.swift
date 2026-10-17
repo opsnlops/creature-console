@@ -14,6 +14,19 @@ struct CreatureWorldConfigurationTests {
         #expect(configuration.port == 8001)
     }
 
+    @Test("House asks are the word rule's unless the config gives them to the mind (#240)")
+    func houseAsks() throws {
+        #expect(
+            try CreatureWorldConfiguration.load(from: nil, environment: [:]).houseAsks == .words)
+        let file = FileManager.default.temporaryDirectory
+            .appendingPathComponent("world-house-asks-\(UUID().uuidString).json")
+        try Data(#"{"house_asks": "mind"}"#.utf8).write(to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let loaded = try CreatureWorldConfiguration.load(from: file, environment: [:])
+        #expect(loaded.houseAsks == .mind)
+        #expect(try loaded.overriding(host: nil, port: nil).houseAsks == .mind)
+    }
+
     @Test("JSON configuration loads and command values override it")
     func configurationLoadsAndOverrides() throws {
         let loaded = try CreatureWorldConfiguration.load(from: fixtureURL, environment: [:])

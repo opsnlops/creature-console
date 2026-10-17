@@ -500,6 +500,14 @@ struct WorldHTTPAPI: Sendable {
             }
         }
 
+        // Who decides that April is asking the house for a scene, and the scenes a mind may
+        // ask for (#240).
+        router.get("v1/house/asks") { _, _ in
+            await respond {
+                try await execute { try jsonResponse(await service.houseAsks()) }
+            }
+        }
+
         // April's checked items, applied where they still stand: each item's outcome.
         router.post("v1/filings/:filingID/apply") { request, context in
             await respond {

@@ -277,3 +277,21 @@ private struct AccessPointChangedPayload: WorldEventPayload, Equatable {
         case connected
     }
 }
+
+@Suite("House asks (#240)")
+struct HouseAsksTests {
+    @Test("Encodes asked_by; a scene is found by any spelling")
+    func shapeAndLookup() throws {
+        let asks = HouseAsks(askedBy: .mind, scenes: ["Movie Time", "Bunnys Room Bedtime"])
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        #expect(
+            String(decoding: try encoder.encode(asks), as: UTF8.self)
+                == #"{"asked_by":"mind","scenes":["Movie Time","Bunnys Room Bedtime"]}"#)
+        #expect(try JSONDecoder().decode(HouseAsks.self, from: try encoder.encode(asks)) == asks)
+        #expect(asks.scene(named: "movie time") == "Movie Time")
+        #expect(asks.scene(named: "Bunny's room  bedtime") == "Bunnys Room Bedtime")
+        #expect(asks.scene(named: "Movie") == nil)
+        #expect(asks.scene(named: "") == nil)
+    }
+}

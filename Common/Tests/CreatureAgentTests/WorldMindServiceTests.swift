@@ -77,6 +77,46 @@ struct WorldMindServiceTests {
         #expect(posted.responseID == CharacterMind.responseID(for: percept.considerationID))
     }
 
+    @Test("A house tag asks the house as April's request, never spoken, only when the mind decides")
+    func asksTheHouse() async throws {
+        for (mode, asks) in [(HouseAskMode.mind, true), (.words, false)] {
+            let stub = StubWorld()
+            let percept = try makePercept(text: "Beaky, movie time please")
+            await stub.script(connection: 0) { _ in
+                [
+                    .snapshot(latestSequence: 10),
+                    .delta(sequence: 11, envelope: try self.envelope(for: percept)),
+                ]
+            }
+            await stub.script(connection: 1) { _ in [] }
+            try await Harness.run(
+                stub: stub, logger: logger,
+                houseAsks: HouseAsks(askedBy: mode, scenes: ["Movie Time", "Goodnight"]),
+                respond: { _, _ in "[house: Movie Time] Popcorn mode, April!" }
+            ) { harness in
+                try await harness.runUntil {
+                    let responded = await stub.responses.count == 1
+                    let cast = await stub.casts.count == (asks ? 1 : 0)
+                    return responded && cast
+                }
+            }
+            let posted = try #require(await stub.responses.first)
+            #expect(posted.text == "Popcorn mode, April!")
+            let casts = await stub.casts
+            guard asks else {
+                #expect(casts.isEmpty)
+                continue
+            }
+            #expect(casts.map(\.type) == [HouseEvents.sceneRequested])
+            #expect(casts[0].source.id.rawValue == "mind:beaky")
+            #expect(casts[0].source.kind == "mind")
+            #expect(casts[0].payload["scene"] == .string("Movie Time"))
+            #expect(casts[0].payload["requested_by"] == .string("person:april"))
+            #expect(
+                casts[0].payload["utterance_id"] == .string(percept.utterance.utteranceID.rawValue))
+        }
+    }
+
     @Test("What April tells her is cast into the world, and the tag is never in her words")
     func learnsWhatAprilSays() async throws {
         let stub = StubWorld()
@@ -526,6 +566,7 @@ private struct Harness {
         room: (any PhysicalSpeechStaging)? = nil,
         respondStreaming: CharacterMind.RespondStreaming? = nil,
         logsIn: Bool = false,
+        houseAsks: HouseAsks? = nil,
         respond: @escaping CharacterMind.Respond,
         body: @escaping @Sendable (Harness) async throws -> Void
     ) async throws {
@@ -576,7 +617,8 @@ private struct Harness {
                         maximumReplyAge: 3_600,
                         maximumContextTurns: 20,
                         modelTimeout: .seconds(5),
-                        modelName: "test-model"
+                        modelName: "test-model",
+                        houseAsks: { houseAsks }
                     ),
                     respond: respond,
                     respondStreaming: respondStreaming,

@@ -24,6 +24,9 @@ public enum WorldContractError: Error, Equatable, Sendable {
     case unstagedPerformance
     case characterSessionNotLive
     case invalidScene
+    /// A mind asked the house for a scene it may not: the world decides by its words, or the
+    /// house offers no such scene (#240).
+    case refusedHouseAsk(String)
 }
 
 extension WorldContractError: LocalizedError {
@@ -75,6 +78,8 @@ extension WorldContractError: LocalizedError {
             "This mind does not hold a live session for the character"
         case .invalidScene:
             "A scene needs at least one participant and no participant twice"
+        case .refusedHouseAsk(let why):
+            "A mind may not ask the house for that scene: \(why)"
         }
     }
 }

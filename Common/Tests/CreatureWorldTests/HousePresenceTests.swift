@@ -98,6 +98,56 @@ struct HousePresenceTests {
         mention.text = "I love an evening \(suffix)"
         #expect(try await requests.request(in: mention) == nil)
     }
+
+    @Test("A mind may ask the house only when it decides, only for an offered scene (#240)")
+    func aMindAsksTheHouse() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "house-presence-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let house = try EntityID(validating: "house:\(suffix)")
+        let scene = "Movie Time \(suffix)"
+        let start = Date(timeIntervalSince1970: 1_789_600_000)
+        let clock = ManualWorldClock(now: start)
+        try await persistence.facts.save(
+            try Fact(
+                subjectID: house, predicate: WorldFacts.houseScenes,
+                value: .array([.string(scene)]),
+                epistemic: EpistemicState(type: .observed, confidence: 1),
+                validFrom: start, derivedFrom: [],
+                producer: FactProducer(kind: "reducer", id: "house", version: "1")))
+        func request(_ asked: String, from kind: String = "mind") throws -> WorldEventEnvelope {
+            try WorldEventEnvelope(
+                type: HouseEvents.sceneRequested, occurredAt: start,
+                source: EventSource(
+                    id: SourceID(
+                        validating: kind == "mind" ? "mind:beaky" : "world:house-commands"),
+                    kind: kind, sourceEventID: "response:\(suffix):house"),
+                subjectIDs: [house], epistemic: EpistemicState(type: .reported, confidence: 1),
+                payload: ["scene": .string(asked)], causedBy: [])
+        }
+        let mind = HouseAskDesk(mode: .mind, facts: persistence.facts, clock: clock)
+        let words = HouseAskDesk(mode: .words, facts: persistence.facts, clock: clock)
+
+        // What a mind is told.
+        #expect(try await mind.asks().askedBy == .mind)
+        #expect(try await mind.asks().scenes.contains(scene))
+        #expect(try await words.asks() == HouseAsks(askedBy: .words, scenes: []))
+        // Any spelling of an offered scene is that scene, as the house names it.
+        let checked = try await mind.check(try request("movie  TIME \(suffix.uppercased())"))
+        #expect(checked.payload["scene"] == .string(scene))
+        // Not offered, or the world decides by its words: refused.
+        await #expect(throws: WorldContractError.self) {
+            try await mind.check(try request("Disco \(suffix)"))
+        }
+        await #expect(throws: WorldContractError.self) {
+            try await words.check(try request(scene))
+        }
+        // The world's own word rule is never stopped by it.
+        let own = try request(scene, from: "world")
+        #expect(try await words.check(own) == own)
+    }
 }
 
 @Suite(

@@ -49,6 +49,43 @@ public struct SceneRequestRule: Sendable {
     }
 }
 
+/// Who decides that April is asking the house for a scene (#240): the word rule at ingress
+/// (`words`), or the bird answering her, which starts its reply with `[house: Movie Time]`
+/// (`mind`).
+public enum HouseAskMode: String, Codable, Equatable, Sendable {
+    case words
+    case mind
+}
+
+/// What `GET /v1/house/asks` tells a mind: who decides, and - when it is the mind - the scenes
+/// the house offers, by name.
+public struct HouseAsks: Codable, Equatable, Sendable {
+    public var askedBy: HouseAskMode
+    public var scenes: [String]
+
+    public init(askedBy: HouseAskMode, scenes: [String]) {
+        self.askedBy = askedBy
+        self.scenes = scenes
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case askedBy = "asked_by"
+        case scenes
+    }
+
+    /// The offered scene `name` is, by any capitalisation and spacing; nil when it is none.
+    public func scene(named name: String) -> String? {
+        let wanted = Self.key(name)
+        return scenes.first { Self.key($0) == wanted }
+    }
+
+    private static func key(_ name: String) -> String {
+        // "Bunny's Room" is "Bunnys Room": an apostrophe is part of a word, not a gap.
+        name.lowercased().filter { $0 != "'" && $0 != "\u{2019}" }
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber }).joined(separator: " ")
+    }
+}
+
 /// The world's hook for house asks at ingress: recognise one in the words and, if so, have
 /// the house act — returning the fact the mind is told ("April just asked for Normal Evening
 /// and the house is doing it") so the percept shows exactly that.

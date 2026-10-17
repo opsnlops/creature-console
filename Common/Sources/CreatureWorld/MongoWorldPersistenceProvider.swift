@@ -54,6 +54,7 @@ struct MongoWorldPersistenceConnection: Sendable {
     let filingReview: @Sendable (EventID) async throws -> FilingReview?
     let applyFiling: @Sendable (EventID, FilingSelection) async throws -> FilingApplyResult?
     let kindCandidates: @Sendable () async throws -> KindCandidatePage
+    let houseAsks: @Sendable () async throws -> HouseAsks
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -71,6 +72,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         departures: DepartureRuleConfiguration = DepartureRuleConfiguration(),
         reminders: ReminderRuleConfiguration = ReminderRuleConfiguration(),
         house: EntityID = CreatureWorldConfiguration.defaultHouse,
+        houseAsks houseAskMode: HouseAskMode = .words,
         publishConversationItem: @escaping @Sendable (ConversationItem) async -> Void = { _ in },
         clock: any WorldClock = SystemWorldClock(),
         logger: Logger
@@ -176,8 +178,11 @@ struct MongoWorldPersistenceConnection: Sendable {
             addresseeResolver: PresentCharactersAddresseeResolver(
                 sessions: sessionService, rule: LeadAddresseeRule(lead: leadCharacter)),
             knowledge: knowledge,
-            houseCommands: HouseSceneRequests(
-                facts: persistence.facts, world: world, clock: clock, logger: logger)
+            // With the mind deciding (#240), the words are left to the bird answering them.
+            houseCommands: houseAskMode == .words
+                ? HouseSceneRequests(
+                    facts: persistence.facts, world: world, clock: clock, logger: logger)
+                : NoHouseCommands()
         )
         // What the world assumes about people is a fact with provenance, announced at startup
         // (idempotent: the same assumption is the same event on every restart).
@@ -389,7 +394,11 @@ struct MongoWorldPersistenceConnection: Sendable {
         let filingDesk = FilingDesk(
             events: persistence.events, facts: persistence.facts, kinds: persistence.factKinds,
             accept: { try await world.accept($0) }, clock: clock)
-        acceptEvent = { try await world.accept(try await filingDesk.redirect($0)) }
+        let houseAskDesk = HouseAskDesk(mode: houseAskMode, facts: persistence.facts, clock: clock)
+        acceptEvent = {
+            try await world.accept(try await filingDesk.redirect(try await houseAskDesk.check($0)))
+        }
+        houseAsks = { try await houseAskDesk.asks() }
         filingReview = { try await filingDesk.review($0) }
         applyFiling = { try await filingDesk.apply($0, $1) }
         kindCandidates = { try await filingDesk.kindCandidates() }
@@ -788,6 +797,9 @@ struct MongoWorldPersistenceConnection: Sendable {
         kindCandidates: @escaping @Sendable () async throws -> KindCandidatePage = {
             throw WorldAPIError.databaseUnavailable
         },
+        houseAsks: @escaping @Sendable () async throws -> HouseAsks = {
+            HouseAsks(askedBy: .words, scenes: [])
+        },
         dayDigest: @escaping @Sendable (String) async throws -> DayDigest? = {
             _ in throw WorldAPIError.databaseUnavailable
         },
@@ -833,6 +845,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.filingReview = filingReview
         self.applyFiling = applyFiling
         self.kindCandidates = kindCandidates
+        self.houseAsks = houseAsks
         self.shutdown = shutdown
     }
 }
@@ -864,6 +877,7 @@ actor MongoWorldPersistenceProvider {
         departures: DepartureRuleConfiguration = DepartureRuleConfiguration(),
         reminders: ReminderRuleConfiguration = ReminderRuleConfiguration(),
         house: EntityID = CreatureWorldConfiguration.defaultHouse,
+        houseAsks: HouseAskMode = .words,
         logger: Logger,
         connector: Connector? = nil
     ) {
@@ -890,6 +904,7 @@ actor MongoWorldPersistenceProvider {
                         departures: departures,
                         reminders: reminders,
                         house: house,
+                        houseAsks: houseAsks,
                         publishConversationItem: { await conversationUpdates.publish($0) },
                         logger: logger
                     )
@@ -1143,6 +1158,11 @@ actor MongoWorldPersistenceProvider {
     func kindCandidates() async throws -> KindCandidatePage {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
         return try await connection.kindCandidates()
+    }
+
+    func houseAsks() async throws -> HouseAsks {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.houseAsks()
     }
 
     func remember(_ day: String) async throws -> WorldEventAcceptance {

@@ -276,6 +276,14 @@ else — persona, facts, the clock, streaming to the room — is identical.
   one, whoever the world says is present or spoke that day — and guesses person or place only
   for names it does not know. The learned contract also asks for a kind the world already has
   before inventing one, and not to keep what another bird just kept in the same scene.
+- **The bird asks the house** (`2.94.0`, #240, docs/house-tag-plan.md). When the World says
+  the mind decides house asks (`GET /v1/house/asks`, refreshed every ten minutes like the
+  glossary), the contract lists the house's scenes and asks for `[house: the exact name]` at
+  the start of a reply when April asks for one, however she puts it. The tag is never spoken.
+  The agent casts `house.scene_requested` from `mind:<bird>` as soon as the tag arrives, and
+  only for a reply to April, never a camera or house scene. The span gets `house.asked`. With
+  the World on `words`, or a World without the endpoint, the bird is told nothing and asks
+  nothing.
 - **The bird says the kind; a model judges the rest** (`2.93.0`, #239,
   docs/entity-kinds-plan.md). A learned tag and a memory episode name each subject with its
   kind: `person: Jesse`, `place: the front door`, `place: Rocket Taco`, `thing: Hopper`, `spell:

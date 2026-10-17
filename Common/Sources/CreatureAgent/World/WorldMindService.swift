@@ -215,6 +215,11 @@ struct WorldMindService: Service {
                 },
                 learn: { learned in
                     await self.cast(learned, causedBy: envelope, key: responseID.rawValue)
+                },
+                askHouse: { scene in
+                    await self.ask(
+                        scene, causedBy: envelope, key: responseID.rawValue,
+                        utterance: offer.offer.trigger.utteranceID)
                 })
             switch decision {
             case .turn(let turn):
@@ -314,12 +319,50 @@ struct WorldMindService: Service {
         }
     }
 
+    /// Asks the house for a scene April asked for, as `house.scene_requested` from this mind;
+    /// the world checks it is one the house offers (#240). Keyed by the reply, so a retried
+    /// reply asks once.
+    private func ask(
+        _ scene: String, causedBy envelope: WorldEventEnvelope, key: String,
+        utterance: UtteranceID?
+    ) async {
+        var payload: [String: WorldJSONValue] = [
+            "scene": .string(scene),
+            "requested_by": .string(mind.configuration.personID.rawValue),
+        ]
+        if let utterance { payload["utterance_id"] = .string(utterance.rawValue) }
+        do {
+            let event = try WorldEventEnvelope(
+                type: HouseEvents.sceneRequested,
+                occurredAt: await clock.now,
+                source: EventSource(
+                    id: try SourceID(validating: "mind:\(mind.configuration.characterName)"),
+                    kind: "mind", sourceEventID: "\(key):house"),
+                subjectIDs: [mind.configuration.houseID, mind.configuration.personID],
+                epistemic: EpistemicState(type: .reported, confidence: 1),
+                payload: payload,
+                causedBy: [.event(envelope.eventID)],
+                trace: envelope.trace)
+            try await responder.cast(event)
+            logger.info("Asked the house for a scene", metadata: ["house.scene": "\(scene)"])
+        } catch {
+            logger.error(
+                "Could not ask the house for a scene",
+                metadata: ["house.scene": "\(scene)", "error": "\(error)"])
+        }
+    }
+
     private func decideAndDeliver(_ consideration: WorldConsideration) async throws {
         let envelope = consideration.envelope
         let key = consideration.percept.considerationID.rawValue
-        let decision = try await mind.consider(consideration, now: await clock.now) { learned in
-            await self.cast(learned, causedBy: envelope, key: key)
-        }
+        let decision = try await mind.consider(
+            consideration, now: await clock.now,
+            learn: { learned in await self.cast(learned, causedBy: envelope, key: key) },
+            askHouse: { scene in
+                await self.ask(
+                    scene, causedBy: envelope, key: key,
+                    utterance: consideration.percept.utterance.utteranceID)
+            })
         let intent: CharacterUtteranceIntent
         let outcome: WorldResponseOutcome
         switch decision {

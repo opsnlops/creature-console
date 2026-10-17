@@ -353,3 +353,35 @@ struct EntityNames: Sendable {
         name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 }
+
+/// `[house: Movie Time]`: a bird asking the house for one of its scenes, at the start of its
+/// reply to April (#240). Never spoken; the world sets the scene when it arrives.
+enum HouseTag {
+    static let pattern = #"\[house:\s*([^\]]+?)\s*\]"#
+
+    /// The scene the first tag in `text` asks for; nil when there is none.
+    static func scene(in text: String) -> String? {
+        guard let expression = try? NSRegularExpression(pattern: pattern),
+            let match = expression.firstMatch(
+                in: text, range: NSRange(text.startIndex..., in: text)),
+            let range = Range(match.range(at: 1), in: text)
+        else { return nil }
+        // A tag cut across two streamed pieces has a line break in it.
+        let scene = text[range].split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        return scene.isEmpty ? nil : scene
+    }
+
+    /// The contract, when the bird decides house asks: the scenes, and how to ask for one.
+    static func contract(_ asks: HouseAsks?) -> String {
+        guard let asks, asks.askedBy == .mind, !asks.scenes.isEmpty else { return "" }
+        return """
+            The house's lighting scenes: \(asks.scenes.joined(separator: ", ")). When April \
+            asks you to set one of them now - however she puts it: "make the evening normal" is \
+            Normal Evening, "lower the key" is Low Key - start your reply with [house: the \
+            scene's exact name from that list], then answer her as you would; the house sets \
+            it the moment it reads the tag, and the tag is never spoken. Not when she only \
+            mentions or remembers a scene, and never one she did not ask for; if it is unclear \
+            which she means, ask her instead. One scene at most.
+            """
+    }
+}

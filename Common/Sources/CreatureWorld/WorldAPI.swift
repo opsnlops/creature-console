@@ -130,6 +130,8 @@ protocol WorldApplicationService: Sendable {
         -> FilingApplyResult?
     /// Every `person:` nobody named a person, for the librarian to judge (#236).
     func kindCandidates() async throws -> KindCandidatePage
+    /// Who decides a house ask, and the scenes a mind may ask for (#240).
+    func houseAsks() async throws -> HouseAsks
 }
 
 extension WorldApplicationService {
@@ -147,6 +149,9 @@ extension WorldApplicationService {
         throw WorldAPIError.databaseUnavailable
     }
     func kindCandidates() async throws -> KindCandidatePage {
+        throw WorldAPIError.databaseUnavailable
+    }
+    func houseAsks() async throws -> HouseAsks {
         throw WorldAPIError.databaseUnavailable
     }
     func applyFiling(_ filing: EventID, _ selection: FilingSelection) async throws
