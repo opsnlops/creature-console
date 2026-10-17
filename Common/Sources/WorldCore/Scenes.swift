@@ -315,6 +315,9 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
     public var factMeanings: [String: String]
     /// What this character itself said lately, across scenes, newest last.
     public var recentLines: [SpokenLine]
+    /// Which of `worldFacts` the words called up (#245); the rest are the standing page. Nil
+    /// from a world that does not tell them apart.
+    public var calledUp: [FactID]?
 
     public init(
         sceneID: SceneID,
@@ -327,7 +330,8 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
         worldFacts: [Fact] = [],
         recentHappenings: [Happening] = [],
         factMeanings: [String: String] = [:],
-        recentLines: [SpokenLine] = []
+        recentLines: [SpokenLine] = [],
+        calledUp: [FactID]? = nil
     ) {
         self.sceneID = sceneID
         self.characterID = characterID
@@ -340,6 +344,7 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
         self.recentHappenings = recentHappenings
         self.factMeanings = factMeanings
         self.recentLines = recentLines
+        self.calledUp = calledUp
     }
 
     public init(from decoder: any Decoder) throws {
@@ -358,7 +363,8 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
             factMeanings: try container.decodeIfPresent(
                 [String: String].self, forKey: .factMeanings) ?? [:],
             recentLines: try container.decodeIfPresent([SpokenLine].self, forKey: .recentLines)
-                ?? []
+                ?? [],
+            calledUp: try container.decodeIfPresent([FactID].self, forKey: .calledUp)
         )
     }
 
@@ -374,6 +380,7 @@ public struct SceneTurnOffer: Hashable, Sendable, Codable {
         case recentHappenings = "recent_happenings"
         case factMeanings = "fact_meanings"
         case recentLines = "recent_lines"
+        case calledUp = "called_up"
     }
 }
 

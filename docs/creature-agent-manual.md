@@ -276,6 +276,17 @@ else — persona, facts, the clock, streaming to the room — is identical.
   one, whoever the world says is present or spoke that day — and guesses person or place only
   for names it does not know. The learned contract also asks for a kind the world already has
   before inventing one, and not to keep what another bird just kept in the same scene.
+- **The standing layers are cached** (`2.101.0`, World `0.59.0`, #245). With the World's
+  `called_up`, the memories and reported layers hold the standing page alone, read among the
+  standing facts alone, so a name in the words cannot change a standing line by a byte. Both
+  layers are cache points again, steadiest first: the memories change at 3:30 AM, what was
+  reported when the world learns something. What the words called up rides in the moment, after
+  its preface, under its own headings ("What the words just now bring back, from your own
+  memories", "What the world was told about what the words just now bring up"). A conversation
+  keeps its turns so far as a cache point after the standing layers: five points in all. A
+  percept or offer without `called_up` (an older World) keeps the layout below, with no cache
+  point on the layers. Expected: a Beaky reply reads ~9.5k from the cache instead of ~6.7k, and
+  costs ~1.1¢ instead of ~2.3¢.
 - **What a bird knows, in layers** (`2.98.0`, #235; not cached since `2.98.1`). Before the
   moment come the bird's own memories ("What you remember", `remembered` facts) and what the
   world was told ("What the world was told", `reported` facts), each sorted oldest first. In

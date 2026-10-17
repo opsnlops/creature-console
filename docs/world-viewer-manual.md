@@ -242,6 +242,20 @@ of a spell: the record with the magic taken out, for when you need to see the wi
 
 **Scry again** in the toolbar drops the connection and starts over with a fresh snapshot.
 
+### Page (`0.13.0`, #231; called up from `0.18.0`, #245)
+
+Exactly what a bird's mind is handed. Pick a bird, type what April might say (or nothing), and
+**Read the Page**. The facts are sorted by what they are: what the birds learned, the house and
+the world now, the folded sensors and forecasts, the calendar and reminders, memories, and the
+stage (who is here, and how to name them), with a count of each at the top. Click a fact for its
+JSON in the Mundane view.
+
+**Called up by the words** comes first: what April's words brought beside the standing page (a
+person she named, a memory the words found, the fortnight's calendar on a time word). Everything
+under it is the standing page, the part a mind keeps cached all day; what the words called up is
+sent fresh with each scene. Before World `0.59.0` a name pushed standing facts off the page; now
+they sit beside it.
+
 ### House (`0.16.0`, #241)
 
 The house's lighting scenes as the birds are told them. **Birds may ask for** lists the

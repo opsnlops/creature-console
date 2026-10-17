@@ -10,6 +10,24 @@ import WorldCore
 enum PageFolding {
     static let producer = FactProducer(kind: "world", id: "page", version: "1")
 
+    /// A folded entry's id, from what it folds: the same readings fold to the same id on every
+    /// page, in every process, and a new reading to a new one. A fresh id each time made the
+    /// same fold look new on every page, so it could never be told from what the words called
+    /// up, and two folds made in the same instant ordered at random in a cached layer (#245).
+    static func id(of subject: EntityID, _ predicate: String, from parts: [Fact]) -> FactID? {
+        // FNV-1a, 64 bits: Swift's Hasher is seeded anew in every process.
+        var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+        let key = ([subject.rawValue, predicate] + parts.map(\.factID.rawValue).sorted())
+            .joined(separator: "\u{1}")
+        for byte in key.utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 0x0000_0100_0000_01b3
+        }
+        let hex = String(hash, radix: 16)
+        return try? FactID(
+            validating: "fact:page-" + String(repeating: "0", count: 16 - hex.count) + hex)
+    }
+
     static func fold(_ facts: [Fact]) -> [Fact] {
         var groups: [String: [Fact]] = [:]
         var order: [String] = []
@@ -27,10 +45,16 @@ enum PageFolding {
                 family == WorldFacts.environmentPrefix
                 ? environment(readings) : outlook(readings)
             guard !words.isEmpty else { return nil }
+            let predicate =
+                family == WorldFacts.environmentPrefix
+                ? WorldFacts.environmentNow : WorldFacts.forecastOutlook
+            guard let factID = id(of: first.subjectID, predicate, from: readings) else {
+                return nil
+            }
             return try? Fact(
+                factID: factID,
                 subjectID: first.subjectID,
-                predicate: family == WorldFacts.environmentPrefix
-                    ? WorldFacts.environmentNow : WorldFacts.forecastOutlook,
+                predicate: predicate,
                 value: .string(words),
                 epistemic: EpistemicState(
                     type: first.epistemic.type,
@@ -167,9 +191,13 @@ enum PageFolding {
             let words =
                 kind == "calendar." ? event(parts) : reminder(parts)
             guard !words.isEmpty else { return nil }
+            let predicate =
+                kind == "calendar." ? WorldFacts.calendarEvent : WorldFacts.reminderItem
+            guard let factID = id(of: subject, predicate, from: parts) else { return nil }
             return try? Fact(
+                factID: factID,
                 subjectID: subject,
-                predicate: kind == "calendar." ? WorldFacts.calendarEvent : WorldFacts.reminderItem,
+                predicate: predicate,
                 value: .string(words),
                 epistemic: first.epistemic,
                 validFrom: parts.map(\.validFrom).max() ?? first.validFrom,

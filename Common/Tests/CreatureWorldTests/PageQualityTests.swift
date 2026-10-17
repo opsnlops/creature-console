@@ -54,6 +54,32 @@ struct PageFoldingTests {
         #expect(power.value == .string("power 1966.1 W"))
     }
 
+    @Test("A fold's id comes from what it folds: the same readings, the same id (#245)")
+    func foldsKeepTheirIDs() throws {
+        let readings = [
+            try reading(outside, "environment.temperature_f", .number(51.7)),
+            try reading(outside, "environment.humidity_percent", .number(89), minutesAgo: 7),
+        ]
+        let first = try #require(PageFolding.fold(readings).first)
+        // Folded again, on the next page, in either order: the same entry, by id.
+        #expect(PageFolding.fold(readings).first?.factID == first.factID)
+        #expect(PageFolding.fold(readings.reversed()).first?.factID == first.factID)
+        #expect(first.factID.rawValue.hasPrefix("fact:page-"))
+        // A new reading is a new fold.
+        let warmer = try reading(outside, "environment.temperature_f", .number(52.4))
+        #expect(PageFolding.fold([warmer, readings[1]]).first?.factID != first.factID)
+        // The calendar's folds the same way.
+        let event = try EntityID(validating: "event:deck-20261018")
+        let parts = [
+            try reading(event, "calendar.title", .string("Deck"), type: .reported),
+            try reading(
+                event, "calendar.starts_at", .string("2026-10-18T17:00:00Z"), type: .reported),
+        ]
+        let entry = try #require(PageFolding.foldCalendar(parts).first)
+        #expect(PageFolding.foldCalendar(parts).first?.factID == entry.factID)
+        #expect(entry.factID != first.factID)
+    }
+
     @Test("Without the light reading, the trend still says which way the light is going")
     func trendAlone() throws {
         let folded = PageFolding.fold([

@@ -420,9 +420,10 @@ public actor SceneService {
         if let speaker = scene.trigger.speakerID {
             subjects.append(speaker)
         }
-        let worldFacts = try await knowledge.currentFacts(
+        let page = try await knowledge.page(
             about: subjects, mentionedIn: scene.trigger.text,
             limit: WorldKnowledgeLimits.maximumFacts)
+        let worldFacts = page.facts
         let offer = SceneTurnOffer(
             sceneID: scene.sceneID,
             characterID: characterID,
@@ -438,7 +439,8 @@ public actor SceneService {
                 limit: WorldKnowledgeLimits.maximumHappenings),
             factMeanings: try await knowledge.meanings(of: Set(worldFacts.map(\.predicate))),
             recentLines: try await knowledge.recentLines(
-                of: characterID, limit: WorldKnowledgeLimits.maximumRecentLines)
+                of: characterID, limit: WorldKnowledgeLimits.maximumRecentLines),
+            calledUp: page.calledUp
         )
         try await announce(
             WorldEventEnvelope(

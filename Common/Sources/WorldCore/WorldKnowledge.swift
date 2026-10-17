@@ -9,6 +9,12 @@ public protocol WorldKnowledgeProviding: Sendable {
     func currentFacts(about subjects: [EntityID], mentionedIn text: String?, limit: Int)
         async throws -> [Fact]
 
+    /// The same facts in two parts (#245): the standing page, what `subjects` alone bring, and
+    /// what the words called up beside it. A mind caches the standing part all day and sends
+    /// what the words brought fresh.
+    func page(about subjects: [EntityID], mentionedIn text: String?, limit: Int)
+        async throws -> KnowledgePage
+
     /// What just happened around `subjects`: the recent events for them, oldest first. Facts
     /// are the present; the happenings are the story, and the story is where a mind works out
     /// that the door unlocking and then a person at the carport was April going out.
@@ -25,6 +31,30 @@ public protocol WorldKnowledgeProviding: Sendable {
 extension WorldKnowledgeProviding {
     public func currentFacts(about subjects: [EntityID], limit: Int) async throws -> [Fact] {
         try await currentFacts(about: subjects, mentionedIn: nil, limit: limit)
+    }
+
+    /// The standing page is the page with no words, exactly: anything else would change with
+    /// every scene and could never be read back. What the words call up is the page with them,
+    /// less the standing page, so a name never pushes a standing fact off - Jesse's facts once
+    /// took ten of Beaky's thirty. The two are gathered at once.
+    public func page(about subjects: [EntityID], mentionedIn text: String?, limit: Int)
+        async throws -> KnowledgePage
+    {
+        guard let text, !text.isEmpty else {
+            return KnowledgePage(
+                facts: try await currentFacts(about: subjects, mentionedIn: nil, limit: limit),
+                calledUp: [])
+        }
+        async let standing = currentFacts(about: subjects, mentionedIn: nil, limit: limit)
+        async let worded = currentFacts(about: subjects, mentionedIn: text, limit: limit)
+        let kept = try await standing
+        let held = Set(kept.map(\.factID))
+        var brought: [Fact] = []
+        var seen = held
+        for fact in try await worded where seen.insert(fact.factID).inserted {
+            brought.append(fact)
+        }
+        return KnowledgePage(facts: kept + brought, calledUp: brought.map(\.factID))
     }
 
     /// Without a record of speech, nothing said lately.
@@ -47,6 +77,18 @@ extension WorldKnowledgeProviding {
             }
         }
         return meanings
+    }
+}
+
+/// A mind's facts for a moment (#245): the standing page first, then what the words called up,
+/// whose ids are in `calledUp`.
+public struct KnowledgePage: Hashable, Sendable {
+    public var facts: [Fact]
+    public var calledUp: [FactID]
+
+    public init(facts: [Fact], calledUp: [FactID]) {
+        self.facts = facts
+        self.calledUp = calledUp
     }
 }
 

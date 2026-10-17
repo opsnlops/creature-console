@@ -942,6 +942,17 @@ on the page; each upcoming calendar event is folded into one `calendar.event` an
 into one `reminder.item`, like the sensors - for the page only, never stored, `derived_from`
 naming every field.
 
+**The standing page, and what the words call up** (`0.59.0`, #245,
+docs/standing-page-plan.md). The words used to share the thirty with everything else: a name
+added its person's facts to the page's subjects, and the newest thirty across all of them won,
+so "Is Jesse coming?" pushed ten of Beaky's standing facts off. Now the **standing page** is the
+page with no words, exactly, and what the words **called up** is the page with them less the
+standing page, beside it. Both are gathered at once. The utterance percept, the scene offer and
+the perspective carry `called_up`, the ids of what the words brought; a mind caches the standing
+part all day and sends the rest fresh. The house scene the words ask for is always called up. A
+**fold keeps its id** across pages now: `fact:page-` and a hash of its subject, predicate and
+readings, so the same fold is the same fact on every page.
+
 **The day record, trimmed** (`0.57.0`, #242, docs/day-record-trim-plan.md). `GET
 /v1/days/{day}` is the record as the nightly memory sees it, and it no longer repeats itself: a
 cast fact is a `learned` line, never also a happening; `learned` leaves out the minds' own

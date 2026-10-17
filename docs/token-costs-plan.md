@@ -139,6 +139,11 @@ conversation.
    scene's words call up (recalled memories, facts the words retrieve, the people mentioned).
    With that, Beaky's ~4k layers go from $4/M to $0.20/M on most calls: **~$10-15/month**.
 
+   **Building as #245** (docs/standing-page-plan.md; World 0.59.0, agent 2.101.0, Viewer
+   0.18.0). Measured 2026-10-17 evening: with everything else done, the fresh ~5.3k is ~90% of a
+   Beaky reply (~2.3¢), so this is now the largest lever: ~2.3¢ → ~1.1¢ a reply, ~$10–55/month
+   by traffic. The chorus' nights moved to Sol the same day (~$50 → ~$10/month).
+
 ### Not worth more work
 
 - The chorus: ~$14/month all told; even perfect caching saves a few dollars.

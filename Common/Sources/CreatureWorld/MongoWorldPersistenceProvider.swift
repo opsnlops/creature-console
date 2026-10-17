@@ -589,8 +589,9 @@ struct MongoWorldPersistenceConnection: Sendable {
             let subjects =
                 [characterID] + Array(regions.keys).sorted { $0.rawValue < $1.rawValue }
                 + [try EntityID(validating: "person:april")]
-            let facts = try await knowledge.currentFacts(
+            let page = try await knowledge.page(
                 about: subjects, mentionedIn: text, limit: WorldKnowledgeLimits.maximumFacts)
+            let facts = page.facts
             return CharacterPerspective(
                 characterID: characterID, facts: facts,
                 factMeanings: try await knowledge.meanings(of: Set(facts.map(\.predicate))),
@@ -599,7 +600,8 @@ struct MongoWorldPersistenceConnection: Sendable {
                     since: now.addingTimeInterval(-WorldKnowledgeLimits.happeningsWindow),
                     limit: WorldKnowledgeLimits.maximumHappenings),
                 recentLines: try await knowledge.recentLines(
-                    of: characterID, limit: WorldKnowledgeLimits.maximumRecentLines))
+                    of: characterID, limit: WorldKnowledgeLimits.maximumRecentLines),
+                calledUp: page.calledUp)
         }
         // Search: MongoDB's text index over every fact, grouped by entity, best first, with
         // the facts that matched. One query answers "who is Tamara?", "the cleaner", or

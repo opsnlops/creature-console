@@ -363,6 +363,113 @@ struct CharacterMindTests {
         #expect(points(asked) == 3)
     }
 
+    @Test(
+        "Marked by the world, the standing layers are cache points, byte for byte as with no words (#245)"
+    )
+    func standingLayersAreCached() throws {
+        let beaky = try EntityID(validating: "character:beaky")
+        let mango = try EntityID(validating: "character:mango")
+        let april = try EntityID(validating: "person:april")
+        let jesse = try EntityID(validating: "person:jesse")
+        var configuration = makeMind { _, _ in "unused" }.configuration
+        configuration.knowledgePlacement = .beforeNewest
+        configuration.glossary = { ["presence.state": "whether a person is home"] }
+        let mind = CharacterMind(
+            configuration: configuration, respond: { _, _ in "unused" },
+            logger: Logger(label: "character-mind-tests"))
+        func fact(
+            _ subject: EntityID, _ predicate: String, _ value: WorldJSONValue,
+            _ type: EpistemicType,
+            minutesAgo: Double
+        ) throws -> Fact {
+            try Fact(
+                subjectID: subject, predicate: predicate, value: value,
+                epistemic: EpistemicState(type: type, confidence: 1),
+                validFrom: now.addingTimeInterval(-minutesAgo * 60), derivedFrom: [],
+                producer: FactProducer(kind: "reducer", id: "test", version: "1"))
+        }
+        // The standing page: a memory of the day, two things April told her, the house now.
+        let standing = [
+            try fact(
+                april, "memory.belief.beaky.1",
+                .object(["kind": .string("habit"), "what": .string("April likes tacos")]),
+                .remembered, minutesAgo: 600),
+            try fact(april, "food.preference", .string("chicken tacos"), .reported, minutesAgo: 60),
+            try fact(april, "calendar.event", .string("Church, Sunday"), .reported, minutesAgo: 90),
+            try fact(april, "presence.state", .string("home"), .observed, minutesAgo: 0),
+        ]
+        // What "is Jesse finishing the deck?" calls up: an old memory, Jesse, and April's
+        // pronouns - which, read with the standing lines, would change how they say "April".
+        let calledUp = [
+            try fact(
+                april, "memory.episode.beaky.2026-08-01.1",
+                .object(["what": .string("Jesse started the deck in August")]), .remembered,
+                minutesAgo: 110_000),
+            try fact(
+                jesse, "project.deck", .string("finishing the deck"), .reported, minutesAgo: 30),
+            try fact(april, "identity.pronouns", .string("she/her"), .reported, minutesAgo: 5_000),
+        ]
+        func offer(_ facts: [Fact], calledUp: [FactID]?) throws -> SceneTurnOffer {
+            try SceneTurnOffer(
+                sceneID: .generated(), characterID: beaky, responseID: .generated(),
+                deadline: now.addingTimeInterval(8),
+                trigger: SceneTrigger(
+                    kind: .worldEvent, eventID: .generated(), speakerID: nil,
+                    text: "The front door was unlocked."),
+                participants: [beaky, mango], turns: [], worldFacts: facts,
+                recentHappenings: [], factMeanings: [:], recentLines: [], calledUp: calledUp)
+        }
+        func points(_ transcript: [LocalLLMClient.Message]) -> Int {
+            transcript.reduce(0) {
+                $0 + ($1.parts.isEmpty ? ($1.cachePoint ? 1 : 0) : $1.parts.count)
+            }
+        }
+
+        let quiet = try mind.makeSceneTranscript(for: offer(standing, calledUp: []), now: now)
+        let worded = try mind.makeSceneTranscript(
+            for: offer(standing + calledUp, calledUp: calledUp.map(\.factID)), now: now)
+        // The stable item, the standing memories and reported (both cache points), the moment
+        // with what the words brought, the script.
+        #expect(worded.map(\.role) == [.system, .user, .user, .user, .user])
+        #expect(worded.map(\.cachePoint) == [false, true, true, false, false])
+        #expect(points(worded) == 4)
+        // The standing layers are the same bytes whatever the words: what makes them a cache.
+        #expect(worded[1].content == quiet[1].content)
+        #expect(worded[2].content == quiet[2].content)
+        #expect(!worded[1].content.contains("August"))
+        #expect(!worded[2].content.contains("finishing the deck"))
+        #expect(!worded[2].content.contains("she/her"))
+        // What the words brought rides in the moment, under its own headings, after the preface.
+        let moment = worded[3].content
+        #expect(moment.hasPrefix(CharacterMind.momentPreface))
+        #expect(moment.contains("What the words just now bring back, from your own memories:"))
+        #expect(moment.contains("Jesse started the deck in August"))
+        #expect(moment.contains("finishing the deck"))
+        #expect(moment.contains("It is "))
+
+        // A world that does not mark them: today's layout - everything in the layers, and no
+        // cache point on them, so a scene never writes what the next one cannot read (2.98.0).
+        let unmarked = try mind.makeSceneTranscript(
+            for: offer(standing + calledUp, calledUp: nil), now: now)
+        #expect(unmarked.map(\.cachePoint) == [false, false, false, false, false])
+        #expect(points(unmarked) == 2)
+        #expect(unmarked[1].content.contains("August"))
+
+        // A conversation: the standing layers, then the turns so far, all cache points; what
+        // the words brought after them, inside the moment.
+        var percept = try makePercept(
+            text: "Is Jesse finishing the deck?",
+            prior: [("person", "Hello", 1), ("character", "Hello April.", 2)],
+            facts: standing + calledUp)
+        percept.calledUp = calledUp.map(\.factID)
+        let asked = mind.makeTranscript(for: percept, now: now)
+        #expect(asked.map(\.role) == [.system, .user, .user, .user, .assistant, .user, .user])
+        #expect(asked.map(\.cachePoint) == [false, true, true, false, true, false, false])
+        #expect(points(asked) == 5)
+        #expect(asked[5].content.contains("finishing the deck"))
+        #expect(!asked[2].content.contains("finishing the deck"))
+    }
+
     @Test("A question from April carries the world's tools and their contract; a scene turn never")
     func toolsGoWithQuestionsOnly() async throws {
         let tools = ModelTools(

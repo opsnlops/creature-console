@@ -183,16 +183,20 @@ public struct CharacterPerspective: Codable, Hashable, Sendable {
     public var recentHappenings: [Happening]
     /// What the character itself said lately, newest last - so it does not say it again.
     public var recentLines: [SpokenLine]
+    /// Which of `facts` the words called up (#245); the rest are the standing page. Nil from a
+    /// world that does not tell them apart.
+    public var calledUp: [FactID]?
 
     public init(
         characterID: EntityID, facts: [Fact], factMeanings: [String: String],
-        recentHappenings: [Happening], recentLines: [SpokenLine] = []
+        recentHappenings: [Happening], recentLines: [SpokenLine] = [], calledUp: [FactID]? = nil
     ) {
         self.characterID = characterID
         self.facts = facts
         self.factMeanings = factMeanings
         self.recentHappenings = recentHappenings
         self.recentLines = recentLines
+        self.calledUp = calledUp
     }
 
     public init(from decoder: any Decoder) throws {
@@ -203,7 +207,8 @@ public struct CharacterPerspective: Codable, Hashable, Sendable {
             factMeanings: try container.decode([String: String].self, forKey: .factMeanings),
             recentHappenings: try container.decode([Happening].self, forKey: .recentHappenings),
             recentLines: try container.decodeIfPresent([SpokenLine].self, forKey: .recentLines)
-                ?? [])
+                ?? [],
+            calledUp: try container.decodeIfPresent([FactID].self, forKey: .calledUp))
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -212,6 +217,7 @@ public struct CharacterPerspective: Codable, Hashable, Sendable {
         case factMeanings = "fact_meanings"
         case recentHappenings = "recent_happenings"
         case recentLines = "recent_lines"
+        case calledUp = "called_up"
     }
 }
 

@@ -1,3 +1,21 @@
+creature-cli (2.101.0+world0.59.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * What a bird knows all day is cached (#245). A Beaky reply sent ~5.3k
+    tokens fresh at $4/M, ~90% of its cost, because the words of each
+    scene changed the memories and reported layers: a name joined the
+    page's subjects and pushed standing facts off ("Is Jesse coming?"
+    took ten of Beaky's thirty). World 0.59.0: the standing page is the
+    page with no words, exactly; what the words called up sits beside
+    it, marked in called_up on the percept, the scene offer and the
+    perspective. A folded entry's id now comes from what it folds, so
+    the same fold is the same fact on every page. creature-agent
+    2.101.0: the standing memories and reported layers are cache points
+    again, the same bytes whatever the words; what the words brought
+    rides fresh in the moment. Expected ~2.3c -> ~1.1c a Beaky reply.
+    World Viewer 0.18.0: the Page panel shows what the words called up.
+
+ -- April White <april@creature.engineering>  Sat, 17 Oct 2026 18:00:00 -0700
+
 creature-cli (2.100.1+world0.58.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.100.1: the birds are told what the memory gate is

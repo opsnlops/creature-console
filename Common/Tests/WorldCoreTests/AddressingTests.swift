@@ -138,9 +138,16 @@ struct AddressingTests {
             utterance, context: UtteranceIngressContext(boundary: .trustedLAN))
 
         #expect(result.percept.worldFacts == knowledge.facts)
-        #expect(await knowledge.requests == [[beaky, april]])
-        #expect(await knowledge.limits == [WorldKnowledgeLimits.maximumFacts])
-        #expect(await knowledge.texts == ["Is anyone there?"])
+        // Asked twice, at once: the standing page without the words, and the page with them,
+        // so what the words call up is told apart (#245). The same facts both times here, so
+        // nothing was called up.
+        #expect(await knowledge.requests == [[beaky, april], [beaky, april]])
+        #expect(
+            await knowledge.limits == [
+                WorldKnowledgeLimits.maximumFacts, WorldKnowledgeLimits.maximumFacts,
+            ])
+        #expect(Set(await knowledge.texts) == [nil, "Is anyone there?"])
+        #expect(result.percept.calledUp == [])
         // The facts ride the wire under their own key, and an older world without them decodes.
         let encoded = try WorldJSON.makeEncoder().encode(result.percept)
         let json = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])

@@ -236,6 +236,16 @@ struct FactPageSectionsTests {
         )
         #expect(FactPageSections.name(of: try EntityID(validating: "character:beaky")) == "Beaky")
     }
+
+    @Test("What the words called up sits apart from the standing page (#245)")
+    func calledUpApart() throws {
+        let jesse = try fact("person:jesse", "project.deck", origin: "mind:beaky")
+        let learned = try fact("person:april", "flight.training", origin: "mind:beaky")
+        let sections = FactPageSections(facts: [learned, jesse], calledUp: [jesse.factID])
+        #expect(sections.facts(of: .calledUp) == [jesse])
+        #expect(sections.facts(of: .learned) == [learned])
+        #expect(sections.summary == "1 called up · 1 learned")
+    }
 }
 
 /// #229, Ship 2: April's checkboxes on a night's filing start from the world's review, and

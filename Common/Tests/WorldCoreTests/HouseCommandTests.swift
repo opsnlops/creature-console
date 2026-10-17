@@ -66,6 +66,8 @@ struct HouseCommandTests {
             utterance, context: UtteranceIngressContext(boundary: .trustedLAN))
 
         #expect(result.percept.worldFacts.first == requested)
+        // The words brought it: it is no part of the standing page a mind caches (#245).
+        #expect(result.percept.calledUp?.first == requested.factID)
     }
 }
 

@@ -42,7 +42,10 @@ struct PagePanel: View {
                 if loading {
                     ProgressView()
                 } else if let page {
-                    PageView(sections: FactPageSections(facts: page.facts), scried: $scried)
+                    PageView(
+                        sections: FactPageSections(
+                            facts: page.facts, calledUp: Set(page.calledUp ?? [])),
+                        scried: $scried)
                 } else {
                     ContentUnavailableView(
                         "Read a bird's page", systemImage: "doc.text",
@@ -65,10 +68,13 @@ struct PagePanel: View {
     }
 }
 
-/// A page sorted by what each fact is: what the birds learned, the house's state, the calendar,
-/// memories, and what rides beside the thirty - the folded state and the stage.
+/// A page sorted by what each fact is: what the words called up, then the standing page - what
+/// the birds learned, the house's state, the calendar, memories, and what rides beside the
+/// thirty, the folded state and the stage. The standing page is what a mind keeps cached all
+/// day; what the words called up is sent fresh with each scene (#245).
 struct FactPageSections: Equatable {
     enum Kind: String, CaseIterable, Identifiable {
+        case calledUp = "Called up by the words"
         case learned = "What the birds learned"
         case state = "The house and the world, now"
         case folded = "Folded: sensors and forecasts"
@@ -80,6 +86,8 @@ struct FactPageSections: Equatable {
     }
 
     let facts: [Fact]
+    /// The facts the words called up, from the world's `called_up`.
+    var calledUp: Set<FactID> = []
 
     static let stagePredicates: Set<String> = [WorldFacts.characterRegion, WorldFacts.pronouns]
 
@@ -98,8 +106,13 @@ struct FactPageSections: Equatable {
         return .state
     }
 
+    /// Where a fact sits on this page: with what the words called up, or by what it is.
+    func section(of fact: Fact) -> Kind {
+        calledUp.contains(fact.factID) ? .calledUp : Self.kind(of: fact)
+    }
+
     func facts(of kind: Kind) -> [Fact] {
-        facts.filter { Self.kind(of: $0) == kind }
+        facts.filter { section(of: $0) == kind }
     }
 
     /// "18 learned · 7 state · 2 folded · 6 calendar · 9 memories · 8 stage"
@@ -109,6 +122,7 @@ struct FactPageSections: Equatable {
             guard count > 0 else { return nil }
             let short: String =
                 switch kind {
+                case .calledUp: "called up"
                 case .learned: "learned"
                 case .state: "state"
                 case .folded: "folded"

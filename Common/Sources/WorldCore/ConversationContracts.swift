@@ -323,6 +323,9 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
     public var factMeanings: [String: String]
     /// What this character itself said lately, across scenes, newest last.
     public var recentLines: [SpokenLine]
+    /// Which of `worldFacts` the words called up (#245); the rest are the standing page. Nil
+    /// from a world that does not tell them apart.
+    public var calledUp: [FactID]?
 
     public init(
         considerationID: ConsiderationID = .generated(),
@@ -333,7 +336,8 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         worldFacts: [Fact] = [],
         recentHappenings: [Happening] = [],
         factMeanings: [String: String] = [:],
-        recentLines: [SpokenLine] = []
+        recentLines: [SpokenLine] = [],
+        calledUp: [FactID]? = nil
     ) throws {
         guard priorConversationItems.count <= ConversationContractLimits.maximumContextItems else {
             throw WorldContractError.conversationContextTooLarge(
@@ -350,6 +354,7 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         self.recentHappenings = recentHappenings
         self.factMeanings = factMeanings
         self.recentLines = recentLines
+        self.calledUp = calledUp
     }
 
     public init(from decoder: any Decoder) throws {
@@ -372,7 +377,8 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
                 [Happening].self, forKey: .recentHappenings) ?? [],
             factMeanings: container.decodeIfPresent(
                 [String: String].self, forKey: .factMeanings) ?? [:],
-            recentLines: container.decodeIfPresent([SpokenLine].self, forKey: .recentLines) ?? []
+            recentLines: container.decodeIfPresent([SpokenLine].self, forKey: .recentLines) ?? [],
+            calledUp: container.decodeIfPresent([FactID].self, forKey: .calledUp)
         )
     }
 
@@ -387,6 +393,7 @@ public struct PersonUtterancePercept: Hashable, Sendable, Codable {
         case recentHappenings = "recent_happenings"
         case factMeanings = "fact_meanings"
         case recentLines = "recent_lines"
+        case calledUp = "called_up"
     }
 }
 

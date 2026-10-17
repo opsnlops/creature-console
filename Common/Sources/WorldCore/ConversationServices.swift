@@ -194,18 +194,22 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
             span.attributes["scene.id"] = sceneID?.rawValue
             // What the world knows about the people in this moment travels with the percept,
             // so the mind reasons from facts, never from what it can fetch or invent.
-            var worldFacts = try await knowledge.currentFacts(
+            let page = try await knowledge.page(
                 about: [characterID, utterance.speakerID],
                 mentionedIn: utterance.text,
                 limit: WorldKnowledgeLimits.maximumFacts)
+            var worldFacts = page.facts
+            var calledUp = page.calledUp
             // "Set the lights to normal evening": the house acts on the words before the mind
-            // answers, and the mind is told so.
+            // answers, and the mind is told so - the words brought it, so it is not standing.
             if let requested = try await houseCommands.request(in: utterance) {
                 if case .string(let scene) = requested.value {
                     span.attributes["house.scene_requested"] = scene
                 }
                 worldFacts.insert(requested, at: 0)
+                calledUp.insert(requested.factID, at: 0)
             }
+            span.attributes["world.facts.called_up"] = calledUp.count
             span.attributes["world.facts"] = worldFacts.count
             let happenings = try await knowledge.recentHappenings(
                 about: [characterID, utterance.speakerID],
@@ -225,7 +229,8 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
                     recentHappenings: happenings,
                     factMeanings: meanings,
                     recentLines: try await knowledge.recentLines(
-                        of: characterID, limit: WorldKnowledgeLimits.maximumRecentLines)
+                        of: characterID, limit: WorldKnowledgeLimits.maximumRecentLines),
+                    calledUp: calledUp
                 ),
                 conversationItem: ConversationItem(
                     itemID: makeConversationItemID(),
