@@ -427,6 +427,25 @@ struct RecentHappeningsTests {
                 "event:lessons-\(suffix)-20260906", WorldFacts.calendarStartsAt,
                 .string("2026-09-06T23:00:00.000Z"), source: "bridge:calendar-\(suffix)",
                 kind: "bridge", at: noon + 300),
+            // A mind's memory of the day before, written that night: its own, not news (#242).
+            try given(
+                "person:april", "memory.episode.beaky.2026-08-29.1",
+                .object(["what": .string("April soldered all evening")]),
+                source: "mind:beaky-\(suffix)", kind: "mind", at: noon + 360),
+            // The forecast, restated all day: only its last word stays (#242).
+            try given(
+                "place:outside", "forecast.next_rain", .string("this afternoon"),
+                source: "bridge:weather-\(suffix)", kind: "bridge", at: noon + 420),
+            try given(
+                "place:outside", "forecast.next_rain", .string("this evening"),
+                source: "bridge:weather-\(suffix)", kind: "bridge", at: noon + 480),
+            // A mind changing its word is kept every time.
+            try given(
+                "person:jesse", "visitor.expected", .string("this afternoon"),
+                source: "mind:mango-\(suffix)", kind: "mind", at: noon + 540),
+            try given(
+                "person:jesse", "visitor.expected", .string("here now"),
+                source: "mind:mango-\(suffix)", kind: "mind", at: noon + 600),
         ] {
             _ = try await persistence.events.append(event, receivedAt: event.occurredAt)
         }
@@ -439,9 +458,14 @@ struct RecentHappeningsTests {
                 "\(order.rawValue) order.items = toothpaste",
                 "person:april person.tools = [\"soldering iron\"]",
                 "event:lessons-\(suffix)-20260906 calendar.starts_at = 2026-09-06T23:00:00.000Z",
+                "place:outside forecast.next_rain = this evening",
+                "person:jesse visitor.expected = this afternoon",
+                "person:jesse visitor.expected = here now",
             ])
-        // And a body's reading is not a happening either.
+        // And a body's reading is not a happening either; nor is any cast fact - `learned`
+        // carries each once (#242).
         #expect(!digest.happenings.contains { $0.subjectID.rawValue == "thing:creature-server" })
+        #expect(!digest.happenings.contains { $0.type == GivenFactAnnouncement.eventType })
     }
 
     @Test("A day bigger than one page is read to its end, in order")

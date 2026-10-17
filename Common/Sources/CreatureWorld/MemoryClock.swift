@@ -64,7 +64,13 @@ struct DayDigestBuilder {
             return nil
         }
         let events = try await persistence.events.allEvents(from: bounds.from, to: bounds.to)
-        let happenings = events.filter { Happening.isStoryworthy($0) }.map { event in
+        // What the house saw. A cast fact is not among them: `learned` carries each one once,
+        // with who said it - the happenings had all 951 of 2026-10-16's again, 287 of them the
+        // Bridge's heartbeat and 238 the night's own memory writes, each rendered "facts.given
+        // at the carport" (#242).
+        let happenings = events.filter {
+            Happening.isStoryworthy($0) && $0.type != GivenFactAnnouncement.eventType
+        }.map { event in
             let subject =
                 event.subjectIDs.first { !$0.rawValue.hasPrefix("character:") }
                 ?? event.subjectIDs.first ?? event.placeID ?? houseConversationEntity
@@ -75,7 +81,7 @@ struct DayDigestBuilder {
         // What the world was told that a memory could be about: never a body's readings (four
         // thousand a day, 370k tokens of a night's prompt) and never a heartbeat.
         let distant = Self.distantCalendarEntries(in: events, after: bounds.to)
-        let learned = events.filter { Self.isMemorable($0) }.compactMap {
+        let learned = Self.lastOfFolded(events.filter { Self.isMemorable($0) }).compactMap {
             event -> DayDigest.Line? in
             guard case .string(let subject)? = event.payload["subject_id"],
                 case .string(let predicate)? = event.payload["predicate"],
@@ -112,13 +118,38 @@ struct DayDigestBuilder {
     /// Facts a source casts to say it is alive, every few minutes: state, never a memory.
     static let heartbeatPredicates: Set<String> = ["bridge.online"]
 
-    /// A given fact worth a line in the day's record: not telemetry, not a heartbeat.
+    /// A given fact worth a line in the day's record: not telemetry, not a heartbeat, and not a
+    /// memory - the minds' own memories of the day before, written at 3:30, were 488 of
+    /// 2026-10-16's 664 lines (#242).
     static func isMemorable(_ event: WorldEventEnvelope) -> Bool {
         guard event.type == GivenFactAnnouncement.eventType,
             !Happening.telemetrySourceKinds.contains(event.source.kind),
             case .string(let predicate)? = event.payload["predicate"]
         else { return false }
         return !heartbeatPredicates.contains(predicate)
+            && WorldFacts.memoryFamily(of: predicate) == nil
+    }
+
+    /// The folded families - the forecast, the sensors - restate the same thing all day:
+    /// `forecast.next_rain` was cast 19 times on 2026-10-16. Only each subject's and
+    /// predicate's last value from a source stays; what minds and people said is kept every
+    /// time it changed (#242).
+    static func lastOfFolded(_ events: [WorldEventEnvelope]) -> [WorldEventEnvelope] {
+        func key(_ event: WorldEventEnvelope) -> String? {
+            guard case .string(let subject)? = event.payload["subject_id"],
+                case .string(let predicate)? = event.payload["predicate"],
+                WorldKnowledgeLimits.foldedPrefixes.contains(where: { predicate.hasPrefix($0) })
+            else { return nil }
+            return "\(event.source.id.rawValue)|\(subject)|\(predicate)"
+        }
+        var last: [String: Int] = [:]
+        for (index, event) in events.enumerated() {
+            if let key = key(event) { last[key] = index }
+        }
+        return events.enumerated().compactMap { index, event in
+            guard let key = key(event) else { return event }
+            return last[key] == index ? event : nil
+        }
     }
 
     /// How far past the day a calendar entry cast that day is still news about it.

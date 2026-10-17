@@ -286,6 +286,11 @@ else — persona, facts, the clock, streaming to the room — is identical.
   recent lines. A conversation keeps its turns-so-far cache point, so there the reported layer
   rides uncached. Every time in the prompt is a timestamp ("since Oct 16, 9:03 PM"), never an
   age; the bird reads the age from "It is …".
+- **The day, as one timeline** (`2.99.0`, #242). The nightly episode prompt tells what was said
+  once, in order: the conversation's lines, any scene line the conversation lacks, and each
+  house occasion as "(the house noticed: …)" in its place; the separate "Scenes in the room"
+  section is gone. A subject the world was told about counts as a known name. With World
+  0.57.0's trimmed record, 2026-10-16's prompt went from ~98k to ~19k tokens a bird.
 - **The chorus shares one prompt cache** (`2.97.0`, #235, docs/token-costs-plan.md). Every
   OpenAI request is in explicit cache mode (`llmCache.explicit`, default true): only marked
   parts are written to the cache. The stable item is one developer message in two cached

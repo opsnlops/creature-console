@@ -441,6 +441,68 @@ struct MemoryJobTests {
         #expect(events.last?.type.rawValue == "memory.consolidated")
     }
 
+    @Test("What was said is one timeline: each line once, the house's occasions in place (#242)")
+    func oneTimeline() throws {
+        let at = Date(timeIntervalSince1970: 1_789_600_000)
+        func line(_ seconds: TimeInterval, _ who: String, _ text: String) -> DayDigest.Line {
+            DayDigest.Line(at: at + seconds, who: who, text: text)
+        }
+        let digest = DayDigest(
+            day: "2026-09-16", timeZone: "America/Los_Angeles", happenings: [],
+            conversation: [
+                line(0, "person:april", "Beaky, is the deck done?"),
+                line(5, "character:beaky", "Jesse finished it at noon."),
+                line(600, "character:mango", "The door! A visitor?"),
+            ],
+            scenes: [
+                // A scene April opened by speaking: her line is already said.
+                DayDigest.SceneLines(
+                    openedAt: at + 1, trigger: "Beaky, is the deck done?",
+                    lines: [line(5, "character:beaky", "Jesse finished it at noon.")]),
+                // One the house opened: its occasion goes in its place, and a line the
+                // conversation does not hold is kept.
+                DayDigest.SceneLines(
+                    openedAt: at + 590, trigger: "The front door was just unlocked.",
+                    lines: [
+                        line(600, "character:mango", "The door! A visitor?"),
+                        line(610, "character:kenny", "Kenny hears it too."),
+                    ]),
+            ],
+            learned: [])
+        #expect(
+            MemoryJob.timeline(of: digest) == [
+                .said(at: at, who: "person:april", text: "Beaky, is the deck done?"),
+                .said(at: at + 5, who: "character:beaky", text: "Jesse finished it at noon."),
+                .noticed(at: at + 590, what: "The front door was just unlocked."),
+                .said(at: at + 600, who: "character:mango", text: "The door! A visitor?"),
+                .said(at: at + 610, who: "character:kenny", text: "Kenny hears it too."),
+            ])
+        let prompt = try #require(
+            MemoryJob.transcript(
+                for: digest, persona: .text("You are Beaky."),
+                characterID: EntityID(validating: "character:beaky")
+            ).last?.content)
+        #expect(prompt.components(separatedBy: "Jesse finished it at noon.").count == 2)
+        #expect(prompt.contains("(the house noticed: The front door was just unlocked.)"))
+        #expect(!prompt.contains("Scenes in the room"))
+    }
+
+    @Test("A subject the world was told about is a known name (#242)")
+    func learnedSubjectsAreKnown() throws {
+        let digest = DayDigest(
+            day: "2026-09-16", timeZone: "America/Los_Angeles", happenings: [], conversation: [],
+            scenes: [],
+            learned: [
+                DayDigest.Line(
+                    at: Date(timeIntervalSince1970: 1_789_600_000), who: "bridge:app",
+                    text: "thing:information-bridge bridge.version = 0.17.0")
+            ])
+        let names = MemoryJob.names(
+            in: digest, houseID: try EntityID(validating: "house:aprils-nest"),
+            including: try EntityID(validating: "character:beaky"))
+        #expect(names.entity(named: "Information Bridge")?.rawValue == "thing:information-bridge")
+    }
+
     @Test("The birds are whoever spoke as a character that day, plus the one remembering")
     func subjects() throws {
         let names = MemoryJob.names(in: try digest(), houseID: house, including: beaky)

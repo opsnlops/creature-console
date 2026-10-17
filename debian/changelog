@@ -1,3 +1,16 @@
+creature-cli (2.99.0+world0.57.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * The nightly day record is trimmed (#242). Each bird's episode prompt
+    was ~98k Astra tokens, nearly all duplicates and bookkeeping. The
+    World's record no longer repeats every cast fact as a happening
+    (287 a day were the Bridge's heartbeat), leaves out the night's own
+    memory writes, and keeps only the last forecast; the agent renders
+    what was said as one timeline, each line once, with the house's
+    occasions in place. On 2026-10-16's record: ~98k -> ~19k tokens a
+    bird, 82% less.
+
+ -- April White <april@creature.engineering>  Sat, 17 Oct 2026 12:30:00 -0700
+
 creature-cli (2.98.1+world0.56.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.98.1: the memories and reported layers are no longer

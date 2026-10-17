@@ -96,11 +96,29 @@ conversation.
    Sol for the episodes (and maybe the beliefs), with Astra kept for the librarian: **~$80-110 a
    month**. A quality decision, April's.
 
+**Done (#242, World 0.57.0, agent 2.99.0):** item 1, the trim. On 2026-10-16's record: ~98k
+→ ~19k tokens a bird (82%), ~316k fewer Astra tokens a night.
+
 ### Beaky (~$137)
 
 5. **The fast tier doubles everything.** House remarks are background announcements; standard
    tier halves them (**~$16/month**). Beaky's scenes on standard would save ~$50/month at some cost
    in first-sentence latency, so measure first. The chorus on standard saves ~$7.
+
+   **Benchmarked 2026-10-17** (15 calls a tier, alternating, ~12k prompt with 6.6k cached,
+   reasoning low, streaming):
+
+   | | first token p50 / p90 | whole reply p50 / p90 |
+   |---|---|---|
+   | Sol fast | 1.01 s / 1.25 s | 1.47 s / 1.71 s |
+   | Sol standard | 1.78 s / 2.30 s | 2.76 s / 4.20 s |
+   | Luna fast | 0.68 s / 1.23 s | 1.06 s / 1.58 s |
+   | Luna standard | 0.61 s / 1.21 s | 0.99 s / 1.64 s |
+
+   Sol on standard adds ~0.8 s to the first word and ~1.3 s to the reply; Luna is the same on
+   both tiers. And the cache is per tier: the first standard call missed what the fast calls
+   had cached. So the chorus can go to standard for free (halving its cost), and Beaky's
+   house remarks on standard would lose the scenes' cache as well as ~0.8 s.
 6. **Cold starts.** Beaky's house remarks started cold 21 times in 45 (47%), her scenes 8%. A
    house remark has a different contract (`houseRemarkCore`) ahead of the glossary, so it
    never reads the scenes' cache, and house remarks are too rare to stay warm on their own.

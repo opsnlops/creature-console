@@ -931,6 +931,13 @@ on the page; each upcoming calendar event is folded into one `calendar.event` an
 into one `reminder.item`, like the sensors - for the page only, never stored, `derived_from`
 naming every field.
 
+**The day record, trimmed** (`0.57.0`, #242, docs/day-record-trim-plan.md). `GET
+/v1/days/{day}` is the record as the nightly memory sees it, and it no longer repeats itself: a
+cast fact is a `learned` line, never also a happening; `learned` leaves out the minds' own
+memory writes; the folded families (`forecast.`, `environment.`) keep each subject and
+predicate's last value from a source. On 2026-10-16 the happenings went from 1,038 to 87 and
+`learned` from 664 to 111.
+
 **Orders become history** (`0.56.0`, #234, docs/order-history-plan.md). Every minute, beside
 the delivery sweep, `DeliveryRule.settle` ends the orders the mail has finished with: delivered
 more than three days ago, or shipped or placed with no further word for two weeks, by the

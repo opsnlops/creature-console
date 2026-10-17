@@ -609,21 +609,16 @@ struct MemoryJob: Sendable {
             }
             body += "\n"
         }
-        if !digest.conversation.isEmpty {
-            body += "What was said between April and the birds:\n"
-            for line in digest.conversation {
-                body +=
-                    "- \(clock(line.at, digest)) \(FactPhrasing.name(of: EntityID(rawValue: line.who) ?? characterID)): \(line.text)\n"
-            }
-            body += "\n"
-        }
-        if !digest.scenes.isEmpty {
-            body += "Scenes in the room:\n"
-            for scene in digest.scenes {
-                body += "- \(clock(scene.openedAt, digest)) (\(scene.trigger))\n"
-                for line in scene.lines {
+        let said = Self.timeline(of: digest)
+        if !said.isEmpty {
+            body += "What was said, between April and the birds and in the room, in order:\n"
+            for line in said {
+                switch line {
+                case .said(let at, let who, let text):
                     body +=
-                        "    \(FactPhrasing.name(of: EntityID(rawValue: line.who) ?? characterID)): \(line.text)\n"
+                        "- \(clock(at, digest)) \(FactPhrasing.name(of: EntityID(rawValue: who) ?? characterID)): \(text)\n"
+                case .noticed(let at, let what):
+                    body += "- \(clock(at, digest)) (the house noticed: \(what))\n"
                 }
             }
             body += "\n"
@@ -638,6 +633,52 @@ struct MemoryJob: Sendable {
             LocalLLMClient.Message(role: .system, content: system),
             LocalLLMClient.Message(role: .user, content: body),
         ]
+    }
+
+    /// One line of the day's timeline: something said, or an occasion the house opened a scene
+    /// for.
+    enum TimelineLine: Equatable {
+        case said(at: Date, who: String, text: String)
+        case noticed(at: Date, what: String)
+
+        var at: Date {
+            switch self {
+            case .said(let at, _, _), .noticed(let at, _): at
+            }
+        }
+    }
+
+    /// What was said, once, in order (#242). The house conversation holds every spoken scene
+    /// line - all 230 of 2026-10-16's were in both, and the night's prompt carried them twice.
+    /// A scene line the conversation lacks is kept; a scene the house opened shows its
+    /// occasion in its place; a scene April opened by speaking is her line, already said.
+    static func timeline(of digest: DayDigest) -> [TimelineLine] {
+        struct Key: Hashable {
+            let at: Date
+            let text: String
+        }
+        var lines = digest.conversation.map {
+            TimelineLine.said(at: $0.at, who: $0.who, text: $0.text)
+        }
+        let held = Set(digest.conversation.map { Key(at: $0.at, text: $0.text) })
+        let saidByAPerson = digest.conversation.filter {
+            EntityID(rawValue: $0.who)?.rawValue.hasPrefix("person:") == true
+        }
+        for scene in digest.scenes {
+            // April's words open a scene a moment after she says them.
+            let herWords = saidByAPerson.contains {
+                $0.text == scene.trigger && abs($0.at.timeIntervalSince(scene.openedAt)) < 120
+            }
+            if !herWords && !scene.trigger.isEmpty {
+                lines.append(.noticed(at: scene.openedAt, what: scene.trigger))
+            }
+            for line in scene.lines where !held.contains(Key(at: line.at, text: line.text)) {
+                lines.append(.said(at: line.at, who: line.who, text: line.text))
+            }
+        }
+        return lines.enumerated().sorted {
+            ($0.element.at, $0.offset) < ($1.element.at, $1.offset)
+        }.map(\.element)
     }
 
     private static func clock(_ date: Date, _ digest: DayDigest) -> String {
@@ -730,6 +771,14 @@ struct MemoryJob: Sendable {
         // Bridge lands on thing:information-bridge, not on a person of that name.
         names.add(digest.happenings.map(\.subjectID))
         names.add(digest.learned.compactMap { EntityID(rawValue: $0.who) })
+        // And whatever the world was told about: a cast fact is a `learned` line now, never a
+        // happening, and its subject leads it - "thing:information-bridge bridge.version = …".
+        names.add(
+            digest.learned.compactMap { line in
+                line.text.split(separator: " ", maxSplits: 1).first.flatMap {
+                    EntityID(rawValue: String($0))
+                }
+            })
         return names
     }
 
