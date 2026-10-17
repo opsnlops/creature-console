@@ -1251,16 +1251,18 @@ struct CharacterMind: Sendable {
                 ? [:] : Self.byFamily(meanings).filter { glossary[$0.key] == nil }
             let stableItem = LocalLLMClient.Message(
                 role: .system, cachedParts: [shared + Self.meaningsBlock(known), persona])
-            // What is known, from the steadiest to what moves, each steady layer a cache
-            // point (#235): the bird's own memories change only at night; what was reported
-            // (learned, the calendar, the forecast) changes now and then; what the house
-            // observes, the clock, and the script change every call. A layer rewritten costs a
-            // quarter more than sending it plain, and read back a tenth.
+            // What is known, from the steadiest to what moves (#235): the bird's memories, then
+            // what was reported, then what the house observes, the clock, and the script. Not
+            // cache points (2.98.1): both layers carry what the scene's words call up - a
+            // recalled memory, the facts on whoever is mentioned - so each new scene wrote
+            // them afresh at a quarter more than sending them plain, and nothing read them
+            // back. They become cache points again once the world marks what is standing for
+            // the day apart from what the words called up.
             let layers = knowledgeLayers(
                 facts, happenings: happenings, meanings: extra, recentLines: recentLines,
                 now: now)
             let remembered = layers.remembered.map {
-                LocalLLMClient.Message(role: .user, content: $0, cachePoint: true)
+                LocalLLMClient.Message(role: .user, content: $0)
             }
             let momentItem = LocalLLMClient.Message(
                 role: .user,
@@ -1268,16 +1270,15 @@ struct CharacterMind: Sendable {
                     + String(layers.moment.drop(while: \.isNewline)))
             var prior = Array(turns.dropLast())
             if prior.isEmpty {
-                // A scene: the script is the one turn. What was reported is cached too, so
-                // the next bird in the scene reads it.
+                // A scene: the script is the one turn.
                 let reported = layers.reported.map {
-                    LocalLLMClient.Message(role: .user, content: $0, cachePoint: true)
+                    LocalLLMClient.Message(role: .user, content: $0)
                 }
                 return [stableItem] + [remembered, reported].compactMap { $0 }
                     + [momentItem] + turns
             }
-            // A conversation: the turns so far are the fourth and last cache point; what was
-            // reported rides with them, uncached, before the moment.
+            // A conversation: the turns so far are a cache point; what was reported rides
+            // before them, uncached.
             if let last = prior.indices.last { prior[last].cachePoint = true }
             let reported = layers.reported.map {
                 LocalLLMClient.Message(role: .user, content: $0)

@@ -279,7 +279,7 @@ struct CharacterMindTests {
         #expect(first[0].parts[1] == "You are Beaky.")
     }
 
-    @Test("The moment in layers: memories, then what was reported, cached; the rest moves (#235)")
+    @Test("The moment in layers: memories, then what was reported, then what moves (#235)")
     func knowledgeInCachedLayers() throws {
         let beaky = try EntityID(validating: "character:beaky")
         let mango = try EntityID(validating: "character:mango")
@@ -323,7 +323,8 @@ struct CharacterMindTests {
             for: offer([home, learned, memory, calendar]), now: now)
         // The stable item, the memories, what was reported, then the moment and the script.
         #expect(scene.map(\.role) == [.system, .user, .user, .user, .user])
-        #expect(scene.map(\.cachePoint) == [false, true, true, false, false])
+        // Not cache points: both layers carry what the scene's words call up (2.98.1).
+        #expect(scene.map(\.cachePoint) == [false, false, false, false, false])
         #expect(scene[1].content.contains("April likes tacos"))
         #expect(!scene[1].content.contains("chicken tacos"))
         // Oldest first: the calendar, told ten minutes ago, before what was learned a minute ago.
@@ -335,13 +336,13 @@ struct CharacterMindTests {
         #expect(scene[3].content.contains("It is "))
         #expect(scene[3].content.contains("home"))
         #expect(!scene[3].content.contains("chicken tacos"))
-        // Never more than four cache points: the stable item's two, and these two.
+        // The stable item's two cache points, nothing else in a scene.
         func points(_ transcript: [LocalLLMClient.Message]) -> Int {
             transcript.reduce(0) {
                 $0 + ($1.parts.isEmpty ? ($1.cachePoint ? 1 : 0) : $1.parts.count)
             }
         }
-        #expect(points(scene) == 4)
+        #expect(points(scene) == 2)
         // A minute later, with something new learned, the memories are the same text and what
         // was reported only grew at its end.
         let newer = try fact(
@@ -358,8 +359,8 @@ struct CharacterMindTests {
             facts: [home, learned, memory])
         let asked = mind.makeTranscript(for: percept, now: now)
         #expect(asked.map(\.role) == [.system, .user, .user, .user, .assistant, .user, .user])
-        #expect(asked.map(\.cachePoint) == [false, true, false, false, true, false, false])
-        #expect(points(asked) == 4)
+        #expect(asked.map(\.cachePoint) == [false, false, false, false, true, false, false])
+        #expect(points(asked) == 3)
     }
 
     @Test("A question from April carries the world's tools and their contract; a scene turn never")

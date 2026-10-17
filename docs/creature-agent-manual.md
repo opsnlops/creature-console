@@ -276,9 +276,12 @@ else — persona, facts, the clock, streaming to the room — is identical.
   one, whoever the world says is present or spoke that day — and guesses person or place only
   for names it does not know. The learned contract also asks for a kind the world already has
   before inventing one, and not to keep what another bird just kept in the same scene.
-- **What a bird knows, in cached layers** (`2.98.0`, #235). Before the moment come the bird's
-  own memories ("What you remember", `remembered` facts) and what the world was told ("What the
-  world was told", `reported` facts), each sorted oldest first and each a cache point. The
+- **What a bird knows, in layers** (`2.98.0`, #235; not cached since `2.98.1`). Before the
+  moment come the bird's own memories ("What you remember", `remembered` facts) and what the
+  world was told ("What the world was told", `reported` facts), each sorted oldest first. In
+  2.98.0 each was a cache point, but both carry what the scene's words call up (recalled
+  memories, the facts on whoever is mentioned), so every new scene rewrote them and nothing read
+  them back; 2.98.1 takes the points off until the World marks the standing part. The
   moment follows with the clock, what the house observes, what just happened, and the bird's
   recent lines. A conversation keeps its turns-so-far cache point, so there the reported layer
   rides uncached. Every time in the prompt is a timestamp ("since Oct 16, 9:03 PM"), never an

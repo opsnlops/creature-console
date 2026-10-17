@@ -1,3 +1,14 @@
+creature-cli (2.98.1+world0.56.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.98.1: the memories and reported layers are no longer
+    cache points (#235). Both carry what the scene's words call up - a
+    recalled memory, the facts on whoever is mentioned - so in 2.98.0
+    each new scene wrote ~4k tokens at 1.25x that nothing read back.
+    The layout and the timestamps stay; the layers become cache points
+    again once the World marks what is standing for the day.
+
+ -- April White <april@creature.engineering>  Sat, 17 Oct 2026 12:00:00 -0700
+
 creature-cli (2.98.0+world0.56.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.98.0: what a bird knows is cached in layers (#235).
