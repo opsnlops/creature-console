@@ -23,7 +23,23 @@ can." The full survey and plan are on #235; one change at a time, measured.
      only his 365-token persona; Mango again read all of it and wrote nothing. The moment was
      uncached at 1x each time, never written.
    - `llmCache.explicit: false` restores the old way.
-3. Warm-ups, if cold calls still dominate after this.
+   - Measured live after deploy (2026-10-17, ~60 calls): every warm call wrote 0 and read
+     ~6.6k; the chorus's cold start was Kenny writing 6,621 and Caroll and Mango reading 6,112
+     each, writing only their personas. Roughly 15% off a warm call, 40% off a cold chorus
+     start, 20% off the memory. The rest, ~5.3k a call, was still sent fresh.
+3. **What a bird knows, in cached layers (agent 2.98.0).** The moment opened with the clock, so
+   nothing after it could be cached. Now, before the moment:
+   - the bird's own memories (`remembered`, fixed until the 3:30 AM run), a cache point, read
+     on every call that day;
+   - what the world was told (`reported`: learned facts, the calendar, the forecast), oldest
+     first so a new fact joins the end, a cache point, read by the next birds in a scene.
+
+   Then the moment: the clock, what the house observes, what just happened, the bird's recent
+   lines; then the script. In a conversation the turns so far keep the fourth cache point and
+   the reported layer rides uncached. Every time is a timestamp - "since Oct 16, 9:03 PM",
+   "8:03:05 PM: the front door was unlocked" - never "(5 minutes ago)"; April: "a frontier
+   model can determine 'about ten minutes ago'."
+4. Warm-ups, if cold calls still dominate after this.
 4. A cost board in Honeycomb.
 
 Side note held for later: the glossary sends the world-only kinds' meanings too.

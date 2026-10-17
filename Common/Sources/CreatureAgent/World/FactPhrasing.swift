@@ -28,7 +28,7 @@ enum FactPhrasing {
     /// The "What you know" lines for a character, newest fact first. One shape for every fact —
     /// who or where, the predicate, its value, since when, how it is known — so a new kind of
     /// fact needs a meaning in the world's glossary, never a phrasing here. A frontier model
-    /// reads `The front door · door.lock = unlocked · since 8:03 PM (5 minutes ago) · observed`
+    /// reads `The front door · door.lock = unlocked · since Oct 16, 8:03 PM · observed`
     /// and says "the front door's been unlocked since eight" in its own words.
     static func lines(
         for facts: [Fact],
@@ -36,10 +36,27 @@ enum FactPhrasing {
         now: Date,
         in timeZone: TimeZone
     ) -> [String] {
-        let pronouns = Self.pronouns(in: facts)
+        lines(
+            for: facts, among: facts, summaries: true, character: character, now: now, in: timeZone)
+    }
+
+    /// The lines for `facts`, with pronouns read from `all`; the summaries that look across
+    /// every fact - the quiet cameras, a person known by one phrase - only when `summaries`,
+    /// so a prompt laid out in parts says them once (#235).
+    static func lines(
+        for facts: [Fact],
+        among all: [Fact],
+        summaries: Bool,
+        character: EntityID,
+        now: Date,
+        in timeZone: TimeZone
+    ) -> [String] {
+        let pronouns = Self.pronouns(in: all)
         var lines = facts.compactMap {
             line(for: $0, character: character, pronouns: pronouns, now: now, in: timeZone)
         }
+        guard summaries else { return lines }
+        let facts = all
         // Cameras that are watching and have seen nothing: silence is a fact, said once for
         // all of them, so "is something outside?" gets an answer instead of a shrug.
         let watched = facts.filter { $0.predicate == WorldFacts.cameraWatching }
@@ -97,10 +114,12 @@ enum FactPhrasing {
             subject += " (\(said))"
         }
         var parts = ["\(subject) · \(fact.predicate) = \(rendered(fact.value))"]
-        var when =
-            "since \(clock(fact.validFrom, in: timeZone)) (\(age(of: fact.validFrom, now: now).lowercased()))"
+        // A timestamp, never "(5 minutes ago)": the mind works out the age from the moment's
+        // "It is …", and a line that does not change with the clock can be cached (#235).
+        // April: "a frontier model can determine 'about ten minutes ago'."
+        var when = "since \(dated(fact.validFrom, in: timeZone))"
         if let until = fact.validTo {
-            when += ", until \(clock(until, in: timeZone))"
+            when += ", until \(dated(until, in: timeZone))"
         }
         parts.append(when)
         parts.append(basis(of: fact.epistemic))
@@ -163,6 +182,17 @@ enum FactPhrasing {
         }
     }
 
+    /// "Oct 16, 9:03 PM": a moment by itself, the same whenever it is read.
+    static func dated(_ date: Date, in timeZone: TimeZone) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        let day = date.formatted(
+            Date.FormatStyle(locale: calendar.locale!, calendar: calendar, timeZone: timeZone)
+                .month(.abbreviated).day())
+        return "\(day), \(clock(date, in: timeZone))"
+    }
+
     static func clock(_ date: Date, in timeZone: TimeZone) -> String {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
@@ -196,7 +226,7 @@ enum FactPhrasing {
             .replacingOccurrences(of: "\u{00A0}", with: " ")
     }
 
-    /// "8:03:05 PM (5 minutes ago): The front door was just unlocked." — one line per
+    /// "8:03:05 PM: The front door was just unlocked." — one line per
     /// happening, oldest first, so the mind reads the story in order. A happening the world
     /// has no sentence for is named by its kind and subject: "camera.person_seen at the carport".
     static func happeningLines(_ happenings: [Happening], now: Date, in timeZone: TimeZone)
@@ -215,7 +245,7 @@ enum FactPhrasing {
             let what =
                 happening.summary
                 ?? "\(happening.type.rawValue) at \(placeName(of: happening.subjectID).lowercased())"
-            return "\(clock) (\(age(of: happening.occurredAt, now: now).lowercased())): \(what)"
+            return "\(clock): \(what)"
         }
     }
 
@@ -245,18 +275,5 @@ enum FactPhrasing {
     static func name(of entityID: EntityID, pronouns: String?) -> String {
         guard let pronouns, !pronouns.isEmpty else { return name(of: entityID) }
         return "\(name(of: entityID)) (\(pronouns))"
-    }
-
-    private static func age(of date: Date, now: Date) -> String {
-        let seconds = max(0, now.timeIntervalSince(date))
-        switch seconds {
-        case ..<60: return "Just now"
-        case ..<3_600: return plural(Int(seconds / 60), "minute") + " ago"
-        default: return plural(Int(seconds / 3_600), "hour") + " ago"
-        }
-    }
-
-    private static func plural(_ count: Int, _ unit: String) -> String {
-        "\(count) \(unit)\(count == 1 ? "" : "s")"
     }
 }

@@ -208,7 +208,7 @@ struct PersonaTests {
         let system = lead[0].content
         #expect(system.contains("The house just noticed something"))
         #expect(system.contains("What just happened around you"))
-        #expect(system.contains("(just now): The front door was just unlocked."))
+        #expect(system.contains("M: The front door was just unlocked."))
         // What the bird itself said lately, so it never says it again (#205).
         #expect(system.contains("What you yourself said lately"))
         #expect(system.contains(": Someone is in the driveway."))

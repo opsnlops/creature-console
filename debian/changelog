@@ -1,3 +1,18 @@
+creature-cli (2.98.0+world0.56.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.98.0: what a bird knows is cached in layers (#235).
+    After the first change, ~5.3k of every call was still sent fresh:
+    the moment opened with the clock, so nothing after it could be read
+    back. Now the bird's own memories (fixed until 3:30 AM) and what the
+    world was told (learned facts, the calendar, the forecast) each come
+    before the moment as a cache point; the clock, what the house
+    observes, what just happened and the bird's recent lines follow.
+    Every time is a timestamp, never "(5 minutes ago)" - April: "a
+    frontier model can determine 'about ten minutes ago'" - so a layer
+    reads the same an hour later.
+
+ -- April White <april@creature.engineering>  Sat, 17 Oct 2026 12:30:00 -0700
+
 creature-cli (2.97.0+world0.56.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.97.0: the chorus shares one prompt cache (#235).

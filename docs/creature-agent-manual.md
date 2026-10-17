@@ -276,6 +276,13 @@ else — persona, facts, the clock, streaming to the room — is identical.
   one, whoever the world says is present or spoke that day — and guesses person or place only
   for names it does not know. The learned contract also asks for a kind the world already has
   before inventing one, and not to keep what another bird just kept in the same scene.
+- **What a bird knows, in cached layers** (`2.98.0`, #235). Before the moment come the bird's
+  own memories ("What you remember", `remembered` facts) and what the world was told ("What the
+  world was told", `reported` facts), each sorted oldest first and each a cache point. The
+  moment follows with the clock, what the house observes, what just happened, and the bird's
+  recent lines. A conversation keeps its turns-so-far cache point, so there the reported layer
+  rides uncached. Every time in the prompt is a timestamp ("since Oct 16, 9:03 PM"), never an
+  age; the bird reads the age from "It is …".
 - **The chorus shares one prompt cache** (`2.97.0`, #235, docs/token-costs-plan.md). Every
   OpenAI request is in explicit cache mode (`llmCache.explicit`, default true): only marked
   parts are written to the cache. The stable item is one developer message in two cached

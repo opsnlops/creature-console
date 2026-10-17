@@ -279,6 +279,89 @@ struct CharacterMindTests {
         #expect(first[0].parts[1] == "You are Beaky.")
     }
 
+    @Test("The moment in layers: memories, then what was reported, cached; the rest moves (#235)")
+    func knowledgeInCachedLayers() throws {
+        let beaky = try EntityID(validating: "character:beaky")
+        let mango = try EntityID(validating: "character:mango")
+        let april = try EntityID(validating: "person:april")
+        var configuration = makeMind { _, _ in "unused" }.configuration
+        configuration.knowledgePlacement = .beforeNewest
+        configuration.glossary = { ["presence.state": "whether a person is home"] }
+        let mind = CharacterMind(
+            configuration: configuration, respond: { _, _ in "unused" },
+            logger: Logger(label: "character-mind-tests"))
+        func fact(
+            _ predicate: String, _ value: WorldJSONValue, _ type: EpistemicType, at: Date
+        ) throws -> Fact {
+            try Fact(
+                subjectID: april, predicate: predicate, value: value,
+                epistemic: EpistemicState(type: type, confidence: 1), validFrom: at,
+                derivedFrom: [], producer: FactProducer(kind: "reducer", id: "test", version: "1"))
+        }
+        let memory = try fact(
+            "memory.belief.beaky.1",
+            .object(["kind": .string("habit"), "what": .string("April likes tacos")]),
+            .remembered, at: now.addingTimeInterval(-3_600))
+        let learned = try fact(
+            "food.preference", .string("chicken tacos"), .reported, at: now.addingTimeInterval(-60))
+        let calendar = try fact(
+            "calendar.event", .string("Church, Sunday"), .reported, at: now.addingTimeInterval(-600)
+        )
+        let home = try fact("presence.state", .string("home"), .observed, at: now)
+        func offer(_ facts: [Fact]) throws -> SceneTurnOffer {
+            try SceneTurnOffer(
+                sceneID: .generated(), characterID: beaky, responseID: .generated(),
+                deadline: now.addingTimeInterval(8),
+                trigger: SceneTrigger(
+                    kind: .worldEvent, eventID: .generated(), speakerID: nil,
+                    text: "The front door was unlocked."),
+                participants: [beaky, mango], turns: [], worldFacts: facts,
+                recentHappenings: [], factMeanings: [:], recentLines: [])
+        }
+
+        let scene = try mind.makeSceneTranscript(
+            for: offer([home, learned, memory, calendar]), now: now)
+        // The stable item, the memories, what was reported, then the moment and the script.
+        #expect(scene.map(\.role) == [.system, .user, .user, .user, .user])
+        #expect(scene.map(\.cachePoint) == [false, true, true, false, false])
+        #expect(scene[1].content.contains("April likes tacos"))
+        #expect(!scene[1].content.contains("chicken tacos"))
+        // Oldest first: the calendar, told ten minutes ago, before what was learned a minute ago.
+        let reported = scene[2].content
+        #expect(reported.contains("Church, Sunday") && reported.contains("chicken tacos"))
+        #expect(
+            reported.range(of: "Church")!.lowerBound < reported.range(of: "chicken")!.lowerBound)
+        #expect(!reported.contains("It is "))
+        #expect(scene[3].content.contains("It is "))
+        #expect(scene[3].content.contains("home"))
+        #expect(!scene[3].content.contains("chicken tacos"))
+        // Never more than four cache points: the stable item's two, and these two.
+        func points(_ transcript: [LocalLLMClient.Message]) -> Int {
+            transcript.reduce(0) {
+                $0 + ($1.parts.isEmpty ? ($1.cachePoint ? 1 : 0) : $1.parts.count)
+            }
+        }
+        #expect(points(scene) == 4)
+        // A minute later, with something new learned, the memories are the same text and what
+        // was reported only grew at its end.
+        let newer = try fact(
+            "food.dislike", .string("cilantro"), .reported, at: now.addingTimeInterval(30))
+        let later = try mind.makeSceneTranscript(
+            for: offer([newer, home, learned, memory, calendar]), now: now.addingTimeInterval(60))
+        #expect(later[1].content == scene[1].content)
+        #expect(later[2].content.hasPrefix(reported))
+        // A conversation keeps the turns so far as its last cache point; what was reported
+        // rides uncached before them.
+        let percept = try makePercept(
+            text: "Who is here?",
+            prior: [("person", "Hello", 1), ("character", "Hello April.", 2)],
+            facts: [home, learned, memory])
+        let asked = mind.makeTranscript(for: percept, now: now)
+        #expect(asked.map(\.role) == [.system, .user, .user, .user, .assistant, .user, .user])
+        #expect(asked.map(\.cachePoint) == [false, true, false, false, true, false, false])
+        #expect(points(asked) == 4)
+    }
+
     @Test("A question from April carries the world's tools and their contract; a scene turn never")
     func toolsGoWithQuestionsOnly() async throws {
         let tools = ModelTools(
@@ -553,7 +636,8 @@ struct CharacterMindTests {
         text: String,
         speaker: String = "person:april",
         occurredAt: Date? = nil,
-        prior: [(kind: String, text: String, at: Int)] = []
+        prior: [(kind: String, text: String, at: Int)] = [],
+        facts: [Fact] = []
     ) throws -> PersonUtterancePercept {
         let conversationID = try ConversationID(validating: "conversation:april-beaky")
         let utterance = try PersonUtterance(
@@ -582,7 +666,8 @@ struct CharacterMindTests {
         return try PersonUtterancePercept(
             characterID: EntityID(validating: "character:beaky"),
             utterance: utterance,
-            priorConversationItems: items
+            priorConversationItems: items,
+            worldFacts: facts
         )
     }
 

@@ -43,11 +43,12 @@ struct FactPhrasingTests {
         #expect(!lines.contains { $0.contains("presence.region") })
         #expect(lines[0].hasSuffix(" · assumed (nobody has checked) (90% sure)"))
         #expect(lines[0].hasPrefix("April · presence.state = home · since "))
-        #expect(lines[0].contains("(just now)"))
+        // A timestamp, never an age: the mind works it out from the moment's "It is …" (#235).
+        #expect(!lines[0].contains("ago") && !lines[0].contains("just now"))
         #expect(
             lines[1].hasPrefix(
                 "This room · scene.last = Mango: \"It is always heat sinks.\" · since "))
-        #expect(lines[1].contains("(5 minutes ago)"))
+        #expect(lines[1].contains(", ") && !lines[1].contains("minutes ago"))
         #expect(lines[1].hasSuffix(" · observed"))
         #expect(lines[2].hasPrefix("This room · weather.mood = gloomy"))
     }
@@ -96,9 +97,11 @@ struct FactPhrasingTests {
         let lines = FactPhrasing.happeningLines(
             story, now: now, in: TimeZone(identifier: "America/Los_Angeles")!)
         #expect(lines.count == 2)
-        #expect(lines[0].hasSuffix(" (5 minutes ago): The front door was just unlocked."))
-        #expect(lines[1].hasSuffix(" (just now): camera.person_seen at the carport"))
-        #expect(lines[0].contains(" PM ") || lines[0].contains(" AM "))
+        #expect(
+            lines[0].hasSuffix(" PM: The front door was just unlocked.")
+                || lines[0].hasSuffix(" AM: The front door was just unlocked."))
+        #expect(lines[1].hasSuffix("M: camera.person_seen at the carport"))
+        #expect(!lines.contains { $0.contains("ago") })
     }
 
     @Test("An expected visitor is a sentence, and the world says whether April is home")

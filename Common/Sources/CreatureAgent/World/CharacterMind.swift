@@ -823,9 +823,55 @@ struct CharacterMind: Sendable {
     /// "What you know": the local time in words, then the world's facts in plain words. The
     /// time is always there — a model cannot work out time zones, so it is told — and the
     /// facts follow when the world has any.
+    /// The knowledge in layers for a cached prompt: the bird's memories, then what was
+    /// reported, each sorted oldest first so a new fact joins the end rather than moving the
+    /// rest; then everything that moves - the time, what the house observes, what just
+    /// happened, what the bird said lately. A layer with nothing in it is nil.
+    func knowledgeLayers(
+        _ facts: [Fact], happenings: [Happening], meanings: [String: String],
+        recentLines: [SpokenLine], now: Date
+    ) -> (remembered: String?, reported: String?, moment: String) {
+        func steady(_ type: EpistemicType) -> [Fact] {
+            facts.filter { $0.epistemic.type == type }
+                .sorted { ($0.validFrom, $0.factID.rawValue) < ($1.validFrom, $1.factID.rawValue) }
+        }
+        func lines(_ part: [Fact], summaries: Bool) -> [String] {
+            FactPhrasing.lines(
+                for: part, among: facts, summaries: summaries,
+                character: configuration.characterID, now: now, in: configuration.timeZone)
+        }
+        let memories = lines(steady(.remembered), summaries: false)
+        let reported = lines(steady(.reported), summaries: false)
+        let moving = facts.filter {
+            $0.epistemic.type != .remembered && $0.epistemic.type != .reported
+        }
+        return (
+            memories.isEmpty
+                ? nil
+                : "What you remember, from your own memories:\n"
+                    + memories.map { "- " + $0 }.joined(separator: "\n"),
+            reported.isEmpty
+                ? nil
+                : "What the world was told (trust this over guesses; each line is who or where, what is known, since when, and how it is known):\n"
+                    + reported.map { "- " + $0 }.joined(separator: "\n"),
+            knowledgeBlock(
+                moving, among: facts, happenings: happenings, meanings: meanings,
+                recentLines: recentLines, now: now)
+        )
+    }
+
     func knowledgeBlock(
         _ facts: [Fact], happenings: [Happening] = [], meanings: [String: String] = [:],
         recentLines: [SpokenLine] = [], now: Date
+    ) -> String {
+        knowledgeBlock(
+            facts, among: facts, happenings: happenings, meanings: meanings,
+            recentLines: recentLines, now: now)
+    }
+
+    private func knowledgeBlock(
+        _ facts: [Fact], among all: [Fact], happenings: [Happening], meanings: [String: String],
+        recentLines: [SpokenLine], now: Date
     ) -> String {
         var lines = [FactPhrasing.timeSentence(now, in: configuration.timeZone)]
         if let model = configuration.modelLabel {
@@ -834,8 +880,8 @@ struct CharacterMind: Sendable {
             )
         }
         lines += FactPhrasing.lines(
-            for: facts, character: configuration.characterID, now: now,
-            in: configuration.timeZone)
+            for: facts, among: all, summaries: true, character: configuration.characterID,
+            now: now, in: configuration.timeZone)
         var block =
             "\n\nWhat you know right now, from the world itself (trust this over guesses; each line is who or where, what is known, since when, and how it is known):\n"
             + lines.map { "- " + $0 }.joined(separator: "\n")
@@ -1205,19 +1251,39 @@ struct CharacterMind: Sendable {
                 ? [:] : Self.byFamily(meanings).filter { glossary[$0.key] == nil }
             let stableItem = LocalLLMClient.Message(
                 role: .system, cachedParts: [shared + Self.meaningsBlock(known), persona])
+            // What is known, from the steadiest to what moves, each steady layer a cache
+            // point (#235): the bird's own memories change only at night; what was reported
+            // (learned, the calendar, the forecast) changes now and then; what the house
+            // observes, the clock, and the script change every call. A layer rewritten costs a
+            // quarter more than sending it plain, and read back a tenth.
+            let layers = knowledgeLayers(
+                facts, happenings: happenings, meanings: extra, recentLines: recentLines,
+                now: now)
+            let remembered = layers.remembered.map {
+                LocalLLMClient.Message(role: .user, content: $0, cachePoint: true)
+            }
             let momentItem = LocalLLMClient.Message(
                 role: .user,
                 content: Self.momentPreface + "\n" + (moment.isEmpty ? "" : moment + "\n")
-                    + String(
-                        knowledgeBlock(
-                            facts, happenings: happenings, meanings: extra,
-                            recentLines: recentLines, now: now
-                        ).drop(while: \.isNewline)))
-            // The conversation so far is cached too, for this bird's next turn; the moment,
-            // which changes every call, never is.
+                    + String(layers.moment.drop(while: \.isNewline)))
             var prior = Array(turns.dropLast())
+            if prior.isEmpty {
+                // A scene: the script is the one turn. What was reported is cached too, so
+                // the next bird in the scene reads it.
+                let reported = layers.reported.map {
+                    LocalLLMClient.Message(role: .user, content: $0, cachePoint: true)
+                }
+                return [stableItem] + [remembered, reported].compactMap { $0 }
+                    + [momentItem] + turns
+            }
+            // A conversation: the turns so far are the fourth and last cache point; what was
+            // reported rides with them, uncached, before the moment.
             if let last = prior.indices.last { prior[last].cachePoint = true }
-            return [stableItem] + prior + [momentItem] + turns.suffix(1)
+            let reported = layers.reported.map {
+                LocalLLMClient.Message(role: .user, content: $0)
+            }
+            return [stableItem] + [remembered].compactMap { $0 } + [reported].compactMap { $0 }
+                + prior + [momentItem] + turns.suffix(1)
         }
     }
 
