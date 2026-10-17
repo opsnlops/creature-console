@@ -1,3 +1,16 @@
+creature-cli (2.101.0+world0.59.1+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.59.1: what the words call up is gathered from what
+    is new in them alone, beside the standing page (#245). 0.59.0
+    gathered the whole page a second time with the words, and the live
+    line waited ~200 ms more for it (utterance ingest p50 870 -> 1,074
+    ms). Now the standing page is gathered once, and beside it only who
+    and what the words name, the kinds asked for on request, the
+    fortnight on a time word, and the two searches, started first. A
+    coverage check proves nothing the words brought is lost.
+
+ -- April White <april@creature.engineering>  Sat, 17 Oct 2026 19:00:00 -0700
+
 creature-cli (2.101.0+world0.59.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * What a bird knows all day is cached (#245). A Beaky reply sent ~5.3k

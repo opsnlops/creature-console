@@ -6,6 +6,42 @@ import WorldCore
 
 private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI"]
 
+/// The page with words holds everything the words used to bring, and opens with the standing
+/// page exactly (#245): what the words call up is gathered from what is new in them alone, so
+/// this is the proof nothing they brought was lost. A memory filed on several subjects counts
+/// once, by its name. `checking` narrows the proof to a run's own subjects where the words
+/// search the whole shared test database: earlier runs left copies that tie, and two
+/// searches may each take a different few of them.
+func expectPageCovers(
+    _ knowledge: PresentWorldKnowledge, about subjects: [EntityID], words: String,
+    checking own: Set<EntityID>? = nil, sourceLocation: SourceLocation = #_sourceLocation
+) async throws {
+    let limit = WorldKnowledgeLimits.maximumFacts
+    let page = try await knowledge.page(about: subjects, mentionedIn: words, limit: limit)
+    let standing = try await knowledge.currentFacts(
+        about: subjects, mentionedIn: nil, limit: limit)
+    func mine(_ fact: Fact) -> Bool { own?.contains(fact.subjectID) ?? true }
+    // The standing part is the page with no words, and comes first: nothing called up sits
+    // before a standing fact.
+    let called = Set(page.calledUp)
+    let kept = page.facts.filter { !called.contains($0.factID) }
+    #expect(kept.filter(mine) == standing.filter(mine), sourceLocation: sourceLocation)
+    #expect(
+        page.facts.prefix(kept.count).allSatisfy { !called.contains($0.factID) },
+        sourceLocation: sourceLocation)
+    func key(_ fact: Fact) -> String {
+        WorldFacts.memoryFamily(of: fact.predicate) != nil
+            ? fact.predicate : "\(fact.subjectID.rawValue)|\(fact.predicate)|\(fact.value)"
+    }
+    let held = Set(page.facts.map(key))
+    let worded = try await knowledge.currentFacts(
+        about: subjects, mentionedIn: words, limit: limit)
+    let lost = worded.filter { !held.contains(key($0)) && mine($0) }
+    #expect(
+        lost.isEmpty, "the page lost \(lost.map { "\($0.subjectID.rawValue) \($0.predicate)" })",
+        sourceLocation: sourceLocation)
+}
+
 /// The standing page against the real one, cap and all (#245): a name in the words used to take
 /// places on a full page of thirty; now it sits beside them.
 @Suite(
@@ -70,5 +106,43 @@ struct StandingPageTests {
         // None of April's: the words took no standing place.
         #expect(!called.contains { $0.subjectID == april })
         #expect(page.facts.count == standing.count + called.count)
+    }
+
+    @Test("A kind the words ask for comes up beside the standing page, never on it")
+    func onRequestKindsAreCalledUp() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "standing-page-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let letters = String(
+            UUID().uuidString.lowercased().compactMap { $0.isLetter ? $0 : nil }.prefix(8))
+        let bird = try EntityID(validating: "character:wren\(letters)")
+        let now = Date(timeIntervalSince1970: 1_789_600_000)
+        let board = "body.board\(letters)_c"
+        _ = try await persistence.factKinds.set(
+            board, meaning: "the bird's board temperature", audience: nil, by: "test", at: now)
+        try await persistence.facts.save(
+            try Fact(
+                subjectID: bird, predicate: board, value: .number(41),
+                epistemic: EpistemicState(type: .observed, confidence: 1),
+                validFrom: now.addingTimeInterval(-60), derivedFrom: [],
+                producer: FactProducer(kind: "body", id: "sensors", version: "1")))
+        let clock = ManualWorldClock(now: now)
+        let knowledge = PresentWorldKnowledge(
+            facts: persistence.facts, events: persistence.events, kinds: persistence.factKinds,
+            sessions: CharacterSessionService(
+                repository: persistence.characterSessions, clock: clock, announce: { _ in }),
+            regions: [:], clock: clock)
+        let limit = WorldKnowledgeLimits.maximumFacts
+        // Not asked for: a body is thirty lines a clock question does not need.
+        let quiet = try await knowledge.page(
+            about: [bird], mentionedIn: "what time is it?", limit: limit)
+        #expect(!quiet.facts.contains { $0.predicate == board })
+        // Asked for: called up, on the bird the page is about.
+        let asked = try await knowledge.page(
+            about: [bird], mentionedIn: "is your board warm?", limit: limit)
+        let reading = try #require(asked.facts.first { $0.predicate == board })
+        #expect(asked.calledUp.contains(reading.factID))
+        try await expectPageCovers(knowledge, about: [bird], words: "is your board warm?")
     }
 }

@@ -796,6 +796,8 @@ struct RecentHappeningsTests {
         let handed = try await knowledge.currentFacts(
             about: [], mentionedIn: "Beaky, did I order a \(word)?",
             limit: WorldKnowledgeLimits.maximumFacts)
+        try await expectPageCovers(
+            knowledge, about: [], words: "Beaky, did I order a \(word)?", checking: [order])
         #expect(handed.contains { $0.subjectID == order && $0.predicate == "order.items" })
         let unrelated = try await knowledge.currentFacts(
             about: [], mentionedIn: "is it raining?", limit: WorldKnowledgeLimits.maximumFacts)
@@ -805,6 +807,8 @@ struct RecentHappeningsTests {
         let anything = try await knowledge.currentFacts(
             about: [], mentionedIn: "did I just order anything?",
             limit: WorldKnowledgeLimits.maximumFacts)
+        try await expectPageCovers(
+            knowledge, about: [], words: "did I just order anything?", checking: [order])
         #expect(anything.contains { $0.subjectID == order && $0.predicate == "order.items" })
         #expect(!anything.contains { $0.subjectID == stale })
     }
@@ -921,6 +925,9 @@ struct RecentHappeningsTests {
         let weekend = try await knowledge.currentFacts(
             about: [], mentionedIn: "what's on the calendar this weekend?",
             limit: WorldKnowledgeLimits.maximumFacts)
+        try await expectPageCovers(
+            knowledge, about: [], words: "what's on the calendar this weekend?",
+            checking: [visit, jesse])
         // Folded into one line, title first (#232).
         #expect(
             weekend.contains { $0.subjectID == visit && $0.predicate == WorldFacts.calendarEvent })
@@ -960,6 +967,8 @@ struct RecentHappeningsTests {
         let asked = try await knowledge.currentFacts(
             about: [], mentionedIn: "is my contractor coming today?",
             limit: WorldKnowledgeLimits.maximumFacts)
+        try await expectPageCovers(
+            knowledge, about: [], words: "is my contractor coming today?", checking: [visit, jesse])
         #expect(asked.contains { $0.subjectID == jesse && $0.predicate == "person.relationship" })
     }
 }

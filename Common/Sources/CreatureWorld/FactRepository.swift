@@ -182,6 +182,25 @@ struct FactRepository: Sendable {
         return try documents.map(decode)
     }
 
+    /// Current facts about any of `subjects` whose kind is one of `predicates`, newest first,
+    /// bounded: the kinds the words of a moment asked for, such as a bird's body (#245).
+    func currentFacts(
+        about subjects: [EntityID], predicates: Set<String>, limit: Int, at now: Date
+    ) async throws -> [Fact] {
+        precondition(limit > 0)
+        guard !subjects.isEmpty, !predicates.isEmpty else { return [] }
+        var query = currentQuery(at: now)
+        query["subject_id"] = ["$in": subjects.map(\.rawValue)] as Document
+        var kinds = Document(isArray: true)
+        for name in predicates.sorted() { kinds.append(name) }
+        query["predicate"] = ["$in": kinds] as Document
+        let documents = try await facts.find(query)
+            .sort(["valid_from": -1, "_id": -1])
+            .limit(limit)
+            .drain()
+        return try documents.map(decode)
+    }
+
     /// The predicate half of a query for a family of facts, less the excluded kinds; nil when
     /// it narrows nothing.
     static func predicateFilter(family: Family, excluding predicates: Set<String>) -> Document? {

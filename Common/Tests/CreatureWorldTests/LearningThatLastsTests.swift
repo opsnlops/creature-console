@@ -134,6 +134,9 @@ struct LearningThatLastsMongoTests {
         let asked = try await knowledge.currentFacts(
             about: [beaky, april], mentionedIn: "how is the \(word) doing?",
             limit: WorldKnowledgeLimits.maximumFacts)
+        try await expectPageCovers(
+            knowledge, about: [beaky, april], words: "how is the \(word) doing?",
+            checking: [beaky, april])
         #expect(asked.contains { $0.predicate == "flight.aircraft" && $0.subjectID == april })
         let unasked = try await knowledge.currentFacts(
             about: [beaky, april], mentionedIn: "what time is it?",

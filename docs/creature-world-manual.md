@@ -951,7 +951,10 @@ standing page, beside it. Both are gathered at once. The utterance percept, the 
 the perspective carry `called_up`, the ids of what the words brought; a mind caches the standing
 part all day and sends the rest fresh. The house scene the words ask for is always called up. A
 **fold keeps its id** across pages now: `fact:page-` and a hash of its subject, predicate and
-readings, so the same fold is the same fact on every page.
+readings, so the same fold is the same fact on every page. Since `0.59.1` what the words call
+up is gathered from what is new in them alone (whoever they name, the kinds asked for, the
+fortnight on a time word, the searches), beside the standing page; `0.59.0` gathered the whole
+page a second time and added ~200 ms to the live line.
 
 **The day record, trimmed** (`0.57.0`, #242, docs/day-record-trim-plan.md). `GET
 /v1/days/{day}` is the record as the nightly memory sees it, and it no longer repeats itself: a

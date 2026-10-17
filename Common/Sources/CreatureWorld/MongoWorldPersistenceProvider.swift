@@ -1321,53 +1321,27 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         // and newer than everything else, and would otherwise push what April taught the birds
         // yesterday off the page.
         let about = unique(expanded)
-        // The thirty are what is worth reading: the stage (who is in the room) and the folded
-        // state (sensors, forecasts) ride beside them, so they never take a learned fact's
-        // place. On 2026-10-16 Beaky's thirty were 29 of those and one thing April had told
-        // her (#231).
-        let pageless = worldOnly.union(WorldKnowledgeLimits.stagePredicates)
-        var present = try await facts.currentFacts(
-            about: about, family: .page, excluding: pageless, limit: limit, at: now)
-        var stage: [Fact] = []
-        for predicate in WorldKnowledgeLimits.stagePredicates.sorted() {
-            stage += try await facts.currentFacts(
-                about: about, predicate: predicate, limit: max(about.count, 1), at: now)
-        }
-        let folded = PageFolding.fold(
-            try await facts.currentFacts(
-                about: about, family: .folded, excluding: worldOnly,
-                limit: WorldKnowledgeLimits.maximumFoldedReadings, at: now))
-        // Links, one hop: a fact whose value is an entity (`calendar.with = person:jesse`)
-        // brings that entity's facts along, so a bird handed the visit is handed the visitor.
-        // One hop only, and never on the live line's critical path a second time.
-        let linked = unique(present.compactMap { WorldFacts.link(in: $0.value) })
-            .filter { !about.contains($0) }
-        if !linked.isEmpty {
-            present += try await facts.currentFacts(
-                about: linked, family: .page, excluding: pageless, limit: limit, at: now)
-        }
-        // Memories are the mind's own: the first character among the subjects is the mind
-        // being handed this (every caller puts it first), and what Beaky remembers of April is
-        // not what Kenny is told. Recent and salient ones ride along, trimmed; and the ones
-        // the words of the moment call up, whatever their age - "how did the deck go?" three
-        // weeks on finds the episode by its words, not its date (plan Phase 9, retrieval).
-        var remembered: [Fact] = []
+        let mind = subjects.first(where: { $0.rawValue.hasPrefix("character:") })
+        let parts = try await subjectFacts(
+            about: about, beside: [], mind: mind, worldOnly: worldOnly, limit: limit, now: now)
+        let present = parts.present
+        let stage = parts.stage
+        let folded = parts.folded
+        let linked = parts.linked
+        let remembered = parts.remembered
+        // And the memories the words of the moment call up, whatever their age - "how did the
+        // deck go?" three weeks on finds the episode by its words, not its date (plan Phase 9,
+        // retrieval).
         var retrieved: [Fact] = []
-        if let mind = subjects.first(where: { $0.rawValue.hasPrefix("character:") }) {
-            remembered = Self.withMemoriesTrimmed(
-                try await facts.currentFacts(
-                    about: about + linked, family: .own(mind), limit: limit, at: now),
-                memory: memory, now: now)
-            if memory.retrievedInPrompt > 0, let text, !text.isEmpty {
-                // One memory is one memory, whichever of its subjects the words found it on.
-                let known = Set(remembered.map(Self.memoryKey))
-                retrieved = Self.oneOfEachMemory(
-                    try await facts.search(
-                        text, own: mind, limit: memory.retrievedInPrompt * 3, at: now
-                    ).map(\.0)
-                ).filter { !known.contains(Self.memoryKey($0)) }
-                    .prefix(memory.retrievedInPrompt).map { $0 }
-            }
+        if let mind, memory.retrievedInPrompt > 0, let text, !text.isEmpty {
+            // One memory is one memory, whichever of its subjects the words found it on.
+            let known = Set(remembered.map(Self.memoryKey))
+            retrieved = Self.oneOfEachMemory(
+                try await facts.search(
+                    text, own: mind, limit: memory.retrievedInPrompt * 3, at: now
+                ).map(\.0)
+            ).filter { !known.contains(Self.memoryKey($0)) }
+                .prefix(memory.retrievedInPrompt).map { $0 }
         }
         // What is coming: the next few days of the calendar ride along with every question, a
         // fortnight when the words are about time - on a page of their own, so a busy week
@@ -1398,6 +1372,185 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         }
         let page = present + folded + coming + learned + retrieved + remembered + stage
         return page + (try await pronouns(of: page, at: now))
+    }
+
+    /// What a page holds about `about`: the thirty, the stage, the folded state, one hop of
+    /// links, and the mind's own memories on them. The standing page asks it of the house
+    /// around the mind; what the words call up asks it of whoever they name alone (#245).
+    private func subjectFacts(
+        about: [EntityID], beside: Set<EntityID>, mind: EntityID?, worldOnly: Set<String>,
+        limit: Int, now: Date
+    ) async throws -> (
+        present: [Fact], stage: [Fact], folded: [Fact], linked: [EntityID], remembered: [Fact]
+    ) {
+        // The thirty are what is worth reading: the stage (who is in the room) and the folded
+        // state (sensors, forecasts) ride beside them, so they never take a learned fact's
+        // place. On 2026-10-16 Beaky's thirty were 29 of those and one thing April had told
+        // her (#231).
+        let pageless = worldOnly.union(WorldKnowledgeLimits.stagePredicates)
+        var present = try await facts.currentFacts(
+            about: about, family: .page, excluding: pageless, limit: limit, at: now)
+        var stage: [Fact] = []
+        for predicate in WorldKnowledgeLimits.stagePredicates.sorted() {
+            stage += try await facts.currentFacts(
+                about: about, predicate: predicate, limit: max(about.count, 1), at: now)
+        }
+        let folded = PageFolding.fold(
+            try await facts.currentFacts(
+                about: about, family: .folded, excluding: worldOnly,
+                limit: WorldKnowledgeLimits.maximumFoldedReadings, at: now))
+        // Links, one hop: a fact whose value is an entity (`calendar.with = person:jesse`)
+        // brings that entity's facts along, so a bird handed the visit is handed the visitor.
+        // One hop only, and never on the live line's critical path a second time.
+        let linked = unique(present.compactMap { WorldFacts.link(in: $0.value) })
+            .filter { !about.contains($0) && !beside.contains($0) }
+        if !linked.isEmpty {
+            present += try await facts.currentFacts(
+                about: linked, family: .page, excluding: pageless, limit: limit, at: now)
+        }
+        // Memories are the mind's own: the first character among the subjects is the mind
+        // being handed this (every caller puts it first), and what Beaky remembers of April is
+        // not what Kenny is told. Recent and salient ones ride along, trimmed.
+        var remembered: [Fact] = []
+        if let mind {
+            remembered = Self.withMemoriesTrimmed(
+                try await facts.currentFacts(
+                    about: about + linked, family: .own(mind), limit: limit, at: now),
+                memory: memory, now: now)
+        }
+        return (present, stage, folded, linked, remembered)
+    }
+
+    /// The standing page and what the words call up beside it, gathered at once (#245). The
+    /// standing page is the page with no words, exactly. What the words call up is gathered
+    /// from what is new in them alone, so neither half repeats the other's queries: a first
+    /// version gathered the whole page a second time with the words, and the live line waited
+    /// ~200 ms more for it. A fact or a memory already standing is never called up again.
+    func page(about subjects: [EntityID], mentionedIn text: String?, limit: Int)
+        async throws -> KnowledgePage
+    {
+        async let standing = currentFacts(about: subjects, mentionedIn: nil, limit: limit)
+        guard let text, !text.isEmpty else {
+            return KnowledgePage(facts: try await standing, calledUp: [])
+        }
+        async let brought = calledUp(about: subjects, by: text, limit: limit)
+        let kept = try await standing
+        let extra = try await brought
+        var ids = Set(kept.map(\.factID))
+        var memories = Set(
+            kept.filter { WorldFacts.memoryFamily(of: $0.predicate) != nil }.map(Self.memoryKey))
+        func fresh(_ fact: Fact) -> Bool {
+            guard !ids.contains(fact.factID) else { return false }
+            if WorldFacts.memoryFamily(of: fact.predicate) != nil {
+                guard memories.insert(Self.memoryKey(fact)).inserted else { return false }
+            }
+            ids.insert(fact.factID)
+            return true
+        }
+        var called = extra.facts.filter(fresh)
+        // The memories the words found, past what is already on the page, as many as ride.
+        called += Array(extra.retrieved.filter(fresh).prefix(memory.retrievedInPrompt))
+        return KnowledgePage(facts: kept + called, calledUp: called.map(\.factID))
+    }
+
+    /// What the words bring beside the standing page, from what is new in them alone: whoever
+    /// and whatever they name, with their facts, stage, state, links, and the mind's memories
+    /// on them; the kinds that ride only on request, on everyone the page is about; the facts
+    /// the minds kept that the words find; the fortnight's calendar on a time word; and the
+    /// memories the words find, all of them, for `page` to take what is not already there.
+    private func calledUp(about subjects: [EntityID], by text: String, limit: Int)
+        async throws -> (facts: [Fact], retrieved: [Fact])
+    {
+        let now = await clock.now
+        let words = Set(
+            text.lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init))
+        async let aroundList = surroundings(of: subjects)
+        async let people = knownPeople(at: now)
+        async let orders = knownOrders(at: now)
+        async let stored = kinds.worldOnlyPredicates()
+        let mind = subjects.first(where: { $0.rawValue.hasPrefix("character:") })
+        let around = Set(try await aroundList)
+        var named = WorldMentions.mentioned(in: text, among: try await people)
+        named += WorldMentions.mentioned(in: text, among: try await orders)
+        if !words.isDisjoint(with: WorldKnowledgeLimits.orderWords) {
+            named += try await recentOrders(at: now)
+        }
+        named = unique(named).filter { !around.contains($0) }
+        // The world-only kinds stay with the world; a kind that rides on request stays with it
+        // too, unless these words asked for it.
+        let worldOnly = try await stored.union(WorldKnowledgeLimits.worldOnlyPredicates)
+        // What the minds kept and what the bird remembers, found by the words whatever their age
+        // (#229): searches, the slowest of these, so they run while the rest is gathered.
+        async let learned = keptFacts(matching: text, excluding: worldOnly, at: now)
+        async let recalled = memories(of: mind, matching: text, at: now)
+        var withheld = worldOnly
+        var requested: Set<String> = []
+        for (prefix, asking) in WorldKnowledgeLimits.onRequestPrefixes {
+            let onRequest = try await kinds.predicates(withPrefix: prefix)
+            if words.isDisjoint(with: asking) {
+                withheld.formUnion(onRequest)
+            } else {
+                requested.formUnion(onRequest.subtracting(worldOnly))
+            }
+        }
+        var found: [Fact] = []
+        var linked: [EntityID] = []
+        if !named.isEmpty {
+            let parts = try await subjectFacts(
+                about: named, beside: around, mind: mind, worldOnly: withheld, limit: limit,
+                now: now)
+            found += parts.present + parts.folded + parts.remembered + parts.stage
+            linked = parts.linked
+        }
+        // A kind the words asked for, on everyone the page is about: "how is your power?"
+        // brings the bird's own body.
+        if !requested.isEmpty {
+            found += try await facts.currentFacts(
+                about: Array(around) + named, predicates: requested, limit: limit, at: now)
+        }
+        // On a time word, the fortnight and the week's reminders: what the three days and
+        // today on the standing page do not already hold.
+        if !words.isDisjoint(with: WorldKnowledgeLimits.timeWords) {
+            let soon = Set(try await upcomingEvents(mentionedIn: nil, now: now))
+            let later = try await upcomingEvents(mentionedIn: text, now: now).filter {
+                !soon.contains($0) && !around.contains($0) && !named.contains($0)
+                    && !linked.contains($0)
+            }
+            if !later.isEmpty {
+                found += PageFolding.foldCalendar(
+                    try await facts.currentFacts(
+                        about: later, family: .notMemories, excluding: worldOnly,
+                        limit: (WorldKnowledgeLimits.maximumUpcomingEvents
+                            + WorldKnowledgeLimits.maximumReminders) * 10, at: now))
+            }
+        }
+        // The two searches the words make, started back where nothing else was waiting on them.
+        found += try await learned
+        let retrieved = try await recalled
+        found += try await pronouns(of: found + retrieved, at: now)
+        return (found, retrieved)
+    }
+
+    /// The facts a mind or the librarian kept that `text` finds.
+    private func keptFacts(matching text: String, excluding worldOnly: Set<String>, at now: Date)
+        async throws -> [Fact]
+    {
+        guard memory.factsRetrievedInPrompt > 0 else { return [] }
+        return try await facts.search(
+            text, family: .notMemories, excluding: worldOnly, keptBy: Self.learnedOrigins,
+            limit: memory.factsRetrievedInPrompt, at: now
+        ).map(\.0)
+    }
+
+    /// The memories of `mind` that `text` finds, one of each, more than ride, so the page can
+    /// skip any already on it.
+    private func memories(of mind: EntityID?, matching text: String, at now: Date) async throws
+        -> [Fact]
+    {
+        guard let mind, memory.retrievedInPrompt > 0 else { return [] }
+        return Self.oneOfEachMemory(
+            try await facts.search(text, own: mind, limit: memory.retrievedInPrompt * 3, at: now)
+                .map(\.0))
     }
 
     /// The pronouns of everyone the page names - as a subject or a link - that the page does

@@ -330,6 +330,8 @@ struct RetrievalTests {
         let asked = try await knowledge.currentFacts(
             about: [beaky, april], mentionedIn: "how did the \(word) shelf turn out?",
             limit: WorldKnowledgeLimits.maximumFacts)
+        try await expectPageCovers(
+            knowledge, about: [beaky, april], words: "how did the \(word) shelf turn out?")
         #expect(asked.contains { $0.predicate == "memory.episode.beaky.2026-07-15.1" })
         #expect(!asked.contains { $0.predicate == "memory.episode.kenny.2026-07-15.1" })
         // Without the words, the old episode is past its days and stays on the shelf.

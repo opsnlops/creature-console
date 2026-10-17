@@ -600,6 +600,9 @@ struct FilingApplyMongoTests {
             about: [april], mentionedIn: "landings are still the hardest part of flying",
             limit: WorldKnowledgeLimits.maximumFacts
         ).filter { $0.subjectID == april }
+        try await expectPageCovers(
+            knowledge, about: [april], words: "landings are still the hardest part of flying",
+            checking: [april])
         #expect(page.filter { $0.predicate == "flight.training" }.count == 1)
         #expect(
             page.first { $0.predicate == "flight.training" }?.origin?.rawValue == "librarian:beaky")

@@ -84,6 +84,19 @@ Everything else on the page is the same with or without words:
    words) shows the called-up facts apart from the standing page, so April can see what stays
    cached all day and what the words brought.
 
+## 0.59.1: what the words call up, from what is new in them alone
+
+0.59.0 gathered the whole page a second time with the words, at the same time as the standing
+page. Live, the live line waited longer for it: utterance ingest p50 870 → 1,074 ms (p90 912 →
+1,544), scene open p50 472 → 590 ms, each bird's turn offer p50 77 → 136 ms. 0.59.1 gathers
+the standing page once, as before, and beside it only what the words add: whoever and whatever
+they name (their facts, stage, folds, links and the mind's memories on them), the kinds asked for
+on request (`FactRepository.currentFacts(about:predicates:)`), the fortnight on a time word, and
+the two searches, started first. The steps both halves share are one helper (`subjectFacts`). A
+coverage check in the World's tests proves the page with words still holds everything the one
+worded pass brought. On the local test database: one worded pass 911 ms, two passes 914 ms, the
+new page 853 ms.
+
 ## Found on the way
 
 `knownPeople` keeps only people with a `person.relationship` fact: `people[subject] =
