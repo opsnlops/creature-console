@@ -158,7 +158,9 @@ private struct NightView: View {
                         Text(bird.bird.capitalized)
                             .font(.title2.bold())
                         if let letter = bird.reflectionText {
-                            Text(letter)
+                            (bird.reflectionShared
+                                ? Text(letter)
+                                : Text("\(Image(systemName: "lock.fill")) ") + Text(letter))
                                 .font(.body.italic())
                                 .textSelection(.enabled)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -198,9 +200,19 @@ private struct EpisodeRow: View {
                 )
                 .help("How much it mattered to the bird, 0 to 1")
             VStack(alignment: .leading, spacing: 4) {
-                Text(episode.when)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Text(episode.when)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if !episode.shared {
+                        Label("kept private", systemImage: "lock.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .help(
+                                "The bird kept this memory to itself; the other birds can't look it up"
+                            )
+                    }
+                }
                 Text(episode.what)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)

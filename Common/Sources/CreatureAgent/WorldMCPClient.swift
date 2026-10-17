@@ -29,6 +29,9 @@ struct WorldMCPClient: Sendable {
     let url: URL
     let client: HTTPClient
     let logger: Logger
+    /// The mind asking, so the world can tell its own memories from another bird's private
+    /// ones (#243). Nil, and the world shows it no bird's private memory.
+    var mind: EntityID? = nil
 
     /// A tool's answer is for the model, and the model's context is April's money: past this
     /// many characters the answer is cut with a note, and the model can ask again with a
@@ -60,13 +63,14 @@ struct WorldMCPClient: Sendable {
             parsed = try WorldJSON.makeDecoder().decode(
                 WorldJSONValue.self, from: Data(arguments.utf8))
         }
-        // A mind is a mind: the world keeps what is for the world alone out of the answer.
+        // A mind is a mind: the world keeps what is for the world alone out of the answer, and
+        // another bird's memory out unless that bird shared it.
+        var meta: [String: WorldJSONValue] = ["audience": .string(FactAudience.minds.rawValue)]
+        if let mind { meta["mind"] = .string(mind.rawValue) }
         let result = try await rpc(
             "tools/call",
-            params: .object([
-                "name": .string(name), "arguments": parsed,
-                "_meta": .object(["audience": .string(FactAudience.minds.rawValue)]),
-            ]), tool: name)
+            params: .object(["name": .string(name), "arguments": parsed, "_meta": .object(meta)]),
+            tool: name)
         if case .bool(true)? = result["isError"] {
             GenAI.toolSpan?.attributes[MCPTelemetry.Key.errorType] = "tool_error"
             throw Failure(description: Self.text(of: result), kind: "tool_error")

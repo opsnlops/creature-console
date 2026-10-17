@@ -50,7 +50,10 @@ struct ModelTools: Sendable {
         day or lately, what is scheduled, why a fact is what it is. Use one when a question of \
         April's needs more than what you know below; never for a passing remark, and never to \
         check what is already written here. When you do not know who or what a name is, \
-        search_world first. Ask for small limits. Say what you found in your own words, briefly.
+        search_world first. Ask for small limits. Say what you found in your own words, briefly. \
+        A memory.* fact of another bird's - memory.episode.caroll.… - is that bird's memory, \
+        shared with you: say it as theirs ("Caroll remembers…"), never as your own memory or as \
+        something you saw yourself.
         """
 }
 

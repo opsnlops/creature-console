@@ -53,7 +53,7 @@ struct WorldMCPClientTests {
     }
 
     @Test(
-        "tools/list becomes definitions; tools/call returns the text; a refusal throws; long answers are cut"
+        "tools/list becomes definitions; tools/call names its mind and returns the text; a refusal throws; long answers are cut"
     )
     func listsCallsAndCuts() async throws {
         let router = Router(context: BasicRequestContext.self)
@@ -83,6 +83,9 @@ struct WorldMCPClientTests {
                 switch name {
                 case "query_entity":
                     #expect(arguments["entity_id"] == .string("person:jesse"))
+                    // The world gates other birds' private memories by who is asking (#243).
+                    #expect(call["params"]?["_meta"]?["audience"] == .string("minds"))
+                    #expect(call["params"]?["_meta"]?["mind"] == .string("character:kenny"))
                     answer = .object([
                         "result": .object([
                             "content": .array([
@@ -126,7 +129,8 @@ struct WorldMCPClientTests {
             defer { Task { try? await httpClient.shutdown() } }
             let mcp = WorldMCPClient(
                 url: URL(string: "http://localhost:\(port)/world/mcp")!, client: httpClient,
-                logger: Logger(label: "mcp-tests"))
+                logger: Logger(label: "mcp-tests"),
+                mind: try EntityID(validating: "character:kenny"))
 
             let tools = try await mcp.listTools()
             #expect(tools.map(\.name) == ["query_entity", "nameless_schema"])

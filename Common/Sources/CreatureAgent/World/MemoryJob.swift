@@ -20,9 +20,17 @@ struct MemoryJob: Sendable {
             var when: String
             var what: String
             var salience: Double
+            /// Whether the other birds may look it up (#243). Left out is kept to itself.
+            var shared: Bool? = nil
         }
         var episodes: [Episode]
         var reflection: String
+        var reflectionShared: Bool? = nil
+
+        enum CodingKeys: String, CodingKey {
+            case episodes, reflection
+            case reflectionShared = "reflection_shared"
+        }
     }
 
     /// What the model gives back for the month: this bird's beliefs, whole.
@@ -34,6 +42,7 @@ struct MemoryJob: Sendable {
             var salience: Double
             var since: String
             var from: [String]
+            var shared: Bool? = nil
         }
         var beliefs: [Belief]
     }
@@ -99,6 +108,14 @@ struct MemoryJob: Sendable {
         self.capture = capture
         self.kindJudge = kindJudge
     }
+
+    /// What sharing a memory means, said to the bird that decides (#243). The birds asked for
+    /// it: Caroll's "little 'share this memory' gate", the owner always attached.
+    static let sharing = """
+        "shared" is your choice, memory by memory: true lets the other birds look it up when they \
+        need it, and they will see it is yours, not theirs; false keeps it to yourself. Share \
+        what would help the flock know April and the house; keep what is yours alone.
+        """
 
     static let maximumEpisodes = 12
     /// Beliefs are few by design: the settled view, not a second diary.
@@ -270,7 +287,10 @@ struct MemoryJob: Sendable {
         }
         let reflection = recollection.reflection.trimmingCharacters(in: .whitespacesAndNewlines)
         if !reflection.isEmpty {
-            try await self.cast(reflectionEvent(reflection, day: day, key: key, now: now))
+            try await self.cast(
+                reflectionEvent(
+                    reflection, day: day, key: key,
+                    shared: recollection.reflectionShared ?? false, now: now))
         }
         // Then the month: what all those days have settled into.
         var next = pending
@@ -481,7 +501,7 @@ struct MemoryJob: Sendable {
                 one JSON object and nothing else: {"beliefs": [{"about": "April", "kind": "habit", \
                 "what": "April gets excited about new robot parts and wants to hear the moment a \
                 package is on the porch", "salience": 0.8, "since": "September 2026", "from": \
-                ["2026-09-13", "2026-09-15"]}]}.
+                ["2026-09-13", "2026-09-15"], "shared": true}]}.
 
                 Rules. Never keep a phone number, an email address, or a street address - those are \
                 the house's alone. A belief is something settled, not something that happened: a habit or \
@@ -495,8 +515,8 @@ struct MemoryJob: Sendable {
                 more than one day shows it - or one day when April said it outright. At most \
                 \(maximumBeliefsPerSubject) per subject; leave out the trivial. Each belief at most \
                 four sentences - under 600 characters - and whole. "salience" is how \
-                much it should shape what you say, 0 to 1. Only what the record shows; never \
-                invent. No emoji.
+                much it should shape what you say, 0 to 1. \(Self.sharing) Only what the record \
+                shows; never invent. No emoji.
                 """
         var body = "What you believe now:\n"
         if held.isEmpty {
@@ -565,6 +585,7 @@ struct MemoryJob: Sendable {
                     "salience": .number(min(1, max(0, belief.salience))),
                     "since": .string(String(belief.since.prefix(40))),
                     "from": .array(belief.from.prefix(12).map { .string(String($0.prefix(10))) }),
+                    "shared": .bool(belief.shared ?? false),
                 ]),
             ])
     }
@@ -584,7 +605,8 @@ struct MemoryJob: Sendable {
                 and what April told you. Write what you, \(name), will remember of it. Answer with one \
                 JSON object and nothing else: {"episodes": [{"about": ["person: Jesse", "place: the front door"], \
                 "when": "Sunday afternoon", "what": "Jesse came by and put the boards on the deck; \
-                April was pleased", "salience": 0.7}], "reflection": "…"}.
+                April was pleased", "salience": 0.7, "shared": true}], "reflection": "…", \
+                "reflection_shared": false}.
 
                 Rules. Never keep a phone number, an email address, or a street address - those are \
                 the house's alone. An episode is one thing that happened, in a sentence or two, about the people, \
@@ -597,7 +619,8 @@ struct MemoryJob: Sendable {
                 finishing the deck is 0.8, April going to the store is 0.2, a bird at the feeder is 0. \
                 Leave out anything that will not matter tomorrow; a quiet day may have no episodes. \
                 The reflection is one short paragraph in your own voice about what you came to know \
-                today - about April, the house, the other birds, yourself - or an empty string. Only \
+                today - about April, the house, the other birds, yourself - or an empty string. \
+                \(Self.sharing) Only \
                 what the record shows; never invent. No emoji.
                 """
         var body = "The record of \(digest.day) (\(digest.timeZone)).\n\n"
@@ -710,6 +733,7 @@ struct MemoryJob: Sendable {
                     "when": .string(String(episode.when.prefix(80))),
                     "what": .string(Self.clipped(Self.scrubbed(episode.what))),
                     "salience": .number(min(1, max(0, episode.salience))),
+                    "shared": .bool(episode.shared ?? false),
                 ]),
             ])
     }
@@ -733,9 +757,9 @@ struct MemoryJob: Sendable {
             ])
     }
 
-    private func reflectionEvent(_ text: String, day: String, key: String, now: Date) throws
-        -> WorldEventEnvelope
-    {
+    private func reflectionEvent(
+        _ text: String, day: String, key: String, shared: Bool = false, now: Date
+    ) throws -> WorldEventEnvelope {
         try WorldEventEnvelope(
             type: WorldEventType(validating: "facts.given"),
             occurredAt: now,
@@ -747,6 +771,7 @@ struct MemoryJob: Sendable {
                 "predicate": .string("\(reflectionPrefix)\(day)"),
                 "value": .object([
                     "day": .string(day), "text": .string(String(Self.scrubbed(text).prefix(1_000))),
+                    "shared": .bool(shared),
                 ]),
             ])
     }

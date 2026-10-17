@@ -507,7 +507,7 @@ private func runWorldMode(
     // that cannot list its tools leaves the mind without them rather than without a voice.
     var tools: ModelTools?
     if let url = world.worldMCPURL {
-        let mcp = WorldMCPClient(url: url, client: client, logger: logger)
+        let mcp = WorldMCPClient(url: url, client: client, logger: logger, mind: characterID)
         let catalogue = WorldToolCatalogue(
             mcp: mcp, allowed: Set(ModelTools.defaultAllowedTools), logger: logger)
         tools = ModelTools(

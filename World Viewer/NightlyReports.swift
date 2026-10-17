@@ -24,6 +24,10 @@ enum NightlyReports {
         var id: String { bird }
 
         var reflectionText: String? { reflection.flatMap { NightlyReports.text(of: $0, "text") } }
+        /// Whether the bird let the others look its reflection up (#243).
+        var reflectionShared: Bool {
+            reflection.map { WorldFacts.memoryIsShared($0.value) } ?? true
+        }
     }
 
     /// One thing a bird remembered: filed on every subject it is about, shown once.
@@ -36,6 +40,9 @@ enum NightlyReports {
         let about: [EntityID]
         /// One of its facts, for the Mundane view.
         let fact: Fact
+        /// Whether the bird let the others look it up (#243); a memory from before the birds
+        /// could choose has no mark, and is kept private.
+        var shared: Bool { WorldFacts.memoryIsShared(fact.value) }
     }
 
     /// The nights with reflections, newest first.

@@ -1,3 +1,19 @@
+creature-cli (2.100.0+world0.58.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * Each memory is its bird's to share (#243). The birds could look each
+    other's memories up, and when April asked, they wanted to keep that
+    behind a gate they control. creature-agent 2.100.0: at 3:30 AM each
+    episode, belief and reflection carries the bird's own "shared"
+    choice, and the mind names itself on every World tool call. World
+    0.58.0: a mind is handed its own memories and the ones others
+    shared, never one kept private; sharing is opt-in, so the month
+    written before the choice stays private, as the birds asked.
+    query_timeline is gated the same way and no longer hands a mind a
+    world-only fact through a raw event. World Viewer 0.17.0 shows a
+    lock on a memory kept private.
+
+ -- April White <april@creature.engineering>  Sat, 17 Oct 2026 15:00:00 -0700
+
 creature-cli (2.99.0+world0.57.0+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * The nightly day record is trimmed (#242). Each bird's episode prompt

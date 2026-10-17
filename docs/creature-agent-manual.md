@@ -413,6 +413,17 @@ else — persona, facts, the clock, streaming to the room — is identical.
   night, in parallel, each with its own `memory-pending.json` in its own state directory. To
   turn it on for the chorus: `llmMemoryModel: gpt-6-astra` in Mango's and Kenny's yaml (and
   `OPENAI_MEMORY_API_KEY` in their defaults files if the night has its own key).
+- **Each memory is the bird's to share** (`2.100.0`, World `0.58.0`, #243). The birds could
+  look each other's memories up (they are filed on whoever they are about), and when April
+  asked, they wanted to keep that with a gate: Caroll asked for "a little 'share this memory'
+  gate". Each episode and belief in the night's JSON now carries `"shared"`, and the
+  reflection `"reflection_shared"`. The prompts say what it means ("true lets the other birds
+  look it up when they need it, and they will see it is yours"), and the choice is written into
+  the memory's value. Leaving it out keeps the memory private. The mind names itself on every
+  tool call (`_meta.mind`), so the World can hand it its own memories and those the others
+  shared, never one kept private. The tool contract keeps the owner attached: another bird's
+  `memory.*` is said as theirs ("Caroll remembers…"), never as the bird's own memory or
+  something it saw.
 - **The night goes through the Batch API** (`2.79.0`, #201). April: "let's look at using the
   batch API to reduce the cost of the nightly memory processor." gpt-6-astra is $10 per
   million in and $50 out; the Batch API is half of both, with an answer within the day - and

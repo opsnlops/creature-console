@@ -53,6 +53,9 @@ struct MemoryJobTests {
         #expect(transcript[0].content.hasPrefix("You are Beaky, April's familiar."))
         #expect(transcript[0].content.contains("\"episodes\""))
         #expect(transcript[0].content.contains("never a clock time"))
+        // Each memory is hers to share or keep (#243).
+        #expect(transcript[0].content.contains("\"reflection_shared\""))
+        #expect(transcript[0].content.contains(MemoryJob.sharing))
         #expect(transcript[1].content.contains("A vehicle was just seen at the driveway."))
         #expect(transcript[1].content.contains("April: Jesse's here to finish the deck."))
         #expect(transcript[1].content.contains("12:00 PM"))
@@ -67,17 +70,18 @@ struct MemoryJobTests {
         let recollection = """
             {"episodes": [
               {"about": ["person: Jesse", "place: the deck", "April"], "when": "Sunday around noon",
-               "what": "Jesse came and finished the deck; April was pleased", "salience": 0.8},
+               "what": "Jesse came and finished the deck; April was pleased", "salience": 0.8, "shared": true},
               {"about": ["place: the front door"], "when": "Sunday noon", "what": "April unlocked the front door for Jesse", "salience": 0.1},
               {"about": ["Mango", "April"], "when": "Sunday evening", "what": "April teased Mango about Debian", "salience": 0.4},
               {"about": ["thing: Hopper", "April"], "when": "Sunday evening", "what": "April introduced Hopper, her electric car", "salience": 0.5}
-            ], "reflection": "April's deck project is nearly done and she is happy about it."}
+            ], "reflection": "April's deck project is nearly done and she is happy about it.",
+            "reflection_shared": true}
             """
         // And what the month settles into: a belief kept, one on a bird, one of a kind the
         // world does not know (dropped), one about nobody the record names (dropped).
         let consolidation = """
             {"beliefs": [
-              {"about": "April", "kind": "habit", "what": "April likes to show the birds her projects as they finish", "salience": 0.7, "since": "September 2026", "from": ["2026-09-13"]},
+              {"about": "April", "kind": "habit", "what": "April likes to show the birds her projects as they finish", "salience": 0.7, "since": "September 2026", "from": ["2026-09-13"], "shared": true},
               {"about": "April", "kind": "preference", "what": "April teases Mango about Debian and enjoys it", "salience": 0.4, "since": "September 2026", "from": ["2026-09-13"]},
               {"about": "Mango", "kind": "self", "what": "Mango rises to Debian jokes every time", "salience": 0.5, "since": "September 2026", "from": ["2026-09-13"]},
               {"about": "April", "kind": "mood", "what": "not a kind", "salience": 0.9, "since": "", "from": []},
@@ -175,12 +179,18 @@ struct MemoryJobTests {
         }
         #expect(value["when"] == .string("Sunday around noon"))
         #expect(value["salience"] == .number(0.8))
+        // Shared as she chose; a memory she did not mark is kept to herself (#243).
+        #expect(value["shared"] == .bool(true))
+        let door = try #require(
+            events.first { $0.payload["subject_id"] == .string("place:front-door") })
+        #expect(door.payload["value"]?.objectValue?["shared"] == .bool(false))
         #expect(events.contains { $0.payload["subject_id"] == .string("place:deck") })
         let reflection = try #require(
             events.first {
                 $0.payload["predicate"] == .string("memory.reflection.beaky.2026-09-13")
             })
         #expect(reflection.subjectIDs == [beaky])
+        #expect(reflection.payload["value"]?.objectValue?["shared"] == .bool(true))
         let done = try #require(events.first { $0.type.rawValue == "memory.consolidated" })
         #expect(done.payload["episodes"] == .number(4))
         #expect(done.payload["beliefs"] == .number(3))
@@ -206,6 +216,7 @@ struct MemoryJobTests {
             return
         }
         #expect(first["kind"] == .string("habit"))
+        #expect(first["shared"] == .bool(true))
         #expect(first["from"] == .array([.string("2026-09-13")]))
         #expect(aprilBeliefs.first?.epistemic.confidence == 0.7)
         let mangoBelief = try #require(
@@ -214,6 +225,7 @@ struct MemoryJobTests {
                     && $0.payload["predicate"] == .string("memory.belief.beaky.1")
             })
         #expect(mangoBelief.source.sourceEventID?.hasSuffix(":belief:character:mango:1") == true)
+        #expect(mangoBelief.payload["value"]?.objectValue?["shared"] == .bool(false))
         #expect(!events.contains { $0.payload["subject_id"] == .string("person:zed") })
         #expect(!events.contains { ($0.payload["value"]?.objectValue?["kind"]) == .string("mood") })
         #expect(done.payload["model"] == .string("gpt-6-astra"))

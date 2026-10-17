@@ -338,6 +338,17 @@ will do. No write tools: casting, rewording, and remembering stay on the REST AP
 `search_world`, `query_entity`, `inspect_world_state`, or `explain_fact` — because the envelope
 has always honoured `audience` and a tool must not be the way around it; Beaky once read
 Polly's mobile number aloud. Without `_meta`, a person debugging sees everything.
+**Each memory is its bird's to share** (`0.58.0`, #243). Memories are filed on whoever they are
+about, so a mind's lookup could hand it any bird's; Beaky once read Caroll's. The birds asked to
+keep that, behind a gate they control: each memory's value carries `"shared": true | false`, the
+bird's own choice at 3:30 AM. A mind's `tools/call` names itself in `_meta.mind`
+(`"character:beaky"`), and every tool that hands facts over returns another bird's memory only
+when it says `"shared": true`; a bird's own always come back. Sharing is opt-in, so a memory with
+no mark (the month written before the birds could choose) stays with its bird. The birds chose
+that: "Old memories get privacy too, even before anyone adds a mark." A call with `audience` but
+no `mind` sees only memories marked shared. **`query_timeline`** is gated for a mind too, since
+a raw event carries the value: a `facts.given` event with a world-only fact, or another bird's
+private memory, is left out. `query_day`'s `learned` lines are not filtered yet (#244).
 **Search** (`0.33.0`): `GET /v1/search?q=cleaner&limit=10` and the `search_world` tool — one
 ranked query over MongoDB's text index on the facts collection (`facts_search`, since `0.47.2`:
 each current fact's `search_text` - the words of the subject's slug, the predicate, and every

@@ -332,6 +332,117 @@ struct WorldMCPTests {
         }
     }
 
+    @Test("A bird sees its own memories and those shared with it; never one kept private (#243)")
+    func memoriesAreSharedByChoice() async throws {
+        let world = MCPWorld()
+        let april = try EntityID(validating: "person:april")
+        let at = Date(timeIntervalSince1970: 1_789_500_000)
+        func memory(_ bird: String, shared: Bool?) throws -> Fact {
+            var value: [String: WorldJSONValue] = ["what": .string("\(bird) remembers the deck")]
+            if let shared { value["shared"] = .bool(shared) }
+            return try Fact(
+                subjectID: april, predicate: "memory.episode.\(bird).2026-09-13.1",
+                value: .object(value), epistemic: EpistemicState(type: .remembered, confidence: 1),
+                validFrom: at, derivedFrom: [],
+                producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"))
+        }
+        let facts = [
+            try memory("beaky", shared: false),  // her own, kept to herself
+            try memory("caroll", shared: false),  // Caroll's, kept to himself
+            try memory("mango", shared: true),  // Mango's, shared
+            try memory("kenny", shared: nil),  // from before the birds could choose: private
+        ]
+        func cast(_ predicate: String, _ value: WorldJSONValue) throws -> WorldEventEnvelope {
+            try WorldEventEnvelope(
+                type: GivenFactAnnouncement.eventType, occurredAt: at,
+                source: EventSource(id: SourceID(validating: "mind:caroll"), kind: "mind"),
+                subjectIDs: [april], epistemic: EpistemicState(type: .remembered, confidence: 1),
+                payload: [
+                    "subject_id": .string(april.rawValue), "predicate": .string(predicate),
+                    "value": value,
+                ])
+        }
+        let events = [
+            try cast(
+                "memory.episode.caroll.2026-09-13.1",
+                .object(["what": .string("private"), "shared": .bool(false)])),
+            try cast(
+                "memory.episode.mango.2026-09-13.1",
+                .object(["what": .string("for the flock"), "shared": .bool(true)])),
+            try cast(
+                "memory.episode.beaky.2026-09-13.1", .object(["what": .string("her own")])),
+            try cast("contact.phone", .string("1 937 555 0100")),
+            try cast("visitor.expected", .string("Tuesday")),
+        ]
+        await world.set(facts: facts, events: events)
+        await world.set(worldOnly: ["contact.phone"])
+        let application = makeCreatureWorldApplication(
+            dependencies: .testing(
+                configuration: try CreatureWorldConfiguration(port: 8080),
+                logger: Logger(label: "mcp-tests"),
+                buildInfo: CreatureWorldBuildInfo(version: "mcp-test", schemaVersion: 1),
+                worldService: world,
+                conversationService: UnavailableConversationApplicationService(),
+                characterSessionService: UnavailableCharacterSessionApplicationService()),
+            apiConfiguration: .default)
+        try await application.test(.router) { client in
+            func call(_ tool: String, _ arguments: String, mind: String?) async throws
+                -> WorldJSONValue?
+            {
+                let meta =
+                    mind.map { #"{"audience":"minds","mind":"\#($0)"}"# }
+                    ?? #"{"audience":"minds"}"#
+                let response = try await client.execute(
+                    uri: "/world/mcp", method: .post,
+                    headers: [.contentType: "application/json", .accept: "application/json"],
+                    body: ByteBuffer(
+                        string:
+                            #"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"\#(tool)","arguments":\#(arguments),"_meta":\#(meta)}}"#
+                    ))
+                return try WorldJSON.makeDecoder().decode(WorldJSONValue.self, from: response.body)
+            }
+            func owners(_ value: WorldJSONValue?) -> [String] {
+                guard case .array(let items)? = value else { return [] }
+                return items.compactMap { $0["predicate"]?.stringValue }
+                    .compactMap { WorldFacts.memoryOwner(of: $0) }.sorted()
+            }
+            let entity = #"{"entity_id":"person:april"}"#
+            let beaky = try await call("query_entity", entity, mind: "character:beaky")
+            #expect(
+                owners(beaky?["result"]?["structuredContent"]?["facts"]) == ["beaky", "mango"])
+            let caroll = try await call("query_entity", entity, mind: "character:caroll")
+            #expect(
+                owners(caroll?["result"]?["structuredContent"]?["facts"]) == ["caroll", "mango"])
+            // A mind that does not say which it is sees no bird's private memory.
+            let unnamed = try await call("query_entity", entity, mind: nil)
+            #expect(
+                owners(unnamed?["result"]?["structuredContent"]?["facts"]) == ["mango"])
+            // Search hands facts over too: the same gate.
+            let searched = try await call(
+                "search_world", #"{"query":"april"}"#, mind: "character:beaky")
+            guard case .array(let hits)? = searched?["result"]?["structuredContent"]?["hits"]
+            else {
+                Issue.record("no hits")
+                return
+            }
+            #expect(owners(hits.first?["facts"]) == ["beaky", "mango"])
+            // The timeline carries the same values in its events: gated the same way, and a
+            // world-only fact never reaches a mind through it either.
+            let timeline = try await call(
+                "query_timeline", #"{"after_sequence":0}"#, mind: "character:beaky")
+            guard case .array(let kept)? = timeline?["result"]?["structuredContent"]?["items"]
+            else {
+                Issue.record("no timeline")
+                return
+            }
+            #expect(
+                kept.compactMap { $0["payload"]?["predicate"]?.stringValue } == [
+                    "memory.episode.mango.2026-09-13.1", "memory.episode.beaky.2026-09-13.1",
+                    "visitor.expected",
+                ])
+        }
+    }
+
     @Test("Why? over REST: the same walk, for the Viewer")
     func explainsOverREST() async throws {
         let world = MCPWorld()

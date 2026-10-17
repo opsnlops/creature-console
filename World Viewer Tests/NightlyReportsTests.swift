@@ -78,6 +78,35 @@ struct NightlyReportsTests {
         #expect(report[1].episodes.count == 1)
     }
 
+    @Test("Each memory says whether its bird shared it; an unmarked one is kept private (#243)")
+    func sharedOrKept() throws {
+        let day = "2026-10-17"
+        func marked(_ predicate: String, _ subject: String, shared: Bool?) throws -> Fact {
+            var value: [String: WorldJSONValue] = [
+                "day": .string(day), "text": .string("Kenny helped."),
+                "what": .string("Kenny helped."), "salience": .number(0.5),
+            ]
+            if let shared { value["shared"] = .bool(shared) }
+            return try fact(subject, predicate, .object(value))
+        }
+        let report = NightlyReports.report(
+            day: day,
+            reflections: [
+                try marked("memory.reflection.kenny.\(day)", "character:kenny", shared: true),
+                try marked("memory.reflection.mango.\(day)", "character:mango", shared: nil),
+            ],
+            episodes: [
+                try marked("memory.episode.kenny.\(day).1", "person:april", shared: true),
+                try marked("memory.episode.kenny.\(day).2", "person:april", shared: false),
+                try marked("memory.episode.kenny.\(day).3", "person:april", shared: nil),
+            ])
+        let kenny = try #require(report.first { $0.bird == "kenny" })
+        #expect(kenny.reflectionShared)
+        #expect(kenny.episodes.map(\.shared) == [true, false, false])
+        let mango = try #require(report.first { $0.bird == "mango" })
+        #expect(!mango.reflectionShared)
+    }
+
     @Test("The day in a memory predicate, and nothing from other predicates")
     func dayOfPredicate() {
         #expect(NightlyReports.day(of: "memory.episode.kenny.2026-09-30.3") == "2026-09-30")

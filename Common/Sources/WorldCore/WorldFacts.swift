@@ -107,6 +107,24 @@ public enum WorldFacts {
         return String(owner)
     }
 
+    /// Whether a memory's bird lets the others look it up (#243): only `"shared": true` in its
+    /// value. Sharing is opt-in, so a memory with no mark - all of those written before the
+    /// birds could choose - stays with its bird; they asked for that.
+    public static func memoryIsShared(_ value: WorldJSONValue) -> Bool {
+        guard case .object(let fields) = value, case .bool(true)? = fields["shared"] else {
+            return false
+        }
+        return true
+    }
+
+    /// Whether `fact` may reach the mind whose memories carry `owner` ("kenny"): anything that
+    /// is not a memory, that bird's own, or another bird's it shared. `owner` nil - a caller that
+    /// did not say which mind it is - sees no bird's private memory.
+    public static func memoryVisible(_ fact: Fact, to owner: String?) -> Bool {
+        guard let whose = memoryOwner(of: fact.predicate) else { return true }
+        return whose == owner || memoryIsShared(fact.value)
+    }
+
     /// `character:kenny` → "kenny": the segment a bird's memories carry.
     public static func memoryOwner(for characterID: EntityID) -> String {
         String(characterID.rawValue.split(separator: ":").last ?? "")

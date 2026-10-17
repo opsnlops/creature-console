@@ -207,6 +207,10 @@ after a 3:30 AM run. It is built from the world's own memory facts
 (`memory.reflection.<bird>.<day>` and `memory.episode.<bird>.<day>.<n>`), read by predicate
 prefix, so the world needs nothing new to serve it.
 
+**Kept private** (`0.17.0`, #243). A letter or an episode its bird chose not to share with the
+other birds carries a lock ("kept private"). The memories from before the birds could choose
+have no mark, so they show the lock too: private is what the birds chose for them.
+
 **The librarian's filing** (`0.12.0`; applying from `0.14.0`, #229). On a night Beaky filed the
 record, her proposal sits above the birds' letters: the rewrites (each listing the facts it
 replaces), retires, merges ("same thing"), meanings for families, and her questions for you.

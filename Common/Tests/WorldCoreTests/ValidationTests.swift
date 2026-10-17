@@ -287,7 +287,8 @@ struct HouseAsksTests {
         encoder.outputFormatting = .sortedKeys
         #expect(
             String(decoding: try encoder.encode(asks), as: UTF8.self)
-                == #"{"asked_by":"mind","descriptions":{},"scenes":["Movie Time","Bunnys Room Bedtime"]}"#)
+                == #"{"asked_by":"mind","descriptions":{},"scenes":["Movie Time","Bunnys Room Bedtime"]}"#
+        )
         #expect(try JSONDecoder().decode(HouseAsks.self, from: try encoder.encode(asks)) == asks)
         #expect(asks.scene(named: "movie time") == "Movie Time")
         #expect(asks.scene(named: "Bunny's room  bedtime") == "Bunnys Room Bedtime")
@@ -297,5 +298,26 @@ struct HouseAsksTests {
         let older = try JSONDecoder().decode(
             HouseAsks.self, from: Data(#"{"asked_by":"mind","scenes":["Goodnight"]}"#.utf8))
         #expect(older.descriptions.isEmpty)
+    }
+}
+
+@Suite("Memories shared by choice (#243)")
+struct SharedMemoryTests {
+    @Test("Shared only when the bird said so; another bird's private memory is not visible")
+    func sharing() throws {
+        #expect(WorldFacts.memoryIsShared(.object(["shared": .bool(true)])))
+        #expect(!WorldFacts.memoryIsShared(.object(["shared": .bool(false)])))
+        #expect(!WorldFacts.memoryIsShared(.object(["what": .string("from before the choice")])))
+        #expect(!WorldFacts.memoryIsShared(.string("an old memory, not an object")))
+        let kept = try Fact(
+            subjectID: EntityID(validating: "person:april"),
+            predicate: "memory.reflection.caroll.2026-09-13",
+            value: .object(["text": .string("mine"), "shared": .bool(false)]),
+            epistemic: EpistemicState(type: .remembered, confidence: 1),
+            validFrom: Date(timeIntervalSince1970: 1_789_500_000), derivedFrom: [],
+            producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"))
+        #expect(WorldFacts.memoryVisible(kept, to: "caroll"))
+        #expect(!WorldFacts.memoryVisible(kept, to: "beaky"))
+        #expect(!WorldFacts.memoryVisible(kept, to: nil))
     }
 }

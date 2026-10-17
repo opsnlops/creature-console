@@ -317,12 +317,50 @@ struct WorldMCP: Sendable {
         return FactAudience(rawValue: raw)
     }
 
-    /// The facts a caller may see: all of them, or the minds' alone.
-    private func visible(_ facts: [Fact], to audience: FactAudience?) async throws -> [Fact] {
+    /// Which mind is asking, by its memories' segment: `_meta.mind = "character:kenny"` →
+    /// "kenny" (#243). Nil when the caller does not say.
+    private func mind(of params: WorldJSONValue) -> String? {
+        guard case .string(let raw)? = params["_meta"]?["mind"],
+            let id = EntityID(rawValue: raw)
+        else { return nil }
+        return WorldFacts.memoryOwner(for: id)
+    }
+
+    /// The facts a caller may see: all of them, or the minds' alone - nothing world-only, and
+    /// no other bird's memory that bird kept to itself (#243).
+    private func visible(_ facts: [Fact], to audience: FactAudience?, mind: String? = nil)
+        async throws -> [Fact]
+    {
         guard audience == .minds else { return facts }
-        let hidden = Set(
-            try await service.factKinds().kinds.filter { $0.audience == .world }.map(\.predicate))
-        return facts.filter { !hidden.contains($0.predicate) }
+        let hidden = try await worldOnly()
+        return facts.filter {
+            !hidden.contains($0.predicate) && WorldFacts.memoryVisible($0, to: mind)
+        }
+    }
+
+    private func worldOnly() async throws -> Set<String> {
+        Set(try await service.factKinds().kinds.filter { $0.audience == .world }.map(\.predicate))
+            .union(WorldKnowledgeLimits.worldOnlyPredicates)
+    }
+
+    /// The events a mind may see: a cast fact that is world-only, or another bird's private
+    /// memory, never reaches it through the timeline either - the raw event carries the value
+    /// (#243). Everything else, and everything for a person debugging, as it is.
+    private func visible(events: [WorldEventEnvelope], to audience: FactAudience?, mind: String?)
+        async throws -> [WorldEventEnvelope]
+    {
+        guard audience == .minds else { return events }
+        let hidden = try await worldOnly()
+        return events.filter { event in
+            guard event.type == GivenFactAnnouncement.eventType,
+                case .string(let predicate)? = event.payload["predicate"]
+            else { return true }
+            if hidden.contains(predicate) { return false }
+            guard let whose = WorldFacts.memoryOwner(of: predicate), whose != mind else {
+                return true
+            }
+            return WorldFacts.memoryIsShared(event.payload["value"] ?? .null)
+        }
     }
 
     private func callTool(_ params: WorldJSONValue) async throws -> WorldJSONValue {
@@ -331,6 +369,7 @@ struct WorldMCP: Sendable {
         }
         let arguments = params["arguments"] ?? .object([:])
         let audience = audience(of: params)
+        let mind = mind(of: params)
         let result: any Encodable & Sendable
         switch name {
         case "inspect_world_state":
@@ -338,7 +377,7 @@ struct WorldMCP: Sendable {
                 subjectID: try await entityID(arguments["subject_id"]),
                 predicatePrefix: arguments["predicate_prefix"].flatMap(\.stringValue),
                 after: nil, limit: limit(arguments["limit"], default: 100, max: 500))
-            result = try await visible(page.facts, to: audience)
+            result = try await visible(page.facts, to: audience, mind: mind)
         case "search_world":
             guard case .string(let query)? = arguments["query"],
                 !query.trimmingCharacters(in: .whitespaces).isEmpty
@@ -351,7 +390,7 @@ struct WorldMCP: Sendable {
             if audience == .minds {
                 var kept: [WorldSearchHit] = []
                 for var hit in page.hits {
-                    hit.facts = try await visible(hit.facts, to: audience)
+                    hit.facts = try await visible(hit.facts, to: audience, mind: mind)
                     if !hit.facts.isEmpty { kept.append(hit) }
                 }
                 page.hits = kept
@@ -362,8 +401,8 @@ struct WorldMCP: Sendable {
                 throw Failure.invalidParams("entity_id is required")
             }
             var page = try await service.entity(id)
-            page.facts = try await visible(page.facts, to: audience)
-            page.linkedFrom = try await visible(page.linkedFrom, to: audience)
+            page.facts = try await visible(page.facts, to: audience, mind: mind)
+            page.linkedFrom = try await visible(page.linkedFrom, to: audience, mind: mind)
             result = page
         case "explain_fact":
             let factID: FactID
@@ -386,17 +425,21 @@ struct WorldMCP: Sendable {
             }
             if audience == .minds {
                 // A world-only fact has no why for a mind; the facts behind one are trimmed.
-                guard try await !visible([explanation.fact], to: audience).isEmpty else {
+                guard try await !visible([explanation.fact], to: audience, mind: mind).isEmpty
+                else {
                     throw Failure.notFound(factID.rawValue)
                 }
-                explanation.facts = try await visible(explanation.facts, to: audience)
+                explanation.facts = try await visible(explanation.facts, to: audience, mind: mind)
                 if let successor = explanation.supersededBy {
-                    explanation.supersededBy = try await visible([successor], to: audience).first
+                    explanation.supersededBy = try await visible(
+                        [successor], to: audience, mind: mind
+                    ).first
                 }
             }
             result = explanation
         case "query_timeline":
-            result = try await timeline(arguments)
+            result = try await visible(
+                events: try await timeline(arguments), to: audience, mind: mind)
         case "query_character_perspective":
             guard let id = try await entityID(arguments["character_id"]) else {
                 throw Failure.invalidParams("character_id is required")
