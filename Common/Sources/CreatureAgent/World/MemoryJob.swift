@@ -54,6 +54,9 @@ struct MemoryJob: Sendable {
     /// so a restart while the provider is still thinking resumes the night instead of losing
     /// it. Nil: nothing is written and nothing resumes.
     var pendingFile: URL? = nil
+    /// Asked what kind a bare new name in an episode is; nil, and that subject is skipped
+    /// (#239).
+    var kindJudge: (any EntityKindJudging)? = nil
 
     var modelName: String { model.modelName }
 
@@ -82,7 +85,7 @@ struct MemoryJob: Sendable {
         worldURL: URL, characterID: EntityID, persona: CharacterPersona, houseID: EntityID,
         model: MemoryModel, cast: @escaping @Sendable (WorldEventEnvelope) async throws -> Void,
         client: HTTPClient, logger: Logger, pendingFile: URL? = nil,
-        capture: GenAIContentCapture = .off
+        capture: GenAIContentCapture = .off, kindJudge: (any EntityKindJudging)? = nil
     ) {
         self.worldURL = worldURL
         self.characterID = characterID
@@ -94,6 +97,7 @@ struct MemoryJob: Sendable {
         self.logger = logger
         self.pendingFile = pendingFile
         self.capture = capture
+        self.kindJudge = kindJudge
     }
 
     static let maximumEpisodes = 12
@@ -244,15 +248,25 @@ struct MemoryJob: Sendable {
         }
         var cast = 0
         let names = Self.names(in: digest, houseID: houseID, including: characterID)
+        var unnamed: [String] = []
         for (index, episode) in episodes.enumerated() {
             for about in episode.about.prefix(4) {
-                guard let subject = names.entity(named: about) else { continue }
+                guard
+                    let subject = await names.resolve(
+                        about, context: episode.what, judge: kindJudge)
+                else {
+                    unnamed.append(about)
+                    continue
+                }
                 try await self.cast(
                     episodeEvent(
                         episode, subject: subject, day: day, index: index, key: key,
                         now: now))
                 cast += 1
             }
+        }
+        if !unnamed.isEmpty {
+            span.attributes["memory.unnamed"] = unnamed.joined(separator: ", ")
         }
         let reflection = recollection.reflection.trimmingCharacters(in: .whitespacesAndNewlines)
         if !reflection.isEmpty {
@@ -568,15 +582,16 @@ struct MemoryJob: Sendable {
                 It is the middle of the night and the day is over. Below is the world's record of \
                 \(digest.day): what the house saw, what was said in the room and on April's phone, \
                 and what April told you. Write what you, \(name), will remember of it. Answer with one \
-                JSON object and nothing else: {"episodes": [{"about": ["Jesse", "the front door"], \
+                JSON object and nothing else: {"episodes": [{"about": ["person: Jesse", "place: the front door"], \
                 "when": "Sunday afternoon", "what": "Jesse came by and put the boards on the deck; \
                 April was pleased", "salience": 0.7}], "reflection": "…"}.
 
                 Rules. Never keep a phone number, an email address, or a street address - those are \
                 the house's alone. An episode is one thing that happened, in a sentence or two, about the people, \
-                places, or the house it concerns ("about" names them as they appear in the record: a \
-                person's first name, "the front door", "the house", a bird's name, or for a named \
-                thing such as a car or a printer, "thing: Hopper"). "when" is \
+                places, or the house it concerns ("about" names each with its kind: "person: Jesse", \
+                "place: the front door", "place: Rocket Taco" for a restaurant or shop, "thing: \
+                Hopper" for a car, printer, app, or organization, "spell: the TV spell"; a bird by \
+                its name alone, and the house as "the house"). "when" is \
                 human-grained - "Sunday afternoon", "late Sunday night", "around dinner" - never a \
                 clock time. "salience" is how much it will matter later, 0 to 1: a contractor \
                 finishing the deck is 0.8, April going to the store is 0.2, a bird at the feeder is 0. \

@@ -276,6 +276,19 @@ else — persona, facts, the clock, streaming to the room — is identical.
   one, whoever the world says is present or spoke that day — and guesses person or place only
   for names it does not know. The learned contract also asks for a kind the world already has
   before inventing one, and not to keep what another bird just kept in the same scene.
+- **The bird says the kind; a model judges the rest** (`2.93.0`, #239,
+  docs/entity-kinds-plan.md). A learned tag and a memory episode name each subject with its
+  kind: `person: Jesse`, `place: the front door`, `place: Rocket Taco`, `thing: Hopper`, `spell:
+  the TV spell`. A bird goes by its name, and the house as "the house". A name the world already
+  holds is that entity, whatever kind was written. A bare name nobody holds is judged by OpenAI's
+  Decisions API (`llmDecisionsModel`, default `gpt-6-luna`): one `choice` (person, place, thing,
+  spell, or nobody) from the name, the tag, the last six turns of the conversation or scene, and the reply (about 360 tokens), never the bird's prompt. It runs after
+  the reply has gone to the speaker. No word list decides a kind any more: Rocket Taco was two
+  capitalized words, so it was filed as a person. When there's no answer (a local model, or a
+  failed or refused call) the subject isn't filed, and the span says
+  `agent.learned_unnamed` (`memory.unnamed` for the night). Each judgement is an
+  `agent.entity_kind` span with `decisions.choice`, `.confidence`, `.duration_ms` and
+  `.input_tokens`.
 - **A departure is told plainly** (`2.72.4`). The house-remark contract forbids instructions
   and safety advice with one exception: when the house says leaving soon or time to leave, the
   bird tells April plainly and kindly, once, with the time, and lets it be.
@@ -374,7 +387,7 @@ else — persona, facts, the clock, streaming to the room — is identical.
   skipped until a restart - the "still remembering" guard held a finished Task and asked
   `isCancelled`, which a finished task never is. It tracks completion now.
 - **Pronouns beside every name** (`2.85.0`, #211). A fact line names its subject with the pronouns the world holds - `Natty (they/them) · person.relationship = …` - not only the "Here now" line, so a bird talking about someone who is not in the room still gets them right. A bird's pronouns still come from its persona config; a person's from April's address book, through the Bridge.
-- **Decisions in shadow** (`2.87.0`, #221). With `llmDecisionsShadow: true`, every scene turn also asks OpenAI's Decisions API (beta, `gpt-6-luna`, `POST /v1/decisions`) one predicate - would this bird speak now? - from the bird's own prompt, in parallel, and records `decisions.speak_probability` (with `decisions.duration_ms`, `decisions.input_tokens`, or `decisions.error`) on the turn's `agent.scene_turn` span, beside `scene.turn.lead`, `scene.trigger.kind` and the real outcome (`agent.suppression_reason`). It never changes what the bird does, and it never holds a turn up more than 3 s after the bird has decided. The point is a few days of evidence: a third of scene turns are a full model call that ends in silence, and a cheap classifier might skip them - or might silence the lines nobody would predict. Plan and how to read it: `docs/decisions-shadow-plan.md`.
+- **Decisions in shadow** (`2.87.0`, #221; removed in `2.93.0`). Asked, beside every scene turn, whether the bird would speak. It was ruled out for that, so the shadow and `llmDecisionsShadow` are gone (a config that still sets it is ignored); the Decisions client now judges the kind of a new name.
 - **Someone already here is kept for the visit** (`2.87.3`, #228). The learning contract keeps a visitor who is already here for as long as such a visit takes - `[learned: thing: propane supplier | visitor.expected | here now, refilling the big tank | 2h]` - never `today`, and ends a visit with `none` on the visitor, not with a note on the place a camera saw. On 2026-10-14 the four birds kept the propane supplier until midnight, learned April's "long gone" only as a carport note, and asked about the tank visitor for every car that afternoon.
 - **A quiet hour for the cameras** (`2.86.0`, #220). "Ignore the cameras for the next hour" is kept as `[learned: the house | house.cameras_quiet | the yard guy is working | 1h]`, and the world opens no camera scenes until it ends; "you can talk about the cameras again" ends it with `none`. Learned facts take spans now - `30m`, `2h`, at most `12h` - beside today / tomorrow / week / never. On 2026-10-06 the yard guy set off 33 camera scenes after April asked for quiet; the birds stopped mentioning cameras and talked about the weather instead.
 - **Most likely April, after a look** (`2.85.3`, #214). The #200 rule said a person on camera *is* April when she is home, and the birds stopped looking - the tree sprayer and the Amazon driver were April. April: "They always assume it's me. (As we tell them to do.) They don't stop to think." Now: most likely her, but a camera sees a shape; a delivery due, a visitor expected, a car not hers, someone working outside, or a person somewhere she would not be may make it somebody else; her word outranks every sighting; and when nothing points elsewhere, speak as if it is her, without drawn-out hedging. Just after the presence sensor sees her arrive it is still "almost certainly" her.

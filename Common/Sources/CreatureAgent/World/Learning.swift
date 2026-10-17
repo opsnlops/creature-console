@@ -80,21 +80,60 @@ struct LearnedFact: Equatable, Sendable {
     static let tagPattern = #"\[learned:([^\]]*)\]"#
     static let maximumPerReply = 3
 
+    /// One tag as the mind wrote it, its subject not yet an entity.
+    struct Tag: Equatable, Sendable {
+        var name: String
+        var predicate: String
+        var value: String
+        var expiry: Expiry
+
+        func fact(on subject: EntityID) -> LearnedFact {
+            LearnedFact(subjectID: subject, predicate: predicate, value: value, expiry: expiry)
+        }
+    }
+
     /// Every well-formed tag in the model's raw output, in order, at most `maximumPerReply`.
-    /// A tag names its subject as the mind sees it — "Jesse", "the front door", "the house" —
-    /// and it is turned into the world's entity here.
-    static func all(in raw: String, names: EntityNames) -> [LearnedFact] {
+    static func tags(in raw: String) -> [Tag] {
         guard let expression = try? NSRegularExpression(pattern: tagPattern) else { return [] }
         let range = NSRange(raw.startIndex..., in: raw)
-        var facts: [LearnedFact] = []
+        var tags: [Tag] = []
         for match in expression.matches(in: raw, range: range) {
             guard let inner = Range(match.range(at: 1), in: raw),
-                let fact = parse(String(raw[inner]), names: names)
+                let tag = tag(String(raw[inner]))
             else { continue }
-            facts.append(fact)
-            if facts.count == maximumPerReply { break }
+            tags.append(tag)
+            if tags.count == maximumPerReply { break }
         }
-        return facts
+        return tags
+    }
+
+    /// The tags whose subjects resolve, and the names that did not. A tag names its subject as
+    /// the mind sees it - "person: Jesse", "the house", "Kenny" - and a bare name the world
+    /// does not hold is judged by `judge` from the tag, the conversation around it, and the
+    /// reply it came in. April: "add in some of the conversation that was happening around the
+    /// word."
+    static func all(
+        in raw: String, names: EntityNames, judge: (any EntityKindJudging)?,
+        conversation: String = ""
+    ) async -> (facts: [LearnedFact], unnamed: [String]) {
+        let reply = stripped(raw).trimmingCharacters(in: .whitespacesAndNewlines)
+        let context = conversation.isEmpty ? reply : "\(conversation)\n\nThe reply: \(reply)"
+        var facts: [LearnedFact] = []
+        var unnamed: [String] = []
+        for tag in tags(in: raw) {
+            let line = "[learned: \(tag.name) | \(tag.predicate) | \(tag.value)]\n\(context)"
+            guard let subject = await names.resolve(tag.name, context: line, judge: judge) else {
+                unnamed.append(tag.name)
+                continue
+            }
+            facts.append(tag.fact(on: subject))
+        }
+        return (facts, unnamed)
+    }
+
+    /// The tags whose subjects resolve without asking anyone.
+    static func all(in raw: String, names: EntityNames) -> [LearnedFact] {
+        tags(in: raw).compactMap { tag in names.entity(named: tag.name).map(tag.fact(on:)) }
     }
 
     /// The text with every tag removed, so nothing of it is ever spoken.
@@ -128,15 +167,19 @@ struct LearnedFact: Equatable, Sendable {
         return result
     }
 
-    static func parse(_ inner: String, names: EntityNames) -> LearnedFact? {
+    static func tag(_ inner: String) -> Tag? {
         let parts = inner.split(separator: "|", omittingEmptySubsequences: false)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-        guard parts.count == 4, let subject = names.entity(named: parts[0]),
-            isPredicate(parts[1]), !parts[2].isEmpty, parts[2].count <= 200,
-            let expiry = Expiry(word: parts[3])
+        guard parts.count == 4, !parts[0].isEmpty, isPredicate(parts[1]), !parts[2].isEmpty,
+            parts[2].count <= 200, let expiry = Expiry(word: parts[3])
         else { return nil }
-        return LearnedFact(
-            subjectID: subject, predicate: parts[1].lowercased(), value: parts[2], expiry: expiry)
+        return Tag(
+            name: parts[0], predicate: parts[1].lowercased(), value: parts[2], expiry: expiry)
+    }
+
+    static func parse(_ inner: String, names: EntityNames) -> LearnedFact? {
+        guard let tag = tag(inner), let subject = names.entity(named: tag.name) else { return nil }
+        return tag.fact(on: subject)
     }
 
     static func isPredicate(_ text: String) -> Bool {
@@ -150,16 +193,17 @@ struct LearnedFact: Equatable, Sendable {
         When April tells you something worth keeping - who someone is, that someone is expected \
         and when, that a sighting was her or the postman, a correction to something you said - \
         end your reply with one line per thing, exactly [learned: who, where, or what | predicate \
-        | value | expires], for example [learned: Jesse | visitor.expected | Tuesday afternoon, to \
-        finish the deck | tomorrow] or [learned: the front door | sighting.identified | the \
-        postman | today]. Name the subject by its kind: a person by name ("Jesse"), a place with \
-        "the" ("the kitchen"), a bird by name ("Kenny"), anything else as "thing: Mac Studio", \
-        and one of April's spells - what she builds to let you notice or do something - as \
-        "spell: the TV spell". One subject per line: never "Kenny and Mango" or "all three \
+        | value | expires], for example [learned: person: Jesse | visitor.expected | Tuesday afternoon, \
+        to finish the deck | tomorrow] or [learned: place: the front door | sighting.identified | \
+        the postman | today]. Name the subject with its kind: "person: Jesse", "place: the kitchen", \
+        "place: Rocket Taco" for a restaurant or shop, "thing: Mac Studio" for an object, app, \
+        or organization, and one of April's spells - what she builds to let you notice or do \
+        something - as "spell: the TV spell"; a bird by its name alone ("Kenny"), and the house \
+        as "the house". One subject per line: never "Kenny and Mango" or "all three \
         birds". Someone already here is kept for as long as a visit like theirs takes, never \
         the whole day: [learned: thing: propane supplier | visitor.expected | here now, \
         refilling the big tank | 2h]. When April says something no longer holds - a visitor has \
-        left, a plan is off - end it on them with the value none: [learned: Jesse | \
+        left, a plan is off - end it on them with the value none: [learned: person: Jesse | \
         visitor.expected | none | today]; a note on the place a camera saw does not end a visit. \
         Predicates: a kind from "what those kinds of fact mean" when one fits, else one already on \
         that subject, else a short dotted word of your own. Name the family by the topic, not by \
@@ -177,9 +221,12 @@ struct LearnedFact: Equatable, Sendable {
         """
 }
 
-/// Who a name in a mind's words refers to. The birds are known by name - "Kenny" is
-/// `character:kenny`, never a person - the house by "the house", and everyone else is a person
-/// or, by its words, a place. Both the learned tags and the nightly memory resolve through this.
+/// Who a name in a mind's words refers to. The mind says the kind - "person: Jesse", "place:
+/// Rocket Taco" - and the world's own ids win over it: a name the world already holds is that
+/// entity. A bird is known by its name and the house as "the house". Nothing here guesses a
+/// kind from the words of a name: a bare name nobody holds is `.unknown`, for a model to judge
+/// (#239, docs/entity-kinds-plan.md). Both the learned tags and the nightly memory resolve
+/// through this.
 struct EntityNames: Sendable {
     let houseID: EntityID
     private(set) var characters: [String: EntityID] = [:]
@@ -188,6 +235,16 @@ struct EntityNames: Sendable {
     /// the facts - is that entity, whatever kind the mind wrote. The world knows; the mind
     /// guesses.
     private(set) var known: [String: EntityID] = [:]
+
+    /// What a name is, before anyone is asked.
+    enum Naming: Equatable, Sendable {
+        /// The house, a bird, an id the world holds, or a new name with its kind said.
+        case entity(EntityID)
+        /// A bare name nobody holds: its kind is a judgement.
+        case unknown(slug: String)
+        /// Not a name: empty, too long, or a kind no entity has.
+        case none
+    }
 
     init(houseID: EntityID, characters: [EntityID] = [], known: [EntityID] = []) {
         self.houseID = houseID
@@ -210,105 +267,66 @@ struct EntityNames: Sendable {
             if id.rawValue.hasPrefix("character:") {
                 characters[Self.key(FactPhrasing.name(of: id))] = id
             }
-            if let colon = id.rawValue.firstIndex(of: ":") {
-                let slug = String(id.rawValue[id.rawValue.index(after: colon)...])
-                // A slug the world holds under two kinds is the one that is not a misfiled
-                // person: `person:mac-studio` was a guess, `thing:mac-studio` is what it is.
-                // A real person - April - always stays a person.
-                if let held = known[slug] {
-                    if Self.isMisfiledPerson(held, name: slug), !id.rawValue.hasPrefix("person:") {
-                        known[slug] = id
-                    }
-                } else {
-                    known[slug] = id
-                }
-            }
+            let slug = String(id.rawValue[id.rawValue.index(after: colon)...])
+            if known[slug] == nil { known[slug] = id }
         }
     }
 
     /// The kinds a mind may name outright: "thing: Hopper" is `thing:hopper`, a named car,
-    /// computer, or printer - not a person; "spell: the TV spell" is `spell:tv-spell`, one of
-    /// April's spells (the world is a wizard rabbit's and her familiar's: what she builds for
-    /// the birds, they call spells).
+    /// computer, or printer; "spell: the TV spell" is `spell:tv-spell`, one of April's spells
+    /// (the world is a wizard rabbit's and her familiar's: what she builds for the birds, they
+    /// call spells).
     static let kinds: Set<String> = ["person", "place", "house", "character", "thing", "spell"]
+    /// The kinds a judgement may give a new name.
+    static let judgedKinds: Set<String> = ["person", "place", "thing", "spell"]
 
-    /// Words that never make a person's name: a bare "Mac Studio" or "Mukilteo Clinton Ferry"
-    /// is a thing, however capitalized. Anything unfamiliar used to fall through to `person:`,
-    /// and fifty things - servers, chargers, the ferry, "new spell" - became people.
-    static let thingWords: Set<String> = [
-        "server", "servers", "studio", "mac", "charger", "printer", "car", "truck", "van",
-        "ferry", "bridge", "viewer", "world", "order", "delivery", "package", "card", "cards",
-        "camera", "cameras", "motor", "motors", "pico", "picos", "screws", "board", "boards",
-        "animation", "animations", "animatronic", "animatronics", "event", "calendar", "labs",
-        "travel", "conversation", "spell", "spells", "tv", "speaker", "sound", "flock",
-        "birds", "system", "app", "network", "congregation", "church", "park",
-    ]
-
-    /// "Jesse" → `person:jesse`; "the front door" → `place:front-door`; "the house" → the
-    /// configured house; "Mango" → `character:mango` when Mango is known; "thing: Hopper" or
-    /// an id the mind already wrote (`person:jesse`) → that kind, the name made a slug.
-    func entity(named name: String) -> EntityID? {
+    /// "person: Jesse" → `person:jesse`, "place: the kitchen" → `place:kitchen`, "the house" →
+    /// the configured house, "Mango" → `character:mango` when Mango is known, "Information
+    /// Bridge" → `thing:information-bridge` when the world holds it; a bare "Jesse" nobody
+    /// holds is `.unknown`.
+    func naming(_ name: String) -> Naming {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         if let colon = trimmed.firstIndex(of: ":") {
             let kind = trimmed[..<colon].trimmingCharacters(in: .whitespaces).lowercased()
             guard Self.kinds.contains(kind),
                 let slug = Self.slug(String(trimmed[trimmed.index(after: colon)...]))
-            else { return nil }
-            if kind == "house" { return houseID }
+            else { return .none }
+            if kind == "house" { return .entity(houseID) }
             // The world already holds this name under a kind: that one, not the mind's.
-            if let existing = known[slug], !Self.isMisfiledPerson(existing, name: trimmed) {
-                return existing
+            if let existing = known[slug] { return .entity(existing) }
+            if kind == "character" {
+                return characters[slug].map { .entity($0) } ?? .none
             }
-            // "person: Creature Server" - a record from before spells, copied back - is not
-            // a person because it says so; a person's name has to look like one.
-            if kind == "person",
-                slug.split(separator: "-").contains(where: { Self.thingWords.contains(String($0)) })
-            {
-                return EntityID(rawValue: "thing:\(slug)")
-            }
+            return EntityID(rawValue: "\(kind):\(slug)").map { .entity($0) } ?? .none
+        }
+        if let character = characters[Self.key(trimmed)] { return .entity(character) }
+        guard let slug = Self.slug(trimmed) else { return .none }
+        if slug == "house" { return .entity(houseID) }
+        if let existing = known[slug] { return .entity(existing) }
+        return .unknown(slug: slug)
+    }
+
+    /// The entity a name is, without asking anyone: nil for a bare name nobody holds.
+    func entity(named name: String) -> EntityID? {
+        if case .entity(let id) = naming(name) { return id }
+        return nil
+    }
+
+    /// The entity a name is, asking `judge` what kind a bare new name is, from the line it
+    /// came in. Nil when it is nobody, when there is no judge, or when the judge could not
+    /// say: a fact left unfiled is better than one filed on a guess.
+    func resolve(_ name: String, context: String, judge: (any EntityKindJudging)?) async
+        -> EntityID?
+    {
+        switch naming(name) {
+        case .entity(let id): return id
+        case .none: return nil
+        case .unknown(let slug):
+            guard let judge,
+                let kind = try? await judge.kind(of: name, in: context),
+                Self.judgedKinds.contains(kind)
+            else { return nil }
             return EntityID(rawValue: "\(kind):\(slug)")
-        }
-        if let character = characters[Self.key(trimmed)] { return character }
-        // A group is not an entity: "Kenny and Mango", "all three birds" - nobody to file it on.
-        let lowered = " " + trimmed.lowercased() + " "
-        if lowered.contains(" and ") || lowered.contains(" all ") || trimmed.contains(",") {
-            return nil
-        }
-        guard let slug = Self.slug(trimmed) else { return nil }
-        if slug == "house" { return houseID }
-        if let existing = known[slug], !Self.isMisfiledPerson(existing, name: trimmed) {
-            return existing
-        }
-        let words = slug.split(separator: "-").map(String.init)
-        let placeWords: Set<String> = [
-            "door", "driveway", "carport", "kitchen", "workshop", "orchard", "porch", "garage",
-            "entryway", "room", "yard", "deck", "outside", "gate", "bedroom", "bathroom", "office",
-        ]
-        if words.contains(where: { placeWords.contains($0) }) {
-            return EntityID(rawValue: "place:\(slug)")
-        }
-        return EntityID(rawValue: "\(Self.looksLikeAPerson(trimmed) ? "person" : "thing"):\(slug)")
-    }
-
-    /// A `person:` the world holds that is really a thing - filed before spells, when anything
-    /// unfamiliar became a person: its slug carries a word that names things.
-    static func isMisfiledPerson(_ id: EntityID, name: String) -> Bool {
-        guard id.rawValue.hasPrefix("person:") else { return false }
-        let slugWords = id.rawValue.dropFirst("person:".count).split(separator: "-")
-        return slugWords.contains { thingWords.contains(String($0)) }
-    }
-
-    /// A name a person could have: one or two capitalized words, no "the", no possessive, no
-    /// digits, and none of the words that name things. "Tamara", "Adlai Erickson" - yes;
-    /// "new spell", "Mac Studio", "April's bedroom" - no.
-    static func looksLikeAPerson(_ name: String) -> Bool {
-        let words = name.split(separator: " ").map(String.init)
-        guard (1...2).contains(words.count), words.first?.lowercased() != "the",
-            !name.contains("'"), !name.contains("’"), !name.contains(where: \.isNumber)
-        else { return false }
-        return words.allSatisfy { word in
-            guard let first = word.first, first.isUppercase else { return false }
-            return !thingWords.contains(word.lowercased())
         }
     }
 
@@ -334,6 +352,4 @@ struct EntityNames: Sendable {
     private static func key(_ name: String) -> String {
         name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
-
-
 }

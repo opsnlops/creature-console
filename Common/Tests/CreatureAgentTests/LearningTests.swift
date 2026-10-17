@@ -20,13 +20,13 @@ struct LearningTests {
     func tagsBecomeFacts() throws {
         let raw = """
             Tuesday it is.
-            [learned: Jesse | visitor.expected | Tuesday afternoon, to finish the deck | tomorrow]
-            [learned: the front door | sighting.identified | the postman | today]
+            [learned: person: Jesse | visitor.expected | Tuesday afternoon, to finish the deck | tomorrow]
+            [learned: place: the front door | sighting.identified | the postman | today]
             [learned: the house | house.note | the deck is getting boards | week]
             [learned: person:polly | person.description | April's sister | never]
             [learned: nonsense]
-            [learned: Jesse | not a predicate | x | never]
-            [learned: Jesse | person.description | x | someday]
+            [learned: person: Jesse | not a predicate | x | never]
+            [learned: person: Jesse | person.description | x | someday]
             """
         let facts = LearnedFact.all(in: raw, names: names)
         #expect(facts.count == 3)
@@ -36,67 +36,80 @@ struct LearningTests {
         #expect(facts[0].expiry == .tomorrow)
         #expect(facts[1].subjectID.rawValue == "place:front-door")
         #expect(facts[2].subjectID == house)
-        #expect(names.entity(named: "Polly")?.rawValue == "person:polly")
-        #expect(
-            names.entity(named: "the back driveway")?.rawValue
-                == "place:back-driveway")
-        #expect(
-            names.entity(named: "person:jesse")?.rawValue == "person:jesse")
+        #expect(names.entity(named: "place: the back driveway")?.rawValue == "place:back-driveway")
+        #expect(names.entity(named: "person:jesse")?.rawValue == "person:jesse")
         #expect(names.entity(named: "character:beaky")?.rawValue == "character:beaky")
-        // A bird's name is the bird, never a person; a name nobody in the room has is a person.
+        // A bird's name is the bird, never a person; a bird nobody knows is no character.
         #expect(names.entity(named: "Kenny")?.rawValue == "character:kenny")
         #expect(names.entity(named: "kenny")?.rawValue == "character:kenny")
-        #expect(names.entity(named: "Mango")?.rawValue == "person:mango")
-        // A named thing, when the mind says so; the house by any spelling of its kind.
+        #expect(names.entity(named: "character: Zed") == nil)
+        // The kind the mind says; the house by any spelling of its kind.
         #expect(names.entity(named: "thing: Hopper")?.rawValue == "thing:hopper")
         #expect(names.entity(named: "Thing: the Prusa printer")?.rawValue == "thing:prusa-printer")
+        #expect(names.entity(named: "place: Rocket Taco")?.rawValue == "place:rocket-taco")
+        #expect(names.entity(named: "spell: the TV spell")?.rawValue == "spell:tv-spell")
         #expect(names.entity(named: "house: April's nest") == house)
+        #expect(names.entity(named: "the house") == house)
         #expect(names.entity(named: "robot: Kenny") == nil)
         #expect(names.entity(named: "") == nil)
-    }
-
-    @Test("Only a name that looks like a person's is a person; spells, things, and groups are not")
-    func thingsAreNotPeople() {
-        // What the birds really filed as people, 2026-09-13 to 09-22.
-        #expect(names.entity(named: "new spell")?.rawValue == "thing:new-spell")
-        #expect(names.entity(named: "spell: the TV spell")?.rawValue == "spell:tv-spell")
-        #expect(names.entity(named: "Mac Studio")?.rawValue == "thing:mac-studio")
-        #expect(names.entity(named: "Creature Server")?.rawValue == "thing:creature-server")
-        #expect(
-            names.entity(named: "Mukilteo Clinton Ferry")?.rawValue
-                == "thing:mukilteo-clinton-ferry")
-        #expect(names.entity(named: "car charger")?.rawValue == "thing:car-charger")
-        #expect(names.entity(named: "Pi Picos")?.rawValue == "thing:pi-picos")
-        #expect(names.entity(named: "church event")?.rawValue == "thing:church-event")
-        #expect(names.entity(named: "April's bedroom")?.rawValue == "place:april-s-bedroom")
-        #expect(names.entity(named: "Wednesday 8 AM labs")?.rawValue == "thing:wednesday-8-am-labs")
-        // Groups are nobody.
-        #expect(names.entity(named: "Kenny and Mango") == nil)
-        #expect(names.entity(named: "all three birds") == nil)
-        #expect(names.entity(named: "Beaky, Mango, and Kenny") == nil)
-        // People still are.
-        #expect(names.entity(named: "Tamara")?.rawValue == "person:tamara")
-        #expect(names.entity(named: "Adlai Erickson")?.rawValue == "person:adlai-erickson")
-        #expect(names.entity(named: "Susan")?.rawValue == "person:susan")
-        // The record of a day from before spells still says `person:mac-studio`; the memory
-        // model copies it back. It is a thing, whichever the record or the model says.
-        var stale = names
-        stale.add([
-            try! EntityID(validating: "person:mac-studio"),
-            try! EntityID(validating: "person:creature-server"),
-        ])
-        #expect(stale.entity(named: "person: Mac Studio")?.rawValue == "thing:mac-studio")
-        #expect(stale.entity(named: "Creature Server")?.rawValue == "thing:creature-server")
-        #expect(stale.knownEntity(named: "person:creature-server") == nil)
-        stale.add([try! EntityID(validating: "thing:mac-studio")])
-        #expect(stale.knownEntity(named: "person: Mac Studio")?.rawValue == "thing:mac-studio")
-        // A real person the record already holds stays a person.
-        stale.add([try! EntityID(validating: "person:tamara")])
-        #expect(stale.entity(named: "person: Tamara")?.rawValue == "person:tamara")
-        // The contract offers every kind.
+        // The contract asks for every kind.
+        #expect(LearnedFact.contract.contains("place: Rocket Taco"))
         #expect(LearnedFact.contract.contains("spell: the TV spell"))
         #expect(LearnedFact.contract.contains("thing: Mac Studio"))
         #expect(WorldFacts.linkKinds.contains("spell"))
+    }
+
+    @Test("A bare new name is nobody's guess: no word list decides its kind (#239)")
+    func bareNamesAreUnknown() {
+        // What the word lists once decided - "Rocket Taco" was two capitalized words, so a
+        // person - is now a judgement.
+        #expect(names.naming("Rocket Taco") == .unknown(slug: "rocket-taco"))
+        #expect(names.naming("Mac Studio") == .unknown(slug: "mac-studio"))
+        #expect(names.naming("the front door") == .unknown(slug: "front-door"))
+        #expect(names.naming("Tamara") == .unknown(slug: "tamara"))
+        #expect(names.naming("Kenny and Mango") == .unknown(slug: "kenny-and-mango"))
+        #expect(names.entity(named: "Rocket Taco") == nil)
+        #expect(names.naming("five words is too many") == .none)
+    }
+
+    @Test("The judge names the kind from the line; nobody, a refusal, or no judge files nothing")
+    func theJudgeNamesTheKind() async {
+        let judge = ScriptedKindJudge(kinds: [
+            "Rocket Taco": "place", "Tamara": "person", "Kenny and Mango": nil,
+        ])
+        #expect(
+            await names.resolve("Rocket Taco", context: "lunch Saturday", judge: judge)?.rawValue
+                == "place:rocket-taco")
+        #expect(
+            await names.resolve("Tamara", context: "", judge: judge)?.rawValue == "person:tamara")
+        #expect(await names.resolve("Kenny and Mango", context: "", judge: judge) == nil)
+        // A failed call, or none to ask: unfiled rather than guessed.
+        #expect(await names.resolve("Hopper", context: "", judge: judge) == nil)
+        #expect(await names.resolve("Rocket Taco", context: "", judge: nil) == nil)
+        // A name the mind gave a kind, or the world holds, is never asked about.
+        #expect(
+            await names.resolve("thing: Hopper", context: "", judge: nil)?.rawValue
+                == "thing:hopper")
+        #expect(await judge.asked == ["Rocket Taco", "Tamara", "Kenny and Mango", "Hopper"])
+
+        let raw = """
+            Saturday then! [learned: Rocket Taco | plan.lunch | Saturday with April | week]
+            [learned: Kenny and Mango | bird.mood | grumpy | today]
+            [learned: person: Jesse | visitor.expected | Tuesday | tomorrow]
+            """
+        let (facts, unnamed) = await LearnedFact.all(in: raw, names: names, judge: judge)
+        #expect(facts.map(\.subjectID.rawValue) == ["place:rocket-taco", "person:jesse"])
+        #expect(unnamed == ["Kenny and Mango"])
+        // The conversation around the tag goes with it, before the reply.
+        _ = await LearnedFact.all(
+            in: "Got it. [learned: Tamara | visitor.expected | after lunch | today]", names: names,
+            judge: judge, conversation: "April: Tamara is coming by after lunch for the ladder")
+        let talk = await judge.contexts.last ?? ""
+        #expect(talk.contains("April: Tamara is coming by after lunch"))
+        #expect(talk.hasSuffix("The reply: Got it."))
+        // The judge saw the tag and the reply, never the tags as spoken text.
+        let line = await judge.contexts.last { $0.hasPrefix("[learned: Rocket Taco") }
+        #expect(line?.contains("Saturday then!") == true)
     }
 
     @Test("A name the world already holds is that entity, whatever kind the mind wrote")
@@ -106,6 +119,7 @@ struct LearningTests {
             try EntityID(validating: "thing:information-bridge"),
             try EntityID(validating: "place:orchard"),
             try EntityID(validating: "order:amazon-123"),
+            try EntityID(validating: "person:tamara"),
         ])
         // Mango wrote "person: Information Bridge"; the world knows it as a thing.
         #expect(
@@ -114,9 +128,11 @@ struct LearningTests {
         #expect(
             known.entity(named: "the Information Bridge")?.rawValue == "thing:information-bridge")
         #expect(known.entity(named: "Orchard")?.rawValue == "place:orchard")
-        // Unknown names still get the mind's kind, or the guess.
-        #expect(known.entity(named: "person: Tamara")?.rawValue == "person:tamara")
-        #expect(known.entity(named: "Polly")?.rawValue == "person:polly")
+        #expect(known.entity(named: "Tamara")?.rawValue == "person:tamara")
+        #expect(known.knownEntity(named: "person: Tamara")?.rawValue == "person:tamara")
+        // A new name gets the mind's kind; a bare one is not known.
+        #expect(known.entity(named: "person: Polly")?.rawValue == "person:polly")
+        #expect(known.knownEntity(named: "person: Polly") == nil)
     }
 
     @Test("The tags never reach the room")
@@ -174,7 +190,8 @@ struct LearningTests {
     func noneEndsAFact() {
         // 2026-09-23: "You can quit bugging me about Jesse, he's gone now."
         let facts = LearnedFact.all(
-            in: "Sorry, April. [learned: Jesse | visitor.expected | none | today]", names: names)
+            in: "Sorry, April. [learned: person: Jesse | visitor.expected | none | today]",
+            names: names)
         #expect(facts.count == 1)
         #expect(facts[0].subjectID.rawValue == "person:jesse")
         #expect(facts[0].ends)
@@ -251,12 +268,23 @@ struct LearningTests {
         #expect(record.entity(named: "April")?.rawValue == "person:april")
         #expect(record.knownEntity(named: "April")?.rawValue == "person:april")
         #expect(record.entity(named: "wizard: April") == nil)
-        // A misfiled person still gives way to its thing.
-        record.add([
-            try! EntityID(validating: "person:mac-studio"),
-            try! EntityID(validating: "thing:mac-studio"),
-        ])
-        #expect(record.knownEntity(named: "Mac Studio")?.rawValue == "thing:mac-studio")
     }
 
+}
+
+/// A judge that answers from a script and remembers what it was asked; a name it has no
+/// line for fails, as a refused or timed-out call would.
+private actor ScriptedKindJudge: EntityKindJudging {
+    let kinds: [String: String?]
+    private(set) var asked: [String] = []
+    private(set) var contexts: [String] = []
+
+    init(kinds: [String: String?]) { self.kinds = kinds }
+
+    func kind(of name: String, in context: String) async throws -> String? {
+        asked.append(name)
+        contexts.append(context)
+        guard let kind = kinds[name] else { throw DecisionsClient.Failure.noAnswer }
+        return kind
+    }
 }

@@ -106,8 +106,8 @@ struct AgentConfigTests {
         #expect(throws: DecodingError.self) { try load("llmReasoningEffort: max") }
     }
 
-    @Test("The Decisions shadow is off unless asked, on gpt-6-luna unless told otherwise (#221)")
-    func parsesDecisionsShadow() throws {
+    @Test("The Decisions model is gpt-6-luna unless told otherwise; the old shadow key is ignored")
+    func parsesDecisionsModel() throws {
         func load(_ extra: String) throws -> AgentConfig {
             try AgentConfig.load(
                 from: writeTemporaryFile(
@@ -119,9 +119,9 @@ struct AgentConfigTests {
                         \(extra)
                         """))
         }
-        #expect(try load("").llmDecisionsShadow == false)
         #expect(try load("").llmDecisionsModel == "gpt-6-luna")
-        #expect(try load("llmDecisionsShadow: true").llmDecisionsShadow == true)
+        // A bird's config from the shadow's days (#221) still loads.
+        #expect(try load("llmDecisionsShadow: true").llmDecisionsModel == "gpt-6-luna")
     }
 
     @Test("The birds' words go to Honeycomb unless told otherwise; nonsense is refused (#230)")

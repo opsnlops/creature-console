@@ -97,8 +97,8 @@ struct WorldMindServiceTests {
             respond: { _, _ in
                 """
                 Tuesday it is; I will keep an eye on the driveway for him.
-                [learned: Jesse | visitor.expected | Tuesday afternoon, to finish the deck | tomorrow]
-                [learned: Polly | person.description | April's sister, lives in Portland | never]
+                [learned: person: Jesse | visitor.expected | Tuesday afternoon, to finish the deck | tomorrow]
+                [learned: person: Polly | person.description | April's sister, lives in Portland | never]
                 """
             }
         ) { harness in

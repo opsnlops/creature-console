@@ -1,3 +1,15 @@
+creature-cli (2.93.0+world0.53.1+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.93.0: the bird says the kind, a model judges the
+    rest (#239). Learned tags and memory episodes name each subject
+    with its kind ("place: Rocket Taco"); a bare name the world doesn't
+    hold is one Decisions API choice on gpt-6-luna, from the name, the
+    tag and the last few turns of the conversation. The word lists that filed Rocket Taco and UUCWI as people
+    are gone. The Decisions shadow (#221), ruled out for deciding
+    whether a bird speaks, is removed.
+
+ -- April White <april@creature.engineering>  Fri, 16 Oct 2026 21:45:00 -0700
+
 creature-cli (2.92.0+world0.53.1+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.53.1: a scene survives a connection Creature Server

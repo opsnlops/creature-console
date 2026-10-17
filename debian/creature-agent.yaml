@@ -67,11 +67,9 @@ areas:
 # llmMemoryBatch: true
 # llmMemoryBatchWaitHours: 20
 
-# Shadow OpenAI's Decisions API (#221, docs/decisions-shadow-plan.md): beside every scene turn,
-# ask "would this bird speak?" and record the answer on the turn's span in Honeycomb
-# (decisions.speak_probability), to measure against what the bird actually did. It changes
-# nothing the bird does. OpenAI backend only; the beta offers only gpt-6-luna.
-# llmDecisionsShadow: false
+# OpenAI's Decisions API judges the kind of a bare new name a bird writes - person, place,
+# thing, spell, or nobody - from the name and its line, never the bird's prompt (#239,
+# docs/entity-kinds-plan.md). OpenAI backend only; the beta offers only gpt-6-luna.
 # llmDecisionsModel: gpt-6-luna
 #
 # What was said, on the GenAI spans for Honeycomb's AI views (2.88.0): off, output (the birds'

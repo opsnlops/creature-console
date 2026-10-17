@@ -362,9 +362,9 @@ private func runWorldMode(
     /// The nightly memory's model, when this mind has one (`llmMemoryModel`); the same key,
     /// a JSON answer, and its own effort - latency is irrelevant at 3:30 AM.
     var memoryModel: MemoryModel?
-    // Shadow only: asks the Decisions API whether the bird would speak, beside each scene
-    // turn, and records it (#221). OpenAI backend only.
-    var decisionsShadow: DecisionsShadow?
+    // Judges the kind of a bare new name a bird writes, with OpenAI's Decisions API (#239).
+    // OpenAI backend only: a local model's names that need judging are left unfiled.
+    var kindJudge: (any EntityKindJudging)?
     switch config.llmBackend {
     case .local:
         let localLLM = LocalLLMClient(
@@ -405,13 +405,8 @@ private func runWorldMode(
             logger: logger,
             traceResponses: traceResponses
         )
-        if config.llmDecisionsShadow {
-            decisionsShadow = DecisionsShadow(
-                client: DecisionsClient(apiKey: apiKey, model: config.llmDecisionsModel))
-            logger.info(
-                "Shadowing scene turns with the Decisions API",
-                metadata: ["llm.decisions.model": "\(config.llmDecisionsModel)"])
-        }
+        kindJudge = DecisionsKindJudge(
+            client: DecisionsClient(apiKey: apiKey, model: config.llmDecisionsModel))
         respond = { try await openAI.respond(messages: $0, tools: $1) }
         respondStreaming = { openAI.respondStreaming(messages: $0, tools: $1) }
         if let memoryModelName = config.llmMemoryModel {
@@ -566,7 +561,8 @@ private func runWorldMode(
             // wants one system message.
             knowledgePlacement: config.llmBackend == .openai ? .beforeNewest : .withinSystem,
             glossary: { glossary.current() },
-            contentCapture: config.llmCaptureContent
+            contentCapture: config.llmCaptureContent,
+            kindJudge: kindJudge
         ),
         respond: respond,
         respondStreaming: respondStreaming,
@@ -585,7 +581,6 @@ private func runWorldMode(
         session: session,
         client: client,
         logger: logger,
-        decisionsShadow: decisionsShadow,
         memory: memoryModel.map { model in
             MemoryJob(
                 worldURL: world.worldURL, characterID: characterID, persona: persona,
@@ -593,7 +588,7 @@ private func runWorldMode(
                 client: client, logger: logger,
                 pendingFile: URL(fileURLWithPath: world.stateDirectory, isDirectory: true)
                     .appending(path: "memory-pending.json"),
-                capture: config.llmCaptureContent)
+                capture: config.llmCaptureContent, kindJudge: kindJudge)
         },
         librarian: config.librarian
             ? memoryModel.map { model in

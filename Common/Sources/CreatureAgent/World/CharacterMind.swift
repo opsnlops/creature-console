@@ -121,6 +121,9 @@ struct CharacterMind: Sendable {
         var glossary: (@Sendable () -> [String: String])? = nil
         /// How much of what was said goes on the GenAI spans for Honeycomb.
         var contentCapture: GenAIContentCapture = .off
+        /// Asked what kind a bare new name in a learned tag is; nil, and such a tag is not
+        /// filed (#239).
+        var kindJudge: (any EntityKindJudging)? = nil
 
         enum KnowledgePlacement: Sendable {
             case withinSystem
@@ -190,7 +193,12 @@ struct CharacterMind: Sendable {
 
             let learning = Learning()
             let decision = try await decide(consideration, now: now, learning: learning)
-            let learned = await learning.facts(names: names(for: consideration.percept))
+            let (learned, unnamed) = await learning.facts(
+                names: names(for: consideration.percept), judge: configuration.kindJudge,
+                conversation: Self.conversation(for: consideration.percept))
+            if !unnamed.isEmpty {
+                span.attributes["agent.learned_unnamed"] = unnamed.joined(separator: ", ")
+            }
             if !learned.isEmpty, let learn {
                 span.attributes["agent.learned"] = learned.count
                 await learn(learned)
@@ -493,7 +501,12 @@ struct CharacterMind: Sendable {
             } else {
                 decision = await decideTurn(offer.offer, now: now, learning: learning)
             }
-            let learned = await learning.facts(names: names(for: offer.offer))
+            let (learned, unnamed) = await learning.facts(
+                names: names(for: offer.offer), judge: configuration.kindJudge,
+                conversation: Self.conversation(for: offer.offer))
+            if !unnamed.isEmpty {
+                span.attributes["agent.learned_unnamed"] = unnamed.joined(separator: ", ")
+            }
             if !learned.isEmpty, let learn {
                 span.attributes["agent.learned"] = learned.count
                 await learn(learned)
@@ -996,9 +1009,39 @@ struct CharacterMind: Sendable {
     actor Learning {
         private var raw = ""
         func note(_ chunk: String) { raw += chunk + "\n" }
-        func facts(names: EntityNames) -> [LearnedFact] {
-            LearnedFact.all(in: raw, names: names)
+        func facts(names: EntityNames, judge: (any EntityKindJudging)?, conversation: String)
+            async -> (facts: [LearnedFact], unnamed: [String])
+        {
+            await LearnedFact.all(in: raw, names: names, judge: judge, conversation: conversation)
         }
+    }
+
+    /// The most turns of the conversation a name's judgement is shown, and the most of each.
+    static let judgedTurns = 6
+    static let judgedTurnLength = 300
+
+    /// The last few turns, "Speaker: words", for judging the kind of a name a learned tag
+    /// gives: what was being talked about, without the bird's whole prompt (#239).
+    static func conversation(for percept: PersonUtterancePercept) -> String {
+        let prior = percept.priorConversationItems
+            .sorted { ($0.createdAt, $0.itemID.rawValue) < ($1.createdAt, $1.itemID.rawValue) }
+            .map { (FactPhrasing.name(of: $0.authorID), $0.text) }
+        let said =
+            prior + [(FactPhrasing.name(of: percept.utterance.speakerID), percept.utterance.text)]
+        return lines(said)
+    }
+
+    static func conversation(for offer: SceneTurnOffer) -> String {
+        lines(
+            offer.turns.compactMap { turn in
+                turn.text.map { (FactPhrasing.name(of: turn.characterID), $0) }
+            })
+    }
+
+    private static func lines(_ said: [(String, String)]) -> String {
+        said.suffix(judgedTurns)
+            .map { "\($0.0): \(LearnedFact.stripped($0.1).prefix(judgedTurnLength))" }
+            .joined(separator: "\n")
     }
 
     /// The birds a learned tag may name: this one, and whoever the world says is present.

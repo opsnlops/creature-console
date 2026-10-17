@@ -42,11 +42,8 @@ struct AgentConfig: Decodable {
     let llmMemoryBatch: Bool
     /// How long to wait for a batch before giving up on it and asking the ordinary way.
     let llmMemoryBatchWaitHours: Double
-    /// Asks OpenAI's Decisions API, beside every scene turn, whether this bird would speak,
-    /// and records the answer on the turn's span - shadow only, never changing what the bird
-    /// does (#221, docs/decisions-shadow-plan.md). Off by default.
-    let llmDecisionsShadow: Bool
-    /// The Decisions API's model; in beta it offers only `gpt-6-luna`.
+    /// The Decisions API's model, for the small judgements that need a model but not a bird's
+    /// prompt - the kind of a new name (#239); in beta it offers only `gpt-6-luna`.
     let llmDecisionsModel: String
     /// What was said, on the GenAI spans for Honeycomb: `off`, `output` (the birds' own
     /// words - the default, April's choice), or `all` (also April's words, the facts of the
@@ -161,7 +158,6 @@ struct AgentConfig: Decodable {
         case llmMemoryModel
         case llmMemoryBatch
         case llmMemoryBatchWaitHours
-        case llmDecisionsShadow
         case llmDecisionsModel
         case llmCaptureContent
         case librarian
@@ -223,8 +219,6 @@ struct AgentConfig: Decodable {
         llmMemoryBatch = try container.decodeIfPresent(Bool.self, forKey: .llmMemoryBatch) ?? true
         llmMemoryBatchWaitHours =
             try container.decodeIfPresent(Double.self, forKey: .llmMemoryBatchWaitHours) ?? 20
-        llmDecisionsShadow =
-            try container.decodeIfPresent(Bool.self, forKey: .llmDecisionsShadow) ?? false
         llmDecisionsModel =
             try container.decodeIfPresent(String.self, forKey: .llmDecisionsModel) ?? "gpt-6-luna"
         llmCaptureContent =

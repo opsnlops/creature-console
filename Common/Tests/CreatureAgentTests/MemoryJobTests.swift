@@ -66,9 +66,9 @@ struct MemoryJobTests {
         let casts = Casts()
         let recollection = """
             {"episodes": [
-              {"about": ["Jesse", "the deck", "April"], "when": "Sunday around noon",
+              {"about": ["person: Jesse", "place: the deck", "April"], "when": "Sunday around noon",
                "what": "Jesse came and finished the deck; April was pleased", "salience": 0.8},
-              {"about": ["the front door"], "when": "Sunday noon", "what": "April unlocked the front door for Jesse", "salience": 0.1},
+              {"about": ["place: the front door"], "when": "Sunday noon", "what": "April unlocked the front door for Jesse", "salience": 0.1},
               {"about": ["Mango", "April"], "when": "Sunday evening", "what": "April teased Mango about Debian", "salience": 0.4},
               {"about": ["thing: Hopper", "April"], "when": "Sunday evening", "what": "April introduced Hopper, her electric car", "salience": 0.5}
             ], "reflection": "April's deck project is nearly done and she is happy about it."}
@@ -274,7 +274,7 @@ struct MemoryJobTests {
     }
 
     private static let recollection = """
-        {"episodes": [{"about": ["Jesse", "the deck"], "when": "Sunday around noon",
+        {"episodes": [{"about": ["person: Jesse", "place: the deck"], "when": "Sunday around noon",
           "what": "Jesse came and finished the deck", "salience": 0.8}],
          "reflection": "The deck is done."}
         """
@@ -447,7 +447,7 @@ struct MemoryJobTests {
         #expect(names.entity(named: "Mango")?.rawValue == "character:mango")
         #expect(names.entity(named: "Beaky") == beaky)
         #expect(names.entity(named: "April")?.rawValue == "person:april")
-        #expect(names.entity(named: "Jesse")?.rawValue == "person:jesse")
+        #expect(names.entity(named: "person: Jesse")?.rawValue == "person:jesse")
     }
 }
 

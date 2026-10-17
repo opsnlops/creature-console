@@ -1,5 +1,8 @@
 # Decisions API shadow plan
 
+> Removed in agent 2.93.0: the shadow was ruled out for deciding whether a bird speaks. The
+> client lives on for judging the kind of a new name (docs/entity-kinds-plan.md, #239).
+
 OpenAI's Decisions API (`POST /v1/decisions`, public beta, `gpt-6-luna` only, released
 2026-10-07) returns typed answers - a `predicate` probability, a `choice`, a `score` - about ten
 times faster than the Responses API, at $0.10 per million input tokens and nothing for output.
