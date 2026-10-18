@@ -1,3 +1,16 @@
+creature-cli (2.101.0+world0.60.0+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * Where April's phone is, for the World alone (#248, slice 1 of the
+    places the birds learn from her). creature-house 0.5.0: a person's
+    GPS fix (latitude, longitude, gps_accuracy) becomes person.located
+    when it moves 25 m, gets twice as sure, or is 10 minutes old; a
+    network tracker gives no fix. World 0.60.0: location.gps on April,
+    valid 30 minutes, world-only by nature; person.located is never a
+    happening and never in a mind's timeline. World Viewer 0.19.0: a
+    Places panel shows the fix on a map.
+
+ -- April White <april@creature.engineering>  Sat, 17 Oct 2026 20:00:00 -0700
+
 creature-cli (2.101.0+world0.59.2+house0.4.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.59.2: a name in the words calls up anyone the world

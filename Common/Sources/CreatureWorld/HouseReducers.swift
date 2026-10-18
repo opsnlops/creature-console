@@ -11,8 +11,8 @@ struct HouseReducer: WorldReducer {
         HouseEvents.personSeen, HouseEvents.vehicleSeen, HouseEvents.animalSeen,
         HouseEvents.personGone, HouseEvents.vehicleGone,
         HouseEvents.cameraWatching,
-        HouseEvents.personArrived, HouseEvents.personLeft, HouseEvents.measurementChanged,
-        HouseEvents.mediaChanged,
+        HouseEvents.personArrived, HouseEvents.personLeft, HouseEvents.personLocated,
+        HouseEvents.measurementChanged, HouseEvents.mediaChanged,
         HouseEvents.scenesOffered, HouseEvents.sceneRequested, HouseEvents.sceneActivated,
     ]
 
@@ -70,6 +70,21 @@ struct HouseReducer: WorldReducer {
             return WorldReduction(changedFacts: [
                 try fact(WorldFacts.seenPrefix + what, .bool(false), validFor: 1)
             ])
+        case HouseEvents.personLocated:
+            // Where her phone is, for the world alone (#248). Half an hour: the house tells a
+            // fix again every ten minutes, so an older one has lost the phone.
+            guard case .number(let latitude)? = event.payload["latitude"],
+                case .number(let longitude)? = event.payload["longitude"]
+            else { return WorldReduction() }
+            var value: [String: WorldJSONValue] = [
+                "latitude": .number(latitude), "longitude": .number(longitude),
+            ]
+            if case .number(let accuracy)? = event.payload["accuracy_m"] {
+                value["accuracy_m"] = .number(accuracy)
+            }
+            return WorldReduction(changedFacts: [
+                try fact(WorldFacts.locationGPS, .object(value), validFor: Self.fixLifetime)
+            ])
         case HouseEvents.personArrived, HouseEvents.personLeft:
             // Evidence: this supersedes the configured assumption for the same person - and
             // whatever the minds had been told about where they were ("at the doctor" until
@@ -126,5 +141,7 @@ struct HouseReducer: WorldReducer {
     }
 
     static let motionLifetime: TimeInterval = 10 * 60
+    /// How long a phone's fix stands (#248).
+    static let fixLifetime: TimeInterval = 30 * 60
     static let requestLifetime: TimeInterval = 120
 }

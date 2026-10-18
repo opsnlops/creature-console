@@ -92,6 +92,33 @@ struct HouseReducerTests {
                 .isEmpty)
     }
 
+    @Test("Where April's phone is becomes one fact for the world alone, for half an hour (#248)")
+    func phoneFixIsWorldOnly() throws {
+        let reduction = try HouseReducer().reduce(
+            try event(
+                HouseEvents.personLocated, april,
+                [
+                    "latitude": .number(40.0), "longitude": .number(-100.0),
+                    "accuracy_m": .number(12),
+                ]
+            ))
+        let fix = try #require(reduction.changedFacts.only)
+        #expect(fix.predicate == WorldFacts.locationGPS)
+        #expect(
+            fix.value
+                == .object([
+                    "latitude": .number(40.0), "longitude": .number(-100.0),
+                    "accuracy_m": .number(12),
+                ]))
+        #expect(fix.validTo == now.addingTimeInterval(30 * 60))
+        // A fix is not a coming or going: nothing April's presence holds is retracted.
+        #expect(reduction.retractions.isEmpty)
+        // And never a mind's: not on a page, not in its story.
+        #expect(WorldKnowledgeLimits.worldOnlyPredicates.contains(WorldFacts.locationGPS))
+        #expect(!Happening.isStoryworthy(HouseEvents.personLocated))
+        #expect(Happening.isStoryworthy(HouseEvents.personArrived))
+    }
+
     private func event(
         _ type: WorldEventType, _ subject: EntityID, _ payload: [String: WorldJSONValue] = [:]
     )
@@ -135,4 +162,8 @@ struct HouseReducerTests {
         #expect(!Happening.isStoryworthy(HouseEvents.mediaChanged))
     }
 
+}
+
+extension Array {
+    fileprivate var only: Element? { count == 1 ? self[0] : nil }
 }

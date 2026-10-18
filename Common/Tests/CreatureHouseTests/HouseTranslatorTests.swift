@@ -249,6 +249,67 @@ struct HouseTranslatorTests {
             ).isEmpty)
     }
 
+    /// A made-up point in the middle of Kansas: never April's (the repository is public).
+    private func april(
+        _ latitude: Double, accuracy: Double?, state: String = "home", context: String,
+        at offset: TimeInterval
+    ) -> EntityState {
+        var attributes: [String: WorldJSONValue] = [
+            "latitude": .number(latitude), "longitude": .number(-100.0),
+            "source": .string("device_tracker.test_phone"),
+        ]
+        if let accuracy { attributes["gps_accuracy"] = .number(accuracy) }
+        var april = EntityState(
+            entityID: "person.april", state: state, attributes: attributes, lastChanged: now,
+            contextID: context)
+        april.lastUpdated = now + offset
+        return april
+    }
+
+    @Test("Where April's phone is: news when it moves 25 m, sharpens, or grows old (#248)")
+    func phoneFix() throws {
+        // At startup: home, and where her phone is - two events under two keys.
+        let first = try translator.events(
+            from: nil, to: april(40.0, accuracy: 20, context: "c1", at: 0))
+        #expect(first.map(\.type) == [HouseEvents.personArrived, HouseEvents.personLocated])
+        let located = try #require(first.last)
+        #expect(located.payload["latitude"] == .number(40.0))
+        #expect(located.payload["longitude"] == .number(-100.0))
+        #expect(located.payload["accuracy_m"] == .number(20))
+        #expect(located.payload["source"] == .string("device_tracker.test_phone"))
+        #expect(located.source.sourceEventID == "context:c1:located")
+        #expect(located.subjectIDs == [try EntityID(validating: "person:april")])
+
+        let told = april(40.0, accuracy: 20, context: "c1", at: 0)
+        // About ten meters, a minute later, still home: nothing.
+        #expect(
+            try translator.events(
+                from: told, to: april(40.00009, accuracy: 20, context: "c2", at: 60)
+            )
+            .isEmpty)
+        // About thirty: news, and only that - she is still home. As of the fix, not the state.
+        let moved = try translator.events(
+            from: told, to: april(40.00027, accuracy: 20, context: "c3", at: 120))
+        #expect(moved.map(\.type) == [HouseEvents.personLocated])
+        #expect(moved.first?.occurredAt == now + 120)
+        // Twice as sure in the same place: news.
+        #expect(
+            try translator.events(from: told, to: april(40.0, accuracy: 8, context: "c4", at: 60))
+                .map(\.type) == [HouseEvents.personLocated])
+        // The same place ten minutes on: told again, so the world's fix never goes stale.
+        #expect(
+            try translator.events(from: told, to: april(40.0, accuracy: 20, context: "c5", at: 600))
+                .map(\.type) == [HouseEvents.personLocated])
+        // A network tracker ("connected at home") gives no accuracy: no fix at all.
+        #expect(
+            try translator.events(from: nil, to: april(40.0, accuracy: nil, context: "c6", at: 0))
+                .map(\.type) == [HouseEvents.personArrived])
+        // One degree of latitude is about 111 km.
+        let a = HouseTranslator.Fix(latitude: 40, longitude: -100, accuracy: 5)
+        let b = HouseTranslator.Fix(latitude: 41, longitude: -100, accuracy: 5)
+        #expect(abs(HouseTranslator.meters(from: a, to: b) - 111_195) < 50)
+    }
+
     private func state(
         _ entityID: String, _ state: String, attributes: [String: WorldJSONValue] = [:],
         context: String? = nil, at changed: Date? = nil

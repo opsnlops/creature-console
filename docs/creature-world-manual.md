@@ -956,6 +956,13 @@ up is gathered from what is new in them alone (whoever they name, the kinds aske
 fortnight on a time word, the searches), beside the standing page; `0.59.0` gathered the whole
 page a second time and added ~200 ms to the live line.
 
+**Where April's phone is** (`0.60.0`, #248, docs/taught-places-plan.md). The house's
+`person.located` becomes `person:april location.gps` = `{latitude, longitude, accuracy_m}`,
+observed, valid for 30 minutes. It is world-only by nature (`WorldKnowledgeLimits`, beside
+`entity.same_as`): never on a page, and `person.located` is in `worldOnlyEventTypes`, so it is
+never a happening and never in a mind's `query_timeline`. The birds will be told places, never
+points: the places they learn from April come next, then where she most likely is.
+
 **Everyone the world can describe can be named** (`0.59.2`, #246). A name in the words calls up
 a person known by April's words (`person.description`) or the address book (`contact.name`), as
 well as one known by a relationship. Before, only people with a `person.relationship` could be

@@ -9,6 +9,11 @@ struct EntityState: Equatable, Sendable {
     var lastChanged: Date
     /// Home Assistant's context id for the change; the world's idempotency key.
     var contextID: String?
+    /// When anything about it last changed, attributes too: a phone's new fix moves this and
+    /// leaves `lastChanged` alone while the person stays `home` (#248).
+    var lastUpdated: Date? = nil
+
+    var updatedAt: Date { lastUpdated ?? lastChanged }
 }
 
 /// Pure: a state change in, world events out. The source vocabulary (`on`, `not_home`, entity
@@ -24,7 +29,91 @@ struct HouseTranslator: Sendable {
     /// when every mapped entity's current state is announced once.
     func events(from old: EntityState?, to new: EntityState) throws -> [WorldEventEnvelope] {
         guard let mapping = mappings[new.entityID] else { return [] }
-        guard let type = eventType(for: mapping, old: old, new: new) else { return [] }
+        var events: [WorldEventEnvelope] = []
+        if let type = eventType(for: mapping, old: old, new: new) {
+            events.append(try event(type, mapping: mapping, old: old, new: new))
+        }
+        if mapping.kind == .person, let fix = Self.fix(new),
+            Self.isNews(fix, at: new.updatedAt, since: old)
+        {
+            events.append(try located(fix, mapping: mapping, new: new))
+        }
+        return events
+    }
+
+    // MARK: - Where a person is (#248)
+
+    /// A phone's fix, from a person's attributes. Only a GPS source gives `gps_accuracy`: a
+    /// network tracker ("connected at home") gives none, and is no fix at all.
+    struct Fix: Equatable, Sendable {
+        var latitude: Double
+        var longitude: Double
+        var accuracy: Double
+    }
+
+    static func fix(_ state: EntityState) -> Fix? {
+        guard case .number(let latitude)? = state.attributes["latitude"],
+            case .number(let longitude)? = state.attributes["longitude"],
+            case .number(let accuracy)? = state.attributes["gps_accuracy"]
+        else { return nil }
+        return Fix(latitude: latitude, longitude: longitude, accuracy: accuracy)
+    }
+
+    /// A fix that moved this far from the one the world holds is news.
+    static let locationMinimumMove = 25.0
+    /// The world holds a fix for half an hour; one this old is told again, so a person sitting
+    /// still is not lost.
+    static let locationRefresh: TimeInterval = 10 * 60
+
+    /// Whether `fix` is worth telling: the first one, a move of 25 m, one twice as sure, or
+    /// the same place once the world's has grown old.
+    static func isNews(_ fix: Fix, at time: Date, since old: EntityState?) -> Bool {
+        guard let old, let before = Self.fix(old) else { return true }
+        return meters(from: before, to: fix) >= locationMinimumMove
+            || fix.accuracy <= before.accuracy / 2
+            || time.timeIntervalSince(old.updatedAt) >= locationRefresh
+    }
+
+    /// The distance between two fixes over the Earth's surface (haversine).
+    static func meters(from a: Fix, to b: Fix) -> Double {
+        let radius = 6_371_000.0
+        let φ1 = a.latitude * .pi / 180
+        let φ2 = b.latitude * .pi / 180
+        let Δφ = φ2 - φ1
+        let Δλ = (b.longitude - a.longitude) * .pi / 180
+        let h = sin(Δφ / 2) * sin(Δφ / 2) + cos(φ1) * cos(φ2) * sin(Δλ / 2) * sin(Δλ / 2)
+        return 2 * radius * asin(min(1, sqrt(h)))
+    }
+
+    private func located(_ fix: Fix, mapping: EntityMapping, new: EntityState) throws
+        -> WorldEventEnvelope
+    {
+        var payload: [String: WorldJSONValue] = [
+            "entity_id": .string(new.entityID),
+            "latitude": .number(fix.latitude), "longitude": .number(fix.longitude),
+            "accuracy_m": .number(fix.accuracy),
+        ]
+        if case .string(let source)? = new.attributes["source"] {
+            payload["source"] = .string(source)
+        }
+        return try WorldEventEnvelope(
+            type: HouseEvents.personLocated,
+            occurredAt: new.updatedAt,
+            source: EventSource(
+                id: try SourceID(validating: "home-assistant:\(Self.sourceName(new.entityID))"),
+                kind: HouseEvents.sourceKind,
+                // Its own key: the same change may also be an arrival, under the context id.
+                sourceEventID: new.contextID.map { "context:\($0):located" }
+                    ?? "snapshot:\(WorldJSON.timestamp(new.updatedAt)):located"),
+            subjectIDs: [mapping.subjectID],
+            epistemic: EpistemicState(
+                type: .observed, confidence: 1),
+            payload: payload)
+    }
+
+    private func event(
+        _ type: WorldEventType, mapping: EntityMapping, old: EntityState?, new: EntityState
+    ) throws -> WorldEventEnvelope {
         var payload: [String: WorldJSONValue] = [
             "entity_id": .string(new.entityID),
             "state": .string(new.state),
@@ -48,23 +137,21 @@ struct HouseTranslator: Sendable {
             }
         }
         let isPlace = mapping.subjectID.rawValue.hasPrefix("place:")
-        return [
-            try WorldEventEnvelope(
-                type: type,
-                occurredAt: new.lastChanged,
-                source: EventSource(
-                    id: try SourceID(validating: "home-assistant:\(Self.sourceName(new.entityID))"),
-                    kind: HouseEvents.sourceKind,
-                    // The same change delivered twice (a reconnect, a replayed outbox) is the
-                    // same event; a snapshot is keyed by when the state last changed.
-                    sourceEventID: new.contextID.map { "context:\($0)" }
-                        ?? "snapshot:\(WorldJSON.timestamp(new.lastChanged)):\(new.state)"),
-                subjectIDs: [mapping.subjectID],
-                placeID: isPlace ? mapping.subjectID : nil,
-                epistemic: EpistemicState(type: .observed, confidence: 1),
-                payload: payload
-            )
-        ]
+        return try WorldEventEnvelope(
+            type: type,
+            occurredAt: new.lastChanged,
+            source: EventSource(
+                id: try SourceID(validating: "home-assistant:\(Self.sourceName(new.entityID))"),
+                kind: HouseEvents.sourceKind,
+                // The same change delivered twice (a reconnect, a replayed outbox) is the
+                // same event; a snapshot is keyed by when the state last changed.
+                sourceEventID: new.contextID.map { "context:\($0)" }
+                    ?? "snapshot:\(WorldJSON.timestamp(new.lastChanged)):\(new.state)"),
+            subjectIDs: [mapping.subjectID],
+            placeID: isPlace ? mapping.subjectID : nil,
+            epistemic: EpistemicState(type: .observed, confidence: 1),
+            payload: payload
+        )
     }
 
     private func eventType(for mapping: EntityMapping, old: EntityState?, new: EntityState)

@@ -373,6 +373,14 @@ struct WorldMCPTests {
                 "memory.episode.beaky.2026-09-13.1", .object(["what": .string("her own")])),
             try cast("contact.phone", .string("1 937 555 0100")),
             try cast("visitor.expected", .string("Tuesday")),
+            // Where April's phone is: the world's alone, never in a mind's timeline (#248).
+            try WorldEventEnvelope(
+                type: HouseEvents.personLocated, occurredAt: at,
+                source: EventSource(
+                    id: SourceID(validating: "home-assistant:person-april"),
+                    kind: HouseEvents.sourceKind),
+                subjectIDs: [april], epistemic: EpistemicState(type: .observed, confidence: 1),
+                payload: ["latitude": .number(40.0), "longitude": .number(-100.0)]),
         ]
         await world.set(facts: facts, events: events)
         await world.set(worldOnly: ["contact.phone"])
@@ -435,6 +443,8 @@ struct WorldMCPTests {
                 Issue.record("no timeline")
                 return
             }
+            #expect(
+                !kept.contains { $0["type"]?.stringValue == HouseEvents.personLocated.rawValue })
             #expect(
                 kept.compactMap { $0["payload"]?["predicate"]?.stringValue } == [
                     "memory.episode.mango.2026-09-13.1", "memory.episode.beaky.2026-09-13.1",

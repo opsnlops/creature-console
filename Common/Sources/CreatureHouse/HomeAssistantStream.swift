@@ -175,17 +175,19 @@ struct HomeAssistantStream: Sendable {
         let state: String
         let attributes: [String: WorldJSONValue]
         let lastChanged: String
+        let lastUpdated: String?
         private enum CodingKeys: String, CodingKey {
             case entityID = "entity_id"
             case state, attributes
             case lastChanged = "last_changed"
+            case lastUpdated = "last_updated"
         }
 
         func entityState(contextID: String?) -> EntityState? {
             guard let changed = Self.parse(lastChanged) else { return nil }
             return EntityState(
                 entityID: entityID, state: state, attributes: attributes, lastChanged: changed,
-                contextID: contextID)
+                contextID: contextID, lastUpdated: lastUpdated.flatMap(Self.parse))
         }
 
         private static func parse(_ timestamp: String) -> Date? {

@@ -352,6 +352,9 @@ struct WorldMCP: Sendable {
         guard audience == .minds else { return events }
         let hidden = try await worldOnly()
         return events.filter { event in
+            // An event whose payload is the world's alone - where April's phone is - is never
+            // a mind's (#248).
+            if WorldKnowledgeLimits.worldOnlyEventTypes.contains(event.type) { return false }
             guard event.type == GivenFactAnnouncement.eventType,
                 case .string(let predicate)? = event.payload["predicate"]
             else { return true }

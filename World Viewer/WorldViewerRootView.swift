@@ -12,6 +12,7 @@ enum WorldPanel: String, CaseIterable, Identifiable {
     case entities = "Entities"
     case nightly = "Nightly"
     case house = "House"
+    case places = "Places"
     case timers = "Timers"
 
     // Sidebar selection is typed `WorldPanel?`, so the row identity must be the panel itself.
@@ -28,6 +29,7 @@ enum WorldPanel: String, CaseIterable, Identifiable {
         case .entities: "person.text.rectangle"
         case .nightly: "moon.stars"
         case .house: "lightbulb.2"
+        case .places: "map"
         case .timers: "hourglass"
         }
     }
@@ -69,6 +71,7 @@ struct WorldViewerRootView: View {
                 case .entities: EntitiesPanel(store: store, scried: $scried)
                 case .nightly: NightlyPanel(store: store, scried: $scried)
                 case .house: HousePanel(store: store)
+                case .places: PlacesPanel(store: store)
                 case .timers: TimersPanel(store: store, scried: $scried)
                 }
             }
@@ -124,7 +127,7 @@ struct WorldViewerRootView: View {
         case .scenes: store.scenes.filter { $0.state == .open }.count
         case .facts: store.facts.count
         case .entities: store.knownEntities.count
-        case .nightly, .page, .house: 0
+        case .nightly, .page, .house, .places: 0
         case .timers: store.timers.count
         }
     }

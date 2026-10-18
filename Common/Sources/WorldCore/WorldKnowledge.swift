@@ -127,7 +127,11 @@ public struct Happening: Codable, Hashable, Sendable {
     /// measurements (state, already in the facts) are not a story.
     public static func isStoryworthy(_ type: WorldEventType) -> Bool {
         let raw = type.rawValue
-        if raw == "camera.watching" || raw == "environment.measurement_changed" { return false }
+        if raw == "camera.watching" || raw == "environment.measurement_changed"
+            || WorldKnowledgeLimits.worldOnlyEventTypes.contains(type)
+        {
+            return false
+        }
         return [
             "door.", "camera.", "motion.", "person.", "house.", "facts.", "departure.", "reminder.",
             "daylight.",
@@ -270,7 +274,13 @@ public enum WorldKnowledgeLimits {
     ]
     /// Kinds that are the world's alone by their nature, whatever the glossary says: a merged
     /// id's `entity.same_as` is bookkeeping, never something a mind is told (#229).
-    public static let worldOnlyPredicates: Set<String> = [WorldFacts.entitySameAs]
+    /// Where a phone is, too: a bird is told a place, never a point (#248).
+    public static let worldOnlyPredicates: Set<String> = [
+        WorldFacts.entitySameAs, WorldFacts.locationGPS,
+    ]
+    /// Events whose payload is the world's alone: a mind never sees them, not in its story
+    /// and not in its timeline (#248).
+    public static let worldOnlyEventTypes: Set<WorldEventType> = [HouseEvents.personLocated]
     /// The most readings folded for one page: every sensor and forecast of the room's places,
     /// with room to spare - each subject's readings become one entry, whatever their number.
     public static let maximumFoldedReadings = 200

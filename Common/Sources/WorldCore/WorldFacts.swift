@@ -45,6 +45,9 @@ public enum WorldFacts {
     /// `thing:workshop-room` (#229). The world's alone - a mind keeping a fact on the merged
     /// id has it filed on the kept one.
     public static let entitySameAs = "entity.same_as"
+    /// Where a person's phone says they are: `{latitude, longitude, accuracy_m}`, from the
+    /// house (#248). The world's alone, always: a bird is told a place, never a point.
+    public static let locationGPS = "location.gps"
 
     // Memory, written by the nightly job (step 4b of the judgement plan).
     /// A human-grained memory on the people, places, or house it is about: `{day, when, what,
@@ -216,6 +219,8 @@ public enum WorldFacts {
             "a package on its way to the house today: what it is and who is bringing it",
         "delivery.arrived":
             "a package the carrier says it delivered to the house, in the last few hours",
+        locationGPS:
+            "where a person's phone says they are: latitude, longitude, and how sure, in meters; the world's alone",
         entitySameAs:
             "the id this one was merged into by the librarian, with April's approval: the same person, place, or thing, kept under that id from now on",
         sightingIdentified:
@@ -294,6 +299,9 @@ public enum HouseEvents {
     public static let dawn = WorldEventType(rawValue: "daylight.dawn")!
     public static let personArrived = WorldEventType(rawValue: "person.arrived")!
     public static let personLeft = WorldEventType(rawValue: "person.left")!
+    /// Where a person's phone is now: `latitude`, `longitude`, `accuracy_m` (#248). The
+    /// world's alone - never a happening, never handed to a mind, not even in its timeline.
+    public static let personLocated = WorldEventType(rawValue: "person.located")!
     public static let measurementChanged = WorldEventType(
         rawValue: "environment.measurement_changed")!
     /// A media player changed what it is doing: `predicate` and the words for it, or `null`

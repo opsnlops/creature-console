@@ -256,6 +256,13 @@ under it is the standing page, the part a mind keeps cached all day; what the wo
 sent fresh with each scene. Before World `0.59.0` a name pushed standing facts off the page; now
 they sit beside it.
 
+### Places (`0.19.0`, #248)
+
+Where April's phone is, on a map: a marker, a circle as wide as the fix is sure, and how sure
+and how old in the corner. It follows the world's `location.gps` fact live; with no fix in the
+last half hour it says so. The places the birds learn from her will join it. Coordinates are
+shown here, to April, and never to a bird.
+
 ### House (`0.16.0`, #241)
 
 The house's lighting scenes as the birds are told them. **Birds may ask for** lists the
