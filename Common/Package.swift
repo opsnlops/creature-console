@@ -290,10 +290,19 @@ let package = Package(
                 .product(name: "MongoKitten", package: "MongoKitten"),
             ]
         ),
+        // The test process's one tracer, shared by every test target that reads spans (#249).
+        .target(
+            name: "TestTracing",
+            dependencies: [
+                .product(name: "InMemoryTracing", package: "swift-distributed-tracing"),
+                .product(name: "Tracing", package: "swift-distributed-tracing"),
+            ],
+            path: "Tests/TestTracing"),
         .testTarget(
             name: "CreatureAgentTests",
             dependencies: [
                 "creature-agent",
+                "TestTracing",
                 "Observability",
                 "creature-mqtt",
                 "WorldCore",
@@ -334,6 +343,7 @@ let package = Package(
             name: "CreatureWorldTests",
             dependencies: [
                 "creature-world",
+                "TestTracing",
                 "Observability",
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "HummingbirdTesting", package: "hummingbird"),

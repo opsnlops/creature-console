@@ -1,6 +1,7 @@
 import Foundation
 import InMemoryTracing
 import Instrumentation
+import TestTracing
 import Testing
 import Tracing
 import WorldCore
@@ -572,7 +573,7 @@ struct WorldTests {
 
     @Test("Processing spans preserve parent context and exclude event payloads")
     func processingTelemetryIsPrivacySafeAndConnected() async throws {
-        let tracer = worldTestTracer
+        let tracer = testTracer
         let store = TestWorldStore()
         let world = World(
             eventStore: store,

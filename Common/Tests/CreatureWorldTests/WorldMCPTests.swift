@@ -5,6 +5,7 @@ import HummingbirdTesting
 import InMemoryTracing
 import Logging
 import Observability
+import TestTracing
 import Testing
 import Tracing
 import WorldCore
@@ -128,7 +129,7 @@ struct WorldMCPTests {
 
     @Test("Each MCP message is a SERVER span by the MCP conventions; a refusal says its code")
     func tracesEachMessage() async throws {
-        _ = worldTestTracer
+        _ = testTracer
         let world = MCPWorld()
         let application = makeCreatureWorldApplication(
             dependencies: .testing(
@@ -154,7 +155,7 @@ struct WorldMCPTests {
         }
         func span(_ id: String) throws -> FinishedInMemorySpan {
             try #require(
-                worldTestTracer.finishedSpans.first {
+                testTracer.finishedSpans.first {
                     $0.attributes.get(MCPTelemetry.Key.jsonRPCRequestID) == .string(id)
                 })
         }

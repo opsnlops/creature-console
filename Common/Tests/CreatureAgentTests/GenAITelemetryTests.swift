@@ -6,19 +6,16 @@ import InMemoryTracing
 import Logging
 import NIOCore
 import Observability
+import TestTracing
 import Testing
 import Tracing
 import WorldCore
 
 @testable import creature_agent
 
-/// The process's one tracer, bootstrapped once: every test here finds its own spans by its
-/// own conversation id, so tests running side by side never read each other's.
-private let tracer: InMemoryTracer = {
-    let tracer = InMemoryTracer()
-    InstrumentationSystem.bootstrap(tracer)
-    return tracer
-}()
+/// The process's one tracer, shared with every test target (#249): every test here finds its own
+/// spans by its own conversation id, so tests running side by side never read each other's.
+private var tracer: InMemoryTracer { testTracer }
 
 private func spans(in conversation: String) -> [FinishedInMemorySpan] {
     tracer.finishedSpans.filter {
