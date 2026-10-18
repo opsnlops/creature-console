@@ -963,6 +963,14 @@ observed, valid for 30 minutes. It is world-only by nature (`WorldKnowledgeLimit
 never a happening and never in a mind's `query_timeline`. The birds will be told places, never
 points: the places they learn from April come next, then where she most likely is.
 
+**What was told keeps its thirty** (`0.60.1`, #251, docs/standing-page-plan.md). The thirty
+are drawn by how they are known: up to thirty of what the world was told (`reported`), the layer a
+mind caches all day, and beside them up to `WorldKnowledgeLimits.maximumMomentFacts` (15) of the
+moment (observed, scheduled, inferred: the door, the TV, sightings, the last scene), newest
+first together. Drawn as one, the moment took the told facts' places: on 2026-10-18 a camera
+sighting and the last scene pushed the oldest thing April had said off Beaky's page for a
+minute, and every bird rewrote its cache when it left and again when it came back.
+
 **Everyone the world can describe can be named** (`0.59.2`, #246). A name in the words calls up
 a person known by April's words (`person.description`) or the address book (`contact.name`), as
 well as one known by a relationship. Before, only people with a `person.relationship` could be

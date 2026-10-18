@@ -164,9 +164,20 @@ struct FactRepository: Sendable {
         case folded
     }
 
+    /// Which facts by how they are known. A page draws what the world was told apart from what
+    /// the moment shows, so a camera sighting never takes the place of something April said
+    /// (#251).
+    enum Basis: Sendable {
+        case any
+        /// Only what the world was told: `reported`.
+        case told
+        /// Everything else: what is observed, scheduled, or inferred right now.
+        case moment
+    }
+
     func currentFacts(
         about subjects: [EntityID], family: Family = .all, excluding predicates: Set<String> = [],
-        limit: Int, at now: Date
+        basis: Basis = .any, limit: Int, at now: Date
     ) async throws -> [Fact] {
         precondition(limit > 0)
         guard !subjects.isEmpty else { return [] }
@@ -174,6 +185,12 @@ struct FactRepository: Sendable {
         query["subject_id"] = ["$in": subjects.map(\.rawValue)] as Document
         if let predicate = Self.predicateFilter(family: family, excluding: predicates) {
             query["predicate"] = predicate
+        }
+        switch basis {
+        case .any: break
+        case .told: query["epistemic.type"] = EpistemicType.reported.rawValue
+        case .moment:
+            query["epistemic.type"] = ["$ne": EpistemicType.reported.rawValue] as Document
         }
         let documents = try await facts.find(query)
             .sort(["valid_from": -1, "_id": -1])

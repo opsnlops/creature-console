@@ -1,3 +1,15 @@
+creature-cli (2.101.0+world0.60.1+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.60.1: what comes and goes never pushes what the
+    world was told off a mind's page (#251). The page's thirty are now
+    up to thirty reported facts, the layer the minds cache, and beside
+    them up to fifteen of the moment (observed, scheduled, inferred).
+    Drawn together, a camera sighting pushed the oldest told fact off
+    for its ten minutes, and all four birds rewrote their caches when
+    it left and again when it came back.
+
+ -- April White <april@creature.engineering>  Sat, 17 Oct 2026 23:00:00 -0700
+
 creature-cli (2.101.0+world0.60.0+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * Where April's phone is, for the World alone (#248, slice 1 of the

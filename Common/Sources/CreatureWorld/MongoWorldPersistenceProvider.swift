@@ -1388,8 +1388,7 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         // place. On 2026-10-16 Beaky's thirty were 29 of those and one thing April had told
         // her (#231).
         let pageless = worldOnly.union(WorldKnowledgeLimits.stagePredicates)
-        var present = try await facts.currentFacts(
-            about: about, family: .page, excluding: pageless, limit: limit, at: now)
+        var present = try await thirty(about: about, excluding: pageless, limit: limit, now: now)
         var stage: [Fact] = []
         for predicate in WorldKnowledgeLimits.stagePredicates.sorted() {
             stage += try await facts.currentFacts(
@@ -1405,8 +1404,7 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         let linked = unique(present.compactMap { WorldFacts.link(in: $0.value) })
             .filter { !about.contains($0) && !beside.contains($0) }
         if !linked.isEmpty {
-            present += try await facts.currentFacts(
-                about: linked, family: .page, excluding: pageless, limit: limit, at: now)
+            present += try await thirty(about: linked, excluding: pageless, limit: limit, now: now)
         }
         // Memories are the mind's own: the first character among the subjects is the mind
         // being handed this (every caller puts it first), and what Beaky remembers of April is
@@ -1419,6 +1417,22 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
                 memory: memory, now: now)
         }
         return (present, stage, folded, linked, remembered)
+    }
+
+    /// The thirty: up to `limit` of what the world was told and, beside them, the moment's
+    /// newest, newest first together. Drawn as one, the moment took the told facts' places, and
+    /// the oldest went on and off the page as camera sightings came and went (#251).
+    private func thirty(about: [EntityID], excluding pageless: Set<String>, limit: Int, now: Date)
+        async throws -> [Fact]
+    {
+        async let told = facts.currentFacts(
+            about: about, family: .page, excluding: pageless, basis: .told, limit: limit, at: now)
+        async let moment = facts.currentFacts(
+            about: about, family: .page, excluding: pageless, basis: .moment,
+            limit: WorldKnowledgeLimits.maximumMomentFacts, at: now)
+        return try await (told + moment).sorted {
+            ($0.validFrom, $0.factID.rawValue) > ($1.validFrom, $1.factID.rawValue)
+        }
     }
 
     /// The standing page and what the words call up beside it, gathered at once (#245). The

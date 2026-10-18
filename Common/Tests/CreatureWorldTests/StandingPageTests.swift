@@ -115,6 +115,57 @@ struct StandingPageTests {
         #expect(page.facts.count == kept.count + called.count)
     }
 
+    @Test("What comes and goes never pushes what the world was told off the page")
+    func theMomentSitsBesideTheThirty() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "standing-page-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let letters = String(
+            UUID().uuidString.lowercased().compactMap { $0.isLetter ? $0 : nil }.prefix(8))
+        let bird = try EntityID(validating: "character:wren\(letters)")
+        let april = try EntityID(validating: "person:april\(letters)")
+        let now = Date(timeIntervalSince1970: 1_789_600_000)
+        func fact(_ predicate: String, _ type: EpistemicType, minutesAgo: Double) throws -> Fact {
+            try Fact(
+                subjectID: april, predicate: predicate, value: .string("\(predicate) known"),
+                epistemic: EpistemicState(type: type, confidence: 1),
+                validFrom: now.addingTimeInterval(-minutesAgo * 60), derivedFrom: [],
+                producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"))
+        }
+        let limit = WorldKnowledgeLimits.maximumFacts
+        // A full page of what April told the birds, a day old.
+        for n in 0..<limit {
+            try await persistence.facts.save(
+                try fact("taught.thing\(n)", .reported, minutesAgo: 1_440 + Double(n)))
+        }
+        let clock = ManualWorldClock(now: now)
+        let knowledge = PresentWorldKnowledge(
+            facts: persistence.facts, events: persistence.events, kinds: persistence.factKinds,
+            sessions: CharacterSessionService(
+                repository: persistence.characterSessions, clock: clock, announce: { _ in }),
+            regions: [:], clock: clock)
+        func told() async throws -> [Fact] {
+            try await knowledge.currentFacts(about: [bird, april], mentionedIn: nil, limit: limit)
+                .filter { $0.subjectID == april && $0.epistemic.type == .reported }
+        }
+        let before = try await told()
+        #expect(before.count == limit)
+        // The moment arrives: a camera sighting, the last scene, motion - newer than all of it.
+        let moment = ["seen.person", "scene.last", "motion.active", "door.lock", "media.tv"]
+        for (n, predicate) in moment.enumerated() {
+            try await persistence.facts.save(try fact(predicate, .observed, minutesAgo: Double(n)))
+        }
+        // Every told fact stays, so the cached layer does not move; the moment rides beside.
+        #expect(try await told() == before)
+        let page = try await knowledge.currentFacts(
+            about: [bird, april], mentionedIn: nil, limit: limit)
+        #expect(Set(page.filter { $0.epistemic.type == .observed }.map(\.predicate)) == Set(moment))
+        // Newest first, together.
+        let mine = page.filter { $0.subjectID == april }
+        #expect(mine == mine.sorted { $0.validFrom > $1.validFrom })
+    }
+
     @Test("A kind the words ask for comes up beside the standing page, never on it")
     func onRequestKindsAreCalledUp() async throws {
         let uri = try #require(mongoTestURI)

@@ -97,6 +97,37 @@ coverage check in the World's tests proves the page with words still holds every
 worded pass brought. On the local test database: one worded pass 911 ms, two passes 914 ms, the
 new page 853 ms.
 
+## 0.60.1: what comes and goes never pushes what was told off the page (#251)
+
+April's chorus conversation on 2026-10-18 (UTC 03:14–05:20) read ~10k tokens a call from the
+cache, but about eight times all four birds rewrote the same ~1.3k-token layer together. Most of
+those were the world learning something (jelly beans at 03:23, the crow at 05:08, a forecast
+re-cast at 04:36), which is the design. Two were not. Beaky's page, read from each utterance's
+percept:
+
+```
+04:33:22 → 04:41:08   - person:april project.friend_preferences   reported, the oldest told fact
+                      + region:home  scene.last                   observed, an hour
+04:42:00 → 04:42:26   - place:kitchen seen.person                 observed, the camera's 10 minutes
+                      + person:april project.friend_preferences   reported
+```
+
+The thirty were the newest thirty of every kind together, and a page's moment (a camera sighting,
+the last scene, motion, the door locks) took about ten of them. While two short-lived facts were
+current, the oldest thing the world was told fell off the bottom; it came back when they expired.
+The reported layer is a cache point, so each arrival and expiry rewrote it for every bird.
+
+**The change (World 0.60.1).** The thirty are drawn by how they are known, the line the agent
+already caches on: up to thirty facts the world was told (`reported`), and beside them up to
+fifteen of the moment (observed, scheduled, inferred: `maximumMomentFacts`). The two queries run
+side by side and the page keeps its newest-first order. Linked entities are drawn the same way.
+On the evening's pages the bird's own subjects never had more than ten moment facts, so nothing
+that rode before is lost; a page can now hold a few more told facts than it did, all of them in
+the cached layer. The agent is unchanged.
+
+**Check after.** Honeycomb: a camera sighting during a conversation writes nothing on the next
+call; writes come only when a fact is told or re-cast.
+
 ## Found on the way
 
 `knownPeople` keeps only people with a `person.relationship` fact: `people[subject] =

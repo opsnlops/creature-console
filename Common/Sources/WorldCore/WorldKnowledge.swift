@@ -263,6 +263,12 @@ public enum WorldKnowledgeLimits {
     /// Trimmed by the numbers on 2026-09-17: "what time is it" cost 8.7k input tokens, 4.5k of
     /// them the moment. The envelope is the likely, not the possible; the tools have the rest.
     public static let maximumFacts = 30
+    /// The most of a page's moment beside the thirty: what is observed, scheduled, or inferred
+    /// right now. The thirty are what the world was told, which the minds cache all day; the
+    /// moment comes and goes in minutes, and drawn together, a camera sighting pushed the
+    /// oldest told fact off and every bird rewrote its cache (#251). On 2026-10-18 a bird's own
+    /// subjects never had more than ten.
+    public static let maximumMomentFacts = 15
     /// Families folded into one entry per subject and carried beside the thirty, never in
     /// them: on 2026-10-16 seven sensor readings and six forecasts took thirteen of Beaky's
     /// thirty, and one was something April had told her (#231).
