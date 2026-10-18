@@ -9,18 +9,19 @@ private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI
 /// The page with words holds everything the words used to bring, and opens with the standing
 /// page exactly (#245): what the words call up is gathered from what is new in them alone, so
 /// this is the proof nothing they brought was lost. A memory filed on several subjects counts
-/// once, by its name. `checking` narrows the proof to a run's own subjects where the words
-/// search the whole shared test database: earlier runs left copies that tie, and two
-/// searches may each take a different few of them.
+/// once, by its name. `checking` narrows the proof to a test's own subjects, and is required: the
+/// page also carries what the whole shared test database holds (the calendar near the test
+/// clock, what the words search), which earlier runs and suites running alongside change
+/// between two passes (#249).
 func expectPageCovers(
     _ knowledge: PresentWorldKnowledge, about subjects: [EntityID], words: String,
-    checking own: Set<EntityID>? = nil, sourceLocation: SourceLocation = #_sourceLocation
+    checking own: Set<EntityID>, sourceLocation: SourceLocation = #_sourceLocation
 ) async throws {
     let limit = WorldKnowledgeLimits.maximumFacts
     let page = try await knowledge.page(about: subjects, mentionedIn: words, limit: limit)
     let standing = try await knowledge.currentFacts(
         about: subjects, mentionedIn: nil, limit: limit)
-    func mine(_ fact: Fact) -> Bool { own?.contains(fact.subjectID) ?? true }
+    func mine(_ fact: Fact) -> Bool { own.contains(fact.subjectID) }
     // The standing part is the page with no words, and comes first: nothing called up sits
     // before a standing fact.
     let called = Set(page.calledUp)
@@ -149,6 +150,7 @@ struct StandingPageTests {
             about: [bird], mentionedIn: "is your board warm?", limit: limit)
         let reading = try #require(asked.facts.first { $0.predicate == board })
         #expect(asked.calledUp.contains(reading.factID))
-        try await expectPageCovers(knowledge, about: [bird], words: "is your board warm?")
+        try await expectPageCovers(
+            knowledge, about: [bird], words: "is your board warm?", checking: [bird])
     }
 }
