@@ -381,7 +381,7 @@ struct AnimationTable: View {
                 }
             }
             .toolbar(id: "animationTableToolbar") {
-                ToolbarItem(id: "newTrack", placement: .primaryAction) {
+                ToolbarItem(id: "newAnimation", placement: .primaryAction) {
                     NavigationLink(
                         destination: AnimationEditor(createNew: true),
                         label: {
