@@ -1067,6 +1067,16 @@ barn (the new workshop).
   outcome: applied, or skipped with the reason.
 - **A merge redirects.** A mind's `facts.given` on an id with `entity.same_as` is filed on the
   kept id before it's stored, with `redirected_from` in the payload.
+- **A mind never keeps the World's own kinds** (`0.60.2`, #255). A mind's `facts.given` on a
+  kind for the world's rules (audience `world`: the card's phone, email and address, calendar
+  and reminder timestamps, order tracking) or one that is the world's by nature
+  (`entity.same_as`, `location.gps`) is refused at the door, beside the house-ask check:
+  `refusedKeeping`, a 400, and nothing is stored. On 2026-10-20 Beaky kept `entity.same_as`
+  herself for "these two are the same thing": a merge that skipped April's checkbox, moved
+  nothing, and left the id "already merged", so the review would guard the real merge for good.
+  A Wizard's Forget, the librarian's filing, the house and the Bridge are not minds. The two she
+  kept that name a real id stay: April asked for them, and both ids held only memories, which
+  no merge moves.
 - **Renames** (`0.53.0`, #236). `GET /v1/librarian/kind-candidates` lists every `person:` that
   no address-book fact (`bridge:contacts`) and no `person.*`, `contact.*` or `identity.*` fact
   names a person, and that isn't merged away, each with up to two lines of what is said of

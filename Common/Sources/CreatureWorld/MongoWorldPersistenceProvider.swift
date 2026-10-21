@@ -403,7 +403,11 @@ struct MongoWorldPersistenceConnection: Sendable {
             mode: houseAskMode, facts: persistence.facts, notes: persistence.houseScenes,
             clock: clock)
         acceptEvent = {
-            try await world.accept(try await filingDesk.redirect(try await houseAskDesk.check($0)))
+            // A mind's keeping, at the door: never the world's own kinds (#255), and onto the
+            // kept id of a merge.
+            try await world.accept(
+                try await filingDesk.redirect(
+                    try await filingDesk.check(try await houseAskDesk.check($0))))
         }
         houseAsks = { try await houseAskDesk.asks() }
         houseScenes = { try await houseAskDesk.scenes() }

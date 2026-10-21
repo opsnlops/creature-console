@@ -27,6 +27,9 @@ public enum WorldContractError: Error, Equatable, Sendable {
     /// A mind asked the house for a scene it may not: the world decides by its words, or the
     /// house offers no such scene (#240).
     case refusedHouseAsk(String)
+    /// A mind kept a kind that is the world's own: the merge bookkeeping, a phone's fix, a
+    /// card's phone number (#255).
+    case refusedKeeping(String)
 }
 
 extension WorldContractError: LocalizedError {
@@ -80,6 +83,8 @@ extension WorldContractError: LocalizedError {
             "A scene needs at least one participant and no participant twice"
         case .refusedHouseAsk(let why):
             "A mind may not ask the house for that scene: \(why)"
+        case .refusedKeeping(let why):
+            "A mind may not keep that: \(why)"
         }
     }
 }

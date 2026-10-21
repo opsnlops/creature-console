@@ -87,9 +87,22 @@ extension WorldReference where Value == [String: String] {
             worldURL: worldURL, path: ["fact-kinds"], label: "glossary", initial: [:],
             client: client, logger: logger
         ) { data in
-            let page = try WorldJSON.makeDecoder().decode(FactKindPage.self, from: data)
-            return Dictionary(uniqueKeysWithValues: page.kinds.map { ($0.predicate, $0.meaning) })
+            Self.meanings(of: try WorldJSON.makeDecoder().decode(FactKindPage.self, from: data))
         }
+    }
+
+    /// What a bird is told the kinds mean: only those a mind may hold (#255). The contract
+    /// says to keep under a kind from the glossary when one fits, and the glossary held the
+    /// World's own: on 2026-10-20 "these two are the same thing" became an `entity.same_as`
+    /// Beaky kept herself - a merge that skipped April. Neither a kind for the world's rules
+    /// (audience `world`: a card's phone number, a calendar timestamp) nor one that is the
+    /// world's by nature (the merge bookkeeping, a phone's fix) is in it.
+    static func meanings(of page: FactKindPage) -> [String: String] {
+        Dictionary(
+            uniqueKeysWithValues: page.kinds.filter {
+                $0.audience == .minds
+                    && !WorldKnowledgeLimits.worldOnlyPredicates.contains($0.predicate)
+            }.map { ($0.predicate, $0.meaning) })
     }
 }
 

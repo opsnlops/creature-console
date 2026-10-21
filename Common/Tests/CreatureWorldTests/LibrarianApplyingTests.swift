@@ -351,13 +351,14 @@ struct FilingApplyMongoTests {
         let desk: FilingDesk
         let clock: ManualWorldClock
 
-        func keep(_ subject: EntityID, _ predicate: String, _ value: String, by mind: String)
-            async throws
-        {
+        func keep(
+            _ subject: EntityID, _ predicate: String, _ value: String, by mind: String,
+            kind: String = "mind"
+        ) async throws {
             let event = try WorldEventEnvelope(
                 type: GivenFactAnnouncement.eventType, occurredAt: await clock.now,
                 source: EventSource(
-                    id: SourceID(validating: mind), kind: "mind",
+                    id: SourceID(validating: mind), kind: kind,
                     sourceEventID: UUID().uuidString),
                 subjectIDs: [subject],
                 epistemic: EpistemicState(type: .reported, confidence: 1),
@@ -365,7 +366,8 @@ struct FilingApplyMongoTests {
                     "subject_id": .string(subject.rawValue), "predicate": .string(predicate),
                     "value": .string(value),
                 ])
-            _ = try await world.accept(try await desk.redirect(event))
+            // The door, as the World wires it: the world's own refused, then the redirect.
+            _ = try await world.accept(try await desk.redirect(try await desk.check(event)))
         }
 
         /// The value a name holds now; an ending (`null`, gone a second later) holds none.
@@ -460,6 +462,37 @@ struct FilingApplyMongoTests {
         #expect(result.outcomes.first?.reason?.contains("changed since the night") == true)
         #expect(
             try await h.current(april, "flight.return_hope")?.value == .string("back next week"))
+    }
+
+    @Test("A mind never keeps the world's own kinds; anyone else may, and a bird keeps the rest")
+    func mindsNeverKeepTheWorldsOwn() async throws {
+        let h = try await harness()
+        defer { Task { await h.persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let room = id("place:tiki-room-\(suffix)")
+        let letters = String(suffix.compactMap { $0.isLetter ? $0 : nil }.prefix(8))
+        let card = "contact.number_\(letters)"
+        _ = try await h.persistence.factKinds.set(
+            card, meaning: "a phone number from the card", audience: .world, by: "test",
+            at: now)
+        // "These two are the same thing": the merge is the librarian's, with April's check.
+        for (predicate, value) in [
+            (WorldFacts.entitySameAs, "place:new-workshop-\(suffix)"),
+            (WorldFacts.locationGPS, "48.0, -122.5"), (card, "555-0100"),
+        ] {
+            await #expect(throws: WorldContractError.self) {
+                try await h.keep(room, predicate, value, by: "mind:beaky")
+            }
+            #expect(try await h.current(room, predicate) == nil)
+        }
+        try await h.keep(room, "workshop.perches", "hung from the roof", by: "mind:beaky")
+        #expect(
+            try await h.current(room, "workshop.perches")?.value == .string("hung from the roof"))
+        // A Wizard is not a mind.
+        try await h.keep(
+            room, WorldFacts.entitySameAs, "place:new-workshop-\(suffix)", by: "wizard:april",
+            kind: "person")
+        #expect(try await h.current(room, WorldFacts.entitySameAs) != nil)
     }
 
     @Test("A merge moves what the kept id lacks, and a later keeping on the old id lands on it")

@@ -211,7 +211,9 @@ struct LearnedFact: Equatable, Sendable {
         and keeping it again replaces it: to add to a fact you can see, keep the whole of it, \
         old and new together; for something else on the same topic, use another name in the \
         same family. If another bird has already kept the \
-        same thing in this scene, do not keep it again. When April asks you to let the cameras \
+        same thing in this scene, do not keep it again. When April says two names are one \
+        person, place, or thing, keep nothing for it: the librarian hears her and files it \
+        that night. When April asks you to let the cameras \
         be for a while, keep that too, so the house stops offering them: [learned: the house | \
         house.cameras_quiet | the yard guy is working | 1h] - and end it with none when she says \
         you may talk about them again. Expires: today, tomorrow, week, never, or a span such as \

@@ -478,8 +478,42 @@ only on the subject it was written over on: the 20th's real prompt (read from th
 nothing asked or cast) showed the floor under "written over" beside April's "workshop.floor
 should be on the new workshop", and moving it would have ended the carpet.
 
+### #255: birds never keep the World's own kinds (agent `2.102.1`, World `0.60.2`)
+
+On the 20th, "home-tiki-room is also the new workshop" and "the two Bose ids are the same thing"
+became `entity.same_as` facts Beaky kept herself; on the 19th, `person:amber` → `"person:
+Amber"`, which is no id. The merge bookkeeping is the World's, written when April applies a
+librarian merge. A bird's merge skips her checkbox, moves nothing, and leaves the id "already
+merged", so the review guards the real merge for good.
+
+Why: the birds' glossary is the World's whole glossary, and the contract says to use a kind from
+it when one fits. It holds the two kinds that are world-only by nature (`entity.same_as`,
+`location.gps`) and nine with audience `world` (calendar and reminder timestamps, the card's
+phone, email and address, order tracking). Nothing stops a mind keeping one.
+
+- **Agent:** a bird's glossary holds only what a mind may hold: audience `minds`, and not in
+  `WorldKnowledgeLimits.worldOnlyPredicates`. The shared prefix changes once, at deploy, and
+  gets a little shorter. The contract adds that two names being one thing is the librarian's to
+  file, from April's words (#254): a bird keeps nothing for it.
+- **World:** a mind's `facts.given` on a kind that is the World's own (audience `world`, or
+  world-only by nature) is refused at the door, beside the house-ask check:
+  `WorldContractError.refusedKeeping`, a 400. The agent casts each learned fact on its own and
+  logs a refusal, so the rest of the reply's keepings land. A Wizard's Forget (kind `person`),
+  the librarian's filing, the house and the Bridge are not minds.
+- **Cleanup:** April Forgets `person:amber entity.same_as` in the Viewer. The two valid ones
+  stay: they are what she asked for, and both ids hold only memories, which no merge moves, so
+  they are what an applied merge would have made.
+
+**Not covered:** the librarian can't merge an id that holds only memories (none of it is in
+its record). Those merges matter only for where a later keeping lands, and a later keeping puts
+the id in the record.
+
 ### Tests
 
+- The glossary: world-audience and world-only kinds are left out.
+- The door (MongoDB): a mind keeping `entity.same_as`, `location.gps` or a world-audience kind
+  is refused and nothing is stored; an ordinary keeping and a Wizard's Forget of
+  `entity.same_as` go through.
 - The record: protected, world-only, and merged-away facts are left out; librarian-filed
   facts are in and read "filed by you"; overwritten pairs touching any of them are left out.
 - The proposal: each new drop, and the 19th's shape (the 15 drop, the 4 stand).

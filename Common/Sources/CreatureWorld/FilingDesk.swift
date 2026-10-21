@@ -197,6 +197,28 @@ struct FilingDesk: Sendable {
         }
     }
 
+    // MARK: - The world's own
+
+    /// A mind never keeps a kind that is the world's own (#255): one for the world's rules
+    /// (audience `world`: a card's phone number, a calendar timestamp) or one that is the
+    /// world's by nature (the merge bookkeeping, a phone's fix). On 2026-10-20 Beaky kept
+    /// `entity.same_as` herself for "these two are the same thing" - a merge that skipped
+    /// April's checkbox, moved nothing, and left the id "already merged", so the real merge was
+    /// guarded for good. A Wizard's Forget, the librarian's filing, the house and the Bridge are
+    /// not minds.
+    func check(_ event: WorldEventEnvelope) async throws -> WorldEventEnvelope {
+        guard event.type == GivenFactAnnouncement.eventType, event.source.kind == "mind",
+            case .string(let predicate)? = event.payload["predicate"]
+        else { return event }
+        if WorldKnowledgeLimits.worldOnlyPredicates.contains(predicate) {
+            throw WorldContractError.refusedKeeping("\(predicate) is the world's own")
+        }
+        if try await kinds.worldOnlyPredicates().contains(predicate) {
+            throw WorldContractError.refusedKeeping("\(predicate) is for the world's rules")
+        }
+        return event
+    }
+
     // MARK: - A merge redirects
 
     /// A mind keeping a fact on an id the librarian merged away has it filed on the kept id,

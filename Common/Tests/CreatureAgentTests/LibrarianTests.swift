@@ -627,6 +627,25 @@ struct LibrarianTests {
         #expect(LearnedFact.contract.contains("never person.flight_landings"))
         #expect(LearnedFact.contract.contains("A name holds one value"))
         #expect(LearnedFact.contract.contains("old and new together"))
+        // Two names for one thing are the librarian's, from April's words (#255).
+        #expect(LearnedFact.contract.contains("two names are one"))
+        #expect(LearnedFact.contract.contains("keep nothing for it"))
+    }
+
+    @Test("A bird's glossary holds only the kinds a mind may hold: never the World's own")
+    func glossaryLeavesOutTheWorldsOwn() {
+        func kind(_ predicate: String, _ audience: FactAudience = .minds) -> FactKind {
+            FactKind(
+                predicate: predicate, meaning: "what \(predicate) says", audience: audience,
+                updatedAt: now, updatedBy: "world")
+        }
+        let meanings = Glossary.meanings(
+            of: FactKindPage(kinds: [
+                kind("flight.training"), kind(WorldFacts.entitySameAs),
+                kind(WorldFacts.locationGPS), kind("contact.phone", .world),
+                kind("visitor.expected"),
+            ]))
+        #expect(Set(meanings.keys) == ["flight.training", "visitor.expected"])
     }
 }
 

@@ -1,3 +1,15 @@
+creature-cli (2.102.1+world0.60.2+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * Birds never keep the World's own kinds (#255). On 2026-10-20 Beaky
+    kept entity.same_as herself for "these two are the same thing", a
+    merge that skipped April's checkbox. creature-agent 2.102.1: a
+    bird's glossary holds only the kinds a mind may hold, and the
+    contract leaves two names for one thing to the librarian.
+    creature-world 0.60.2: a mind's facts.given on a kind for the
+    world's rules or world-only by nature is refused (400).
+
+ -- April White <april@creature.engineering>  Tue, 20 Oct 2026 22:00:00 -0700
+
 creature-cli (2.102.0+world0.60.1+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.102.0: the librarian hears April (#254). Her

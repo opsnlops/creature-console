@@ -203,7 +203,12 @@ else — persona, facts, the clock, streaming to the room — is identical.
   every ten minutes from `GET /v1/fact-kinds`), bigger but cached at a fraction — and the
   moment item begins "Here now: Beaky, Mango (he/him)." followed by the situation, the
   facts, the story, and the time. A kind the glossary does not know yet rides in the moment
-  until the next refresh. `gen_ai.usage.cache_read.input_tokens` is how you know it is working. **The moment is a user item**
+  until the next refresh. **Only what a mind may hold** (`2.102.1`, #255): the glossary leaves
+  out kinds with audience `world` and those world-only by nature (`entity.same_as`,
+  `location.gps`). The contract says to keep under a kind from the glossary when one fits, and
+  on 2026-10-20 "these two are the same thing" became an `entity.same_as` Beaky kept herself.
+  The contract now says two names being one thing is the librarian's to file, from April's
+  words; the World refuses a mind's keeping of its own kinds besides. `gen_ai.usage.cache_read.input_tokens` is how you know it is working. **The moment is a user item**
   (`2.77.5`): `probe-cache` showed a plain prefix caching 3/3 on every tier, key, effort, and
   format, while the client's own request with the world's own tools cached nothing across
   byte-identical rounds - the provider folds every developer message into one instructions
