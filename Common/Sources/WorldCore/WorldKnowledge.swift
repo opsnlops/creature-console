@@ -280,9 +280,10 @@ public enum WorldKnowledgeLimits {
     ]
     /// Kinds that are the world's alone by their nature, whatever the glossary says: a merged
     /// id's `entity.same_as` is bookkeeping, never something a mind is told (#229).
-    /// Where a phone is, too: a bird is told a place, never a point (#248).
+    /// Where a phone is, too, and where a taught place is: a bird is told a place, never a
+    /// point (#248).
     public static let worldOnlyPredicates: Set<String> = [
-        WorldFacts.entitySameAs, WorldFacts.locationGPS,
+        WorldFacts.entitySameAs, WorldFacts.locationGPS, WorldFacts.placeGeo,
     ]
     /// Events whose payload is the world's alone: a mind never sees them, not in its story
     /// and not in its timeline (#248).

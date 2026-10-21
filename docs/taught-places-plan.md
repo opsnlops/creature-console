@@ -67,6 +67,57 @@ while she sits still keeps the 30-minute fact alive.
 3. Inference: the `geo` field, the `2dsphere` index, `PlaceInferenceRule`, `presence.place`
    inferred. Check: back at a taught place, the birds know without being told.
 
+## Slice 2 in detail: teaching (agent 2.103.0, World 0.61.0, Viewer 0.20.0)
+
+Planned 2026-10-20, with slice 1 live and #255 shipped (a mind can no longer keep the World's
+own kinds, and its glossary no longer shows them).
+
+**The bird (agent).**
+- The contract gains: when April says where she is while she is out, keep it on her, the place
+  named with its kind - `[learned: person: April | presence.place | place: the dentist | 2h]`.
+  The bird judges what she meant ("I'm at the dentist", "made it to the hangar"); nothing in
+  code parses "I'm at".
+- **A value that names an entity is a link.** A learned value written `<kind>: <name>`, the way
+  a subject is named, resolves through `EntityNames` exactly as a subject does, without the kind
+  judge: the kind is written. "place: the dentist" is `place:dentist`, or the id the world
+  already holds for that name. Anything else stays text ("10:30 AM": "10" is no kind; more than
+  four words is no name). The World already treats a value that is an id as a link
+  (`WorldFacts.link(in:)`) and follows it one hop onto the page, as for `calendar.with`.
+
+**The World (`PlaceTeachingRule`, on the event stream like the daylight rule).** For a
+`facts.given` from a **mind** whose predicate is `presence.place` and whose value links a
+`place:`:
+- **Where she is now:** the subject's current `location.gps`, at most 15 minutes old (the house
+  re-sends a still phone every 10) and accurate to 100 m. Not when the subject's
+  `presence.state` is `home`: at the house, the house knows, and a room taught at home
+  ("I'm in the workshop") would otherwise claim the house's point. No fresh fix, nothing pinned;
+  the bird's fact stands, as today.
+- **The pin:** `place:dentist place.geo` = `{"type": "Point", "coordinates": [lon, lat],
+  "radius_m", "fixes", "taught_by"}`. GeoJSON order, so slice 3 can index it as it is. Cast as a
+  `facts.given` from `world:places` (kind `world`), `inferred`, caused by the teaching event and
+  the fix; no end. World-only by nature (`worldOnlyPredicates`): never on a page, in a tool, in
+  the glossary, or kept by a mind.
+- **Taught again:** within 1 km of the pin, the point becomes the running mean of the fixes
+  (weighted by `fixes`), and the radius grows to cover the old circle's shift and the new fix:
+  at least 75 m and the fix's accuracy, at most 500 m. Farther than 1 km, the place has moved,
+  or was taught by mistake: the newest word wins, and it is pinned afresh.
+- Each teaching event pins once (`place:<event id>`), so a replayed event changes nothing.
+
+**The Viewer.** The Places panel draws each taught place as a circle of its radius with its
+name, and lists them: who taught it last, when, how many fixes. It shows the map when there
+are places and no fix.
+
+**Check:** April, away, says "Beaky, I'm at the …": the bird keeps `presence.place =
+place:…`, the place appears on the map where she is, and no bird's page, tool, or glossary
+carries a coordinate.
+
+**Tests.** The agent: a tag's `place: the dentist` value is `place:dentist`, a known name is
+its id, text stays text, and the contract says so. The World: the pin's arithmetic (first,
+again near, moved, the caps); the rule against MongoDB (pins on a fresh fix; nothing for a
+stale or vague fix, at home, a value that is no place, or a source that is no mind; a second
+teaching moves the mean); `place.geo` is world-only. The Viewer: taught places read from the
+facts.
+
 ## Not yet
 
 - Distance from home when she is at no known place ("about 12 miles out").
@@ -75,4 +126,5 @@ while she sits still keeps the 30-minute fact alive.
 
 ## Versions
 
-House 0.5.0, World 0.60.0, agent 2.102.0, Viewer 0.19.0, over three slices.
+Slice 1: house 0.5.0, World 0.60.0, Viewer 0.19.0. Slice 2: agent 2.103.0, World 0.61.0,
+Viewer 0.20.0. Slice 3: World, and the Viewer's inferred place.

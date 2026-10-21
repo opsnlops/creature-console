@@ -260,8 +260,12 @@ they sit beside it.
 
 Where April's phone is, on a map: a marker, a circle as wide as the fix is sure, and how sure
 and how old in the corner. It follows the world's `location.gps` fact live; with no fix in the
-last half hour it says so. The places the birds learn from her will join it. Coordinates are
-shown here, to April, and never to a bird.
+last half hour it says so. Coordinates are shown here, to April, and never to a bird.
+
+**Taught places** (`0.20.0`, #248 slice 2): each place she taught the birds ("Beaky, I'm at
+the dentist") is a teal circle as far as it reaches, with its name, from its `place.geo`. The
+list in the corner says how far each reaches, how many times her phone was there when she said
+so, which bird kept her word last, and when. The map shows when there are places and no fix.
 
 ### House (`0.16.0`, #241)
 

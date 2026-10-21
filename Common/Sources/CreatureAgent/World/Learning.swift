@@ -87,8 +87,12 @@ struct LearnedFact: Equatable, Sendable {
         var value: String
         var expiry: Expiry
 
-        func fact(on subject: EntityID) -> LearnedFact {
-            LearnedFact(subjectID: subject, predicate: predicate, value: value, expiry: expiry)
+        /// The fact on `subject`. A value named the way a subject is - "place: the dentist" - is
+        /// a link to that entity, as `calendar.with` is (#248); anything else stays text.
+        func fact(on subject: EntityID, names: EntityNames) -> LearnedFact {
+            LearnedFact(
+                subjectID: subject, predicate: predicate,
+                value: names.link(value)?.rawValue ?? value, expiry: expiry)
         }
     }
 
@@ -126,14 +130,16 @@ struct LearnedFact: Equatable, Sendable {
                 unnamed.append(tag.name)
                 continue
             }
-            facts.append(tag.fact(on: subject))
+            facts.append(tag.fact(on: subject, names: names))
         }
         return (facts, unnamed)
     }
 
     /// The tags whose subjects resolve without asking anyone.
     static func all(in raw: String, names: EntityNames) -> [LearnedFact] {
-        tags(in: raw).compactMap { tag in names.entity(named: tag.name).map(tag.fact(on:)) }
+        tags(in: raw).compactMap { tag in
+            names.entity(named: tag.name).map { tag.fact(on: $0, names: names) }
+        }
     }
 
     /// The text with every tag removed, so nothing of it is ever spoken.
@@ -179,7 +185,7 @@ struct LearnedFact: Equatable, Sendable {
 
     static func parse(_ inner: String, names: EntityNames) -> LearnedFact? {
         guard let tag = tag(inner), let subject = names.entity(named: tag.name) else { return nil }
-        return tag.fact(on: subject)
+        return tag.fact(on: subject, names: names)
     }
 
     static func isPredicate(_ text: String) -> Bool {
@@ -216,7 +222,9 @@ struct LearnedFact: Equatable, Sendable {
         that night. When April asks you to let the cameras \
         be for a while, keep that too, so the house stops offering them: [learned: the house | \
         house.cameras_quiet | the yard guy is working | 1h] - and end it with none when she says \
-        you may talk about them again. Expires: today, tomorrow, week, never, or a span such as \
+        you may talk about them again. When April tells you where she is while she is out, keep \
+        it on her, naming the place with its kind: [learned: person: April | presence.place | \
+        place: the dentist | 2h]. Expires: today, tomorrow, week, never, or a span such as \
         1h or 30m (at most 12h). \
         Only what April actually said, never your own guess; at most three; the tags are for the \
         world's record and are never spoken.
@@ -312,6 +320,15 @@ struct EntityNames: Sendable {
     func entity(named name: String) -> EntityID? {
         if case .entity(let id) = naming(name) { return id }
         return nil
+    }
+
+    /// The entity a learned value names, when the mind wrote it the way a subject is named,
+    /// with its kind - "place: the dentist" is `place:dentist` (#248). A bare value is never
+    /// one: "home" or "Tuesday" is what was said, not who. Nil for text ("10:30 AM": "10" is
+    /// no kind).
+    func link(_ value: String) -> EntityID? {
+        guard value.contains(":"), case .entity(let id) = naming(value) else { return nil }
+        return id
     }
 
     /// The entity a name is, asking `judge` what kind a bare new name is, from the line it

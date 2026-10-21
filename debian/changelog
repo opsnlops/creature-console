@@ -1,3 +1,17 @@
+creature-cli (2.103.0+world0.61.0+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * April teaches the birds her places (#248, slice 2). creature-agent
+    2.103.0: when she says where she is while out, a bird keeps it on
+    her as presence.place, and a learned value named with its kind
+    ("place: the dentist") is a link to that entity. creature-world
+    0.61.0: the place is pinned where her phone is (place.geo, a GeoJSON
+    point and how far it reaches, world-only), from a fresh, accurate
+    fix and never at home; taught again nearby it becomes the running
+    mean of the fixes. World Viewer 0.20.0 draws the taught places on
+    the Places map.
+
+ -- April White <april@creature.engineering>  Tue, 20 Oct 2026 23:00:00 -0700
+
 creature-cli (2.102.1+world0.60.2+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * Birds never keep the World's own kinds (#255). On 2026-10-20 Beaky

@@ -268,6 +268,29 @@ struct MongoWorldPersistenceConnection: Sendable {
                 logger.warning("Stopped watching the daylight", metadata: ["error": "\(error)"])
             }
         }
+        // And the places' rule: a bird keeping April's "I'm at the dentist" pins the dentist
+        // where her phone is (#248).
+        let placeRule = PlaceTeachingRule(facts: persistence.facts) {
+            _ = try await world.accept($0)
+        }
+        let placeWatcher = Task {
+            do {
+                for try await delta in try await world.subscribe() {
+                    // One teaching the store could not take is lost, never the stream.
+                    do {
+                        try await placeRule.heard(delta.event)
+                    } catch {
+                        logger.warning(
+                            "Could not pin a place April taught",
+                            metadata: [
+                                "error": "\(error)", "world.event_id": "\(delta.event.eventID)",
+                            ])
+                    }
+                }
+            } catch {
+                logger.warning("Stopped learning places", metadata: ["error": "\(error)"])
+            }
+        }
         // The house starts scenes: a person at the driveway, a door unlocking. The rules are
         // `scenes.open_on`; the lead gets the floor first, then whoever else is in the region.
         let openingPolicy = SceneOpeningPolicy(
@@ -693,6 +716,7 @@ struct MongoWorldPersistenceConnection: Sendable {
             floorSweeper.cancel()
             sceneOpener.cancel()
             daylightWatcher.cancel()
+            placeWatcher.cancel()
             await world.closeSubscriptions(error: WorldAPIError.databaseUnavailable)
             await timerScheduler.shutdown()
             try? await sceneClient?.shutdown()

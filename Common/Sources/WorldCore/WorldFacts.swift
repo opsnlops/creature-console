@@ -48,6 +48,14 @@ public enum WorldFacts {
     /// Where a person's phone says they are: `{latitude, longitude, accuracy_m}`, from the
     /// house (#248). The world's alone, always: a bird is told a place, never a point.
     public static let locationGPS = "location.gps"
+    /// Where a person is while out: a link to the place - `person:april presence.place =
+    /// place:dentist` - kept by a bird from April's word, for a couple of hours (#248). The
+    /// house's arrival or departure ends it, as every reported `presence.*`.
+    public static let presencePlace = "presence.place"
+    /// Where a place April taught is: `{"type": "Point", "coordinates": [lon, lat], radius_m,
+    /// fixes, taught_by}` - GeoJSON, so it can be indexed as it is (#248). Pinned by the world
+    /// from her phone's fix when a bird keeps her `presence.place`. The world's alone, always.
+    public static let placeGeo = "place.geo"
 
     // Memory, written by the nightly job (step 4b of the judgement plan).
     /// A human-grained memory on the people, places, or house it is about: `{day, when, what,
@@ -197,6 +205,8 @@ public enum WorldFacts {
         characterRegion:
             "which room a bird's mind is logged into; the region this scene is in is the room you are in",
         personState: "whether a person is home or away, as far as the house can tell",
+        presencePlace:
+            "where a person is while out, as a place: April's own word, for a couple of hours; arriving home or leaving ends it",
         pronouns:
             "the pronouns someone uses - a bird's as it states them, a person's from April's address book; always refer to them this way",
         personAudible:
@@ -221,6 +231,8 @@ public enum WorldFacts {
             "a package the carrier says it delivered to the house, in the last few hours",
         locationGPS:
             "where a person's phone says they are: latitude, longitude, and how sure, in meters; the world's alone",
+        placeGeo:
+            "where a place April taught is: a point and how far it reaches, from her phone each time she said she was there; the world's alone",
         entitySameAs:
             "the id this one was merged into by the librarian, with April's approval: the same person, place, or thing, kept under that id from now on",
         sightingIdentified:

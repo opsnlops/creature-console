@@ -242,6 +242,29 @@ struct LearningTests {
         #expect(LearnedFact.contract.contains("house.cameras_quiet"))
     }
 
+    @Test("\"I'm at the dentist\" keeps her place as a link; a value named like a subject is one")
+    func placesAreLinks() throws {
+        var names = self.names
+        names.add([try EntityID(validating: "place:hangar")])
+        let learned = LearnedFact.all(
+            in: """
+                Say hi to the hygienist.
+                [learned: person: April | presence.place | place: the dentist | 2h]
+                [learned: person: April | presence.place | place: The Hangar | 2h]
+                [learned: person: April | appointment.time | 10:30 AM | today]
+                """, names: names)
+        #expect(
+            learned.map(\.value) == ["place:dentist", "place:hangar", "10:30 AM"])
+        #expect(learned.first?.subjectID.rawValue == "person:april")
+        #expect(learned.first?.expiry == .span(7_200))
+        // A bare value is what was said, never who: "home" is not the house.
+        #expect(names.link("home") == nil)
+        #expect(names.link("the house") == nil)
+        #expect(names.link("thing: a very long name for one thing") == nil)
+        #expect(LearnedFact.contract.contains("presence.place"))
+        #expect(LearnedFact.contract.contains("place: the dentist"))
+    }
+
     @Test("Spans: minutes and hours, at most twelve hours, never zero")
     func spans() {
         #expect(LearnedFact.Expiry(word: "30m") == .span(1_800))

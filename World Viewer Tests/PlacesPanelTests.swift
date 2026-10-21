@@ -39,4 +39,37 @@ struct PlaceFixTests {
         #expect(fix.coordinate.latitude == 40)
         #expect(PlaceFix.april(in: Array(facts.prefix(1))) == nil)
     }
+
+    @Test("Taught places are read from place.geo, longitude first, by name, with who taught them")
+    func readsTaughtPlaces() throws {
+        let facts = [
+            try fact(
+                "place:the-hangar", WorldFacts.placeGeo,
+                .object([
+                    "type": .string("Point"),
+                    "coordinates": .array([.number(-100.5), .number(40.5)]),
+                    "radius_m": .number(120), "fixes": .number(3),
+                    "taught_by": .string("mind:mango"),
+                ])),
+            try fact(
+                "place:dentist", WorldFacts.placeGeo,
+                .object([
+                    "type": .string("Point"), "coordinates": .array([.number(-100), .number(40)]),
+                    "radius_m": .number(75), "fixes": .number(1),
+                    "taught_by": .string("mind:beaky"),
+                ])),
+            // A fix is not a place, and a place with no point is none.
+            try fact(
+                "person:april", WorldFacts.locationGPS,
+                .object(["latitude": .number(40), "longitude": .number(-100)])),
+            try fact("place:nowhere", WorldFacts.placeGeo, .string("somewhere")),
+        ]
+        let places = TaughtPlace.all(in: facts)
+        #expect(places.map(\.name) == ["Dentist", "The Hangar"])
+        let dentist = try #require(places.first)
+        #expect(dentist.latitude == 40 && dentist.longitude == -100)
+        #expect(dentist.radius == 75 && dentist.fixes == 1 && dentist.teacher == "Beaky")
+        #expect(dentist.since == at)
+        #expect(places.last?.teacher == "Mango")
+    }
 }

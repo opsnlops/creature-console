@@ -963,6 +963,22 @@ observed, valid for 30 minutes. It is world-only by nature (`WorldKnowledgeLimit
 never a happening and never in a mind's `query_timeline`. The birds will be told places, never
 points: the places they learn from April come next, then where she most likely is.
 
+**Places April teaches** (`0.61.0`, #248 slice 2). "Beaky, I'm at the dentist" is kept by the
+bird as `person:april presence.place = place:dentist`, a link, for two hours.
+`PlaceTeachingRule` hears it on the event stream and pins the place where her phone is:
+`place:dentist place.geo` = `{"type": "Point", "coordinates": [lon, lat], radius_m, fixes,
+taught_by}`, a `facts.given` from `world:places`, inferred, caused by the teaching and the fix,
+with no end. Only a mind's keeping teaches, only a `place:` link, only from a fix at most 15
+minutes old (the house re-sends a still phone's every 10) and accurate to 100 m, and never
+while the house says she is `home` (a room taught at home would claim the house's own point).
+Taught again within 1 km, the point is the running mean of the fixes and the radius grows to
+cover the old circle and the new fix, from 75 m (or the fix's accuracy) to at most 500 m;
+farther, the place has moved, and is pinned afresh. One pin per teaching event. `place.geo` is
+world-only by nature: never on a page, in a tool, in a bird's glossary, or kept by a mind.
+`presence.place` is an ordinary reported `presence.*`: on the page as a link (the place's own
+facts follow, one hop), ended by the house's arrival or departure. A rule that cannot pin one
+teaching logs it and keeps listening.
+
 **What was told keeps its thirty** (`0.60.1`, #251, docs/standing-page-plan.md). The thirty
 are drawn by how they are known: up to thirty of what the world was told (`reported`), the layer a
 mind caches all day, and beside them up to `WorldKnowledgeLimits.maximumMomentFacts` (15) of the

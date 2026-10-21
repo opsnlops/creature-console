@@ -478,7 +478,8 @@ struct FilingApplyMongoTests {
         // "These two are the same thing": the merge is the librarian's, with April's check.
         for (predicate, value) in [
             (WorldFacts.entitySameAs, "place:new-workshop-\(suffix)"),
-            (WorldFacts.locationGPS, "48.0, -122.5"), (card, "555-0100"),
+            (WorldFacts.locationGPS, "48.0, -122.5"), (WorldFacts.placeGeo, "40.0, -100.0"),
+            (card, "555-0100"),
         ] {
             await #expect(throws: WorldContractError.self) {
                 try await h.keep(room, predicate, value, by: "mind:beaky")
