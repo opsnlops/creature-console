@@ -591,6 +591,16 @@ Beaky's five minutes after she kept it. Two things keep learning durable:
   `place:`, `thing:` or `spell:`. A rename is held to the candidates and counts toward the 40.
   On 2026-10-16 the nightly memory had filed Rocket Taco and UUCWI, April's church, as people.
   A World older than 0.53.0 has no candidates, and the night files without them.
+- **Only what can be filed** (`2.101.1`, #253). April could apply 4 of the 19 items filed on
+  2026-10-19; the World's review guarded the rest, the same ones every night. The record is
+  now held to the review's rules, from WorldCore: it reads what the minds kept *and* what the
+  librarian filed before (`origin_prefix=librarian:`, shown as "filed by you", so a new keeping
+  can be folded into a filing), and leaves out every fact of a protected kind
+  (`LibrarianFiling.isProtected`) or a world-only one (`entity.same_as` a bird kept herself
+  included), and every id already merged away with what stayed on it. "Written over" is held
+  the same way. The answer drops, as `dropped`, a rewrite writing such a kind, a rewrite onto a
+  name the record holds with a fact it doesn't fold in (the review would end that fact), and a
+  meaning for a kind that already has one.
 - In Honeycomb, the night is `agent.librarian.file` with `invoke_agent Beaky` beneath it
   (conversation `librarian:<day>:<run>`), and `librarian.rewrites` / `.retires` / `.same` /
   `.questions` / `.dropped` on the span.

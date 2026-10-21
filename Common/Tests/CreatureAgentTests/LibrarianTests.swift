@@ -56,7 +56,122 @@ struct LibrarianTests {
         )
     }
 
+    /// Something the librarian filed on an earlier night.
+    private func filed(_ subject: EntityID, _ predicate: String, _ value: String, id: String)
+        throws -> Fact
+    {
+        var fact = try kept(subject, predicate, value, id: id)
+        fact.origin = try SourceID(validating: "librarian:beaky")
+        return fact
+    }
+
     private func answer(_ json: String) -> Data { Data(json.utf8) }
+
+    @Test(
+        "The record holds what can be filed: never a kind with its own rules, a merged id, or bookkeeping; the librarian's own filings are in"
+    )
+    func recordIsHeldToWhatCanBeFiled() throws {
+        let robin = try EntityID(validating: "person:robin")
+        let robbin = try EntityID(validating: "person:robbin")
+        let house = try EntityID(validating: "house:test-nest")
+        let hardest = try kept(
+            april, "flight.hardest_part", "landings", id: "00000000-0000-4000-8000-000000000011")
+        let friend = try kept(
+            robin, "person.relationship", "April's friend from the hangar",
+            id: "00000000-0000-4000-8000-000000000012")
+        let training = try filed(
+            april, "flight.training", "flies on her own but for landings",
+            id: "00000000-0000-4000-8000-000000000013")
+        // Merged away by an applied filing; what no merge moves stayed behind on it.
+        let merged = try filed(
+            robbin, "entity.same_as", "person:robin", id: "00000000-0000-4000-8000-000000000014")
+        let visit = try kept(
+            robbin, "visitor.expected", "when the on-the-way text arrives", by: "caroll",
+            id: "00000000-0000-4000-8000-000000000015")
+        let stayed = try kept(
+            robbin, "project.deck", "finishing the deck", by: "mango",
+            id: "00000000-0000-4000-8000-000000000016")
+        // A bird's own same-as, onto no id: bookkeeping, never filed, and merges nothing.
+        let ownSameAs = try kept(
+            robin, "entity.same_as", "person: Robin", id: "00000000-0000-4000-8000-000000000017")
+        let quiet = try kept(
+            house, "house.cameras_quiet", "the yard crew is working",
+            id: "00000000-0000-4000-8000-000000000018")
+        let (learned, mergedAway) = Librarian.shelf([
+            hardest, friend, training, merged, visit, stayed, ownSameAs, quiet,
+        ])
+        #expect(learned == [hardest, friend, training])
+        #expect(mergedAway == [robbin])
+
+        let earlier = try kept(
+            april, "flight.training", "learning to fly", id: "00000000-0000-4000-8000-000000000019")
+        let oldVisit = try kept(
+            robin, "visitor.expected", "Tuesday", id: "00000000-0000-4000-8000-00000000001a")
+        let oldDeck = try kept(
+            robbin, "project.deck", "starting the deck", id: "00000000-0000-4000-8000-00000000001b")
+        let overwritten = Librarian.shelf(
+            [
+                OverwrittenFact(replaced: earlier, by: training),
+                OverwrittenFact(replaced: oldVisit, by: visit),
+                OverwrittenFact(replaced: oldDeck, by: stayed),
+            ], merged: mergedAway)
+        #expect(overwritten == [OverwrittenFact(replaced: earlier, by: training)])
+
+        let text = Librarian.record(learned: learned, overwritten: overwritten, kinds: [])
+        #expect(text.contains("What the minds kept, and what you filed before"))
+        #expect(
+            text.contains(
+                "flight.training = flies on her own but for landings (filed by you"))
+        #expect(text.contains("flight.hardest_part = landings (kept by mind:beaky"))
+        #expect(text.contains("\"learning to fly\" (mind:beaky) was replaced by"))
+        #expect(text.contains("\"flies on her own but for landings\" (you)"))
+        for absent in ["visitor.expected", "entity.same_as", "house.cameras_quiet", "robbin"] {
+            #expect(!text.contains(absent))
+        }
+    }
+
+    @Test(
+        "A proposal is held to what the review takes: no kind it guards, no name it would end, no meaning that exists"
+    )
+    func proposalsAreHeldToTheReview() throws {
+        let robin = try EntityID(validating: "person:robin")
+        let hardest = try kept(
+            april, "flight.hardest_part", "landings", id: "00000000-0000-4000-8000-000000000021")
+        let training = try filed(
+            april, "flight.training", "flies on her own but for landings",
+            id: "00000000-0000-4000-8000-000000000022")
+        let friend = try kept(
+            robin, "person.relationship", "April's friend from the hangar",
+            id: "00000000-0000-4000-8000-000000000023")
+        let proposal = Librarian.proposal(
+            from: answer(
+                """
+                {"rewrites": [
+                  {"subject": "person:april", "predicate": "visitor.expected", "value": "x",
+                   "replaces": ["fact:00000000-0000-4000-8000-000000000021"], "reason": "a kind with its own rules"},
+                  {"subject": "person:robin", "predicate": "entity.same_as", "value": "person:april",
+                   "replaces": ["fact:00000000-0000-4000-8000-000000000023"], "reason": "bookkeeping"},
+                  {"subject": "person:april", "predicate": "flight.training", "value": "landings",
+                   "replaces": ["fact:00000000-0000-4000-8000-000000000021"], "reason": "would end the filed one"},
+                  {"subject": "person:april", "predicate": "flight.training",
+                   "value": "flies on her own; landings are the hardest part",
+                   "replaces": ["fact:00000000-0000-4000-8000-000000000022",
+                                "fact:00000000-0000-4000-8000-000000000021"], "reason": "folds both"}
+                ],
+                "same": [{"ids": ["person:robin", "person:robbin"], "keep": "person:robin",
+                          "sure": true, "reason": "merged already"}],
+                "kinds": [{"predicate": "flight.training", "meaning": "already meant"},
+                          {"predicate": "visitor.expected", "meaning": "has its own rules"},
+                          {"predicate": "flight.hardest_part", "meaning": "what April finds hardest"}]}
+                """), learned: [hardest, training, friend], overwritten: [],
+            meant: ["flight.training"])
+        #expect(proposal.rewrites.count == 1)
+        #expect(proposal.rewrites.first?.replaces.count == 2)
+        #expect(proposal.same.isEmpty)
+        #expect(proposal.kinds.map(\.predicate) == ["flight.hardest_part"])
+        // Three rewrites, a merge naming an id not in the record, two meanings.
+        #expect(proposal.dropped == 6)
+    }
 
     @Test(
         "A rename is held to the ids shown as maybe the wrong kind, and to place, thing, or spell")
@@ -186,24 +301,32 @@ struct LibrarianTests {
     )
     func filesTheNight() async throws {
         let (learned, overwritten) = try record()
+        let filed = try filed(
+            april, "flight.rules", "never alone in gusty wind",
+            id: "00000000-0000-4000-8000-000000000031")
+        let origins = Origins()
         let router = Router(context: BasicRequestContext.self)
         router.get("world/v1/facts") { request, _ in
-            #expect(request.uri.queryParameters["origin_prefix"] == "mind:")
+            let origin = request.uri.queryParameters["origin_prefix"].map(String.init)
+            await origins.note(origin ?? "")
             return Response(
                 status: .ok, headers: [.contentType: "application/json"],
                 body: ResponseBody(
                     byteBuffer: ByteBuffer(
                         bytes: try WorldJSON.makeEncoder().encode(
-                            WorldFactPage(facts: learned, nextFactID: nil, hasMore: false)))))
+                            WorldFactPage(
+                                facts: origin == "librarian:" ? [filed] : learned,
+                                nextFactID: nil, hasMore: false)))))
         }
         router.get("world/v1/facts/overwritten") { request, _ in
             #expect(request.uri.queryParameters["since"] != nil)
+            let origin = request.uri.queryParameters["origin_prefix"].map(String.init)
             return Response(
                 status: .ok, headers: [.contentType: "application/json"],
                 body: ResponseBody(
                     byteBuffer: ByteBuffer(
                         bytes: try WorldJSON.makeEncoder().encode(
-                            OverwrittenFactPage(items: overwritten)))))
+                            OverwrittenFactPage(items: origin == "mind:" ? overwritten : [])))))
         }
         router.get("world/v1/fact-kinds") { _, _ in
             Response(
@@ -255,20 +378,24 @@ struct LibrarianTests {
         #expect(await asked.prompts.first?.contains("Written over since yesterday") == true)
         #expect(await asked.prompts.first?.contains("May be the wrong kind") == true)
         #expect(await asked.prompts.first?.contains("April often eats at Rocket Taco.") == true)
+        // What the minds kept and what the librarian filed before (#253).
+        #expect(await origins.seen == ["mind:", "librarian:"])
+        #expect(
+            await asked.prompts.first?.contains("never alone in gusty wind (filed by you") == true)
         let events = await casts.events
         // Watching: the proposal and nothing else - no fact cast, no kind written.
         #expect(events.count == 1)
-        let filed = try #require(events.first)
-        #expect(filed.type.rawValue == "memory.filed")
-        #expect(filed.payload["mode"] == .string("watching"))
-        #expect(filed.payload["day"] == .string("2026-10-14"))
-        #expect(filed.payload["learned"] == .number(5))
-        #expect(filed.payload["overwritten"] == .number(1))
-        #expect(filed.source.id.rawValue == "mind:beaky")
+        let filing = try #require(events.first)
+        #expect(filing.type.rawValue == "memory.filed")
+        #expect(filing.payload["mode"] == .string("watching"))
+        #expect(filing.payload["day"] == .string("2026-10-14"))
+        #expect(filing.payload["learned"] == .number(6))
+        #expect(filing.payload["overwritten"] == .number(1))
+        #expect(filing.source.id.rawValue == "mind:beaky")
         #expect(
-            filed.source.sourceEventID
+            filing.source.sourceEventID
                 == "librarian:2026-10-14:5a8b0c8e-0000-4000-8000-000000000229")
-        guard case .object(let proposal)? = filed.payload["proposal"],
+        guard case .object(let proposal)? = filing.payload["proposal"],
             case .array(let retires)? = proposal["retires"],
             case .array(let questions)? = proposal["questions"]
         else {
@@ -278,7 +405,7 @@ struct LibrarianTests {
         #expect(retires.count == 1)
         #expect(questions == [.string("Is Amber Tamara?")])
         #expect(
-            LibrarianProposal(filed: filed)?.renames.map(\.to.rawValue) == ["place:rocket-taco"])
+            LibrarianProposal(filed: filing)?.renames.map(\.to.rawValue) == ["place:rocket-taco"])
     }
 
     @Test("A night with nothing kept asks nothing")
@@ -337,6 +464,11 @@ private actor Casts {
 private actor Asked {
     private(set) var prompts: [String] = []
     func note(_ prompt: String) { prompts.append(prompt) }
+}
+
+private actor Origins {
+    private(set) var seen: [String] = []
+    func note(_ origin: String) { seen.append(origin) }
 }
 
 /// #232: memories whole, and their meanings once.

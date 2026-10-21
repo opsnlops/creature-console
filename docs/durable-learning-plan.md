@@ -401,6 +401,95 @@ fewer of these happen at all. It's worth doing next, as its own change.
 - Birds asking the questions themselves.
 - Old deliveries (#234). That's its own change, a rule, not a filing.
 
+## Ship 3: only what can be filed, and what April said (#253, #254)
+
+Planned 2026-10-20. April, opening the night's filing: "I can't action most of it."
+
+### What three nights of applying showed
+
+The filing of 2026-10-19 had 19 items. April applied the 4 that could be applied; the World's
+review guarded or staled the other 15. Over three nights it was 38 of 59, and the same items
+came back each night:
+
+- **9 touched kinds with their own rules** (`visitor.*`, `house.cameras_quiet`): the Jessie
+  and cleaning-lady arrival rewrites, Tamara's retire, the camera-pause retires, meanings for
+  `visitor.*`. The librarian is shown those facts like any other.
+- **3 were merges already done** (Jessie, the cleaning lady, the touring network). A merge
+  never moves a protected kind, nor a name the kept id already holds, so `person:jessie` keeps
+  its `visitor.*` facts and the touring ids keep `network.address_space`. The librarian sees
+  two ids and proposes the merge again.
+- **3 were meanings for kinds that already have one.**
+
+And the questions went unanswered, though April answered them. At 6:11 PM on the 20th she told
+Beaky, field by field, which workshop facts belong to the new workshop. A bird can only keep
+new facts, so Beaky kept the current workshop's floor as carpet (true, and it wrote over the
+new workshop's hard floor) and could move nothing. Only a librarian rewrite moves a fact to
+another subject, and the librarian reads kept facts, never what April said. It doesn't read its
+own last questions either, so it asked the same three again.
+
+### #253: the record and the proposal are held to what can be filed (agent `2.101.1`)
+
+The World's review stays the authority; the librarian is held to its rules before it asks, with
+what WorldCore already shares (`LibrarianFiling.isProtected`,
+`WorldKnowledgeLimits.worldOnlyPredicates`, `WorldFacts.entitySameAs`).
+
+- **The record is what the minds kept and what the librarian filed before.** It reads
+  `origin_prefix=mind:` and `librarian:` (and the overwritten of both), so it can fold a new
+  keeping into its own filing and sees the names its filings hold. A filed fact reads "filed
+  by you".
+- **Never a kind it may not file.** Protected and world-only facts are left out of the record
+  and of "written over", so nothing can name them. That includes an `entity.same_as` a bird
+  kept herself.
+- **Never an id already merged away.** An id with an `entity.same_as` onto another id (the
+  review's own test) is left out with whatever stayed on it; a `same` naming it drops.
+- **The proposal drops**, counted in `dropped` as before:
+  - a rewrite writing a protected or world-only kind;
+  - a rewrite onto a name the record holds with a fact it doesn't fold in (the review would
+    end that fact);
+  - a meaning for a kind that already has one, or for a protected or world-only kind.
+- The instructions say a name listed under "what kinds mean" keeps its meaning.
+
+On the 19th's record this leaves the 4 items April applied. The World is unchanged.
+
+### #254: the librarian hears April (agent `2.102.0`)
+
+Beside the record, the librarian reads:
+
+- **What it asked last night**: the questions of the newest filing of an earlier day
+  (`GET /v1/filings?limit=3`).
+- **What April said to the birds that day**: every line a person said in the day record the
+  nightly memory already reads (`GET /v1/days/{day}`), with its clock time; the newest 200 at
+  most. On the 20th that is 32 lines, about 2.4k characters. The birds' own lines stay out:
+  they cost eight times as much, and a correction is April's.
+
+The instructions: her word settles the record. Where she says a fact belongs, a rewrite moves it
+onto the subject she named; two ids she says are one thing are a *sure* same; what she says
+something is gets filed so. Her words settle only what the record holds, never something new,
+and a question she answered is not asked again. April still checks every item.
+
+Either piece missing (a World without the day, a first night with no filing) files without it.
+The filing's payload carries `heard` (her lines read); the span `librarian.heard` and
+`librarian.asked`.
+
+**Not covered:** a value written over on one subject that belongs on another. The new
+workshop's hard floor was replaced by the current workshop's carpet; a rewrite can only replace
+current facts, so April tells a bird again.
+
+### Tests
+
+- The record: protected, world-only, and merged-away facts are left out; librarian-filed
+  facts are in and read "filed by you"; overwritten pairs touching any of them are left out.
+- The proposal: each new drop, and the 19th's shape (the 15 drop, the 4 stand).
+- The night (Hummingbird): both origins read, last night's questions and April's lines in the
+  prompt, a filing of the same day not taken as last night's, a missing day record files anyway,
+  `heard` in the payload.
+
+### Versions
+
+Agent `2.101.1` (#253, fix) and `2.102.0` (#254, feature), CLI and MQTT in step, a tag and a
+`debian/changelog` entry each. No World or Viewer change. §0 of `beakys-world.md`, the agent
+manual, and this page in the same commits.
+
 ## Done means
 
 - **Seeing it:** "Beaky, landings are still the hardest part" puts `flight.hardest_part` on
