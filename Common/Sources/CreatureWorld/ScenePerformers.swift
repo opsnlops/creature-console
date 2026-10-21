@@ -365,7 +365,8 @@ actor StreamingScenePerformer: ScenePerforming {
     {
         let previous = sends[scene.sceneID]
         let task = Task {
-            await previous?.value
+            // In order after the scene's earlier sentence; its problem was that sentence's.
+            _ = await previous?.value
             return await self.deliver(scene, character: character, text: text, piece: piece)
         }
         sends[scene.sceneID] = task
@@ -476,7 +477,7 @@ actor StreamingScenePerformer: ScenePerforming {
 
     func sceneClosed(_ scene: Scene) async throws -> ScenePerformance {
         // Every sentence sent before the session is finished.
-        await sends.removeValue(forKey: scene.sceneID)?.value
+        _ = await sends.removeValue(forKey: scene.sceneID)?.value
         guard case .open(let sessionID)? = rooms.removeValue(forKey: scene.sceneID) else {
             return try await fallback.sceneClosed(scene)
         }
