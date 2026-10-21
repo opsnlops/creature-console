@@ -473,7 +473,10 @@ The filing's payload carries `heard` (her lines read); the span `librarian.heard
 
 **Not covered:** a value written over on one subject that belongs on another. The new
 workshop's hard floor was replaced by the current workshop's carpet; a rewrite can only replace
-current facts, so April tells a bird again.
+current facts, so April tells a bird again. The instructions say a written-over value comes back
+only on the subject it was written over on: the 20th's real prompt (read from the live World,
+nothing asked or cast) showed the floor under "written over" beside April's "workshop.floor
+should be on the new workshop", and moving it would have ended the carpet.
 
 ### Tests
 

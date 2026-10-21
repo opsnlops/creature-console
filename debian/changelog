@@ -1,3 +1,14 @@
+creature-cli (2.102.0+world0.60.1+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.102.0: the librarian hears April (#254). Her
+    answers to its questions came in conversation, where a bird can
+    only keep new facts, so nothing could move a misfiled fact. The
+    night's record now ends with the questions it asked last night and
+    every line April said to the birds that day; her word settles a
+    question, as rewrites and merges she still checks in the Viewer.
+
+ -- April White <april@creature.engineering>  Tue, 20 Oct 2026 21:00:00 -0700
+
 creature-cli (2.101.1+world0.60.1+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.101.1: the librarian proposes only what the World

@@ -15,7 +15,9 @@ import WorldCore
 /// and what it filed before - never what it may not file (#253) - what a later keeping
 /// replaced, and what the world's kinds mean, and proposes: facts
 /// rewritten together under one name, stale ones retired, ids that are one thing, a meaning for
-/// each family it settles on, and the questions only April can answer.
+/// each family it settles on, and the questions only April can answer. It reads, too, what it
+/// asked her last night and what she said to the birds that day: her word settles the record
+/// (#254).
 ///
 /// This first slice only *watches*: the proposal is recorded as a `memory.filed` event, for the
 /// Viewer and for April to read, and nothing is changed. Applying it comes once a night or two
@@ -62,9 +64,13 @@ struct Librarian: Sendable {
             let kinds = Self.kinds(for: learned, from: kindPage)
             let candidates = try await fetchKindCandidates()
             span.attributes["librarian.kind_candidates"] = candidates.count
+            let asked = await fetchAsked(before: day)
+            span.attributes["librarian.asked"] = asked.count
+            let heard = await fetchHeard(day: day)
+            span.attributes["librarian.heard"] = heard?.lines.count ?? 0
             let transcript = Self.transcript(
                 learned: learned, overwritten: overwritten, kinds: kinds,
-                candidates: candidates, name: name)
+                candidates: candidates, asked: asked, heard: heard, name: name)
             let data = try await GenAI.invokeAgent(
                 name, conversationID: "librarian:\(day):\(run.rawValue)", kind: .memory,
                 capture: capture, model: model.modelName, outputType: "json"
@@ -95,6 +101,7 @@ struct Librarian: Sendable {
                         "model": .string(model.modelName),
                         "learned": .number(Double(learned.count)),
                         "overwritten": .number(Double(overwritten.count)),
+                        "heard": .number(Double(heard?.lines.count ?? 0)),
                         "proposal": try proposal.json,
                     ]))
             logger.info(
@@ -187,7 +194,8 @@ struct Librarian: Sendable {
 
     static func transcript(
         learned: [Fact], overwritten: [OverwrittenFact], kinds: [FactKind],
-        candidates: [KindCandidate] = [], name: String
+        candidates: [KindCandidate] = [], asked: [String] = [], heard: Heard? = nil,
+        name: String
     ) -> [LocalLLMClient.Message] {
         [
             .init(role: .system, content: instructions(name: name)),
@@ -195,7 +203,7 @@ struct Librarian: Sendable {
                 role: .user,
                 content: record(
                     learned: learned, overwritten: overwritten, kinds: kinds,
-                    candidates: candidates)),
+                    candidates: candidates, asked: asked, heard: heard)),
         ]
     }
 
@@ -230,22 +238,29 @@ struct Librarian: Sendable {
         person.flight_landings. Use a family already meant (listed under "what kinds mean") \
         when one fits. It replaces every fact it lists, and its value holds everything they \
         said - never less, never anything they did not say. A replaced value under \
-        "written over" may be folded back in.
+        "written over" may be folded back in, on the subject it was written over on: \
+        moved to another, it would end the fact that replaced it.
         - Retire what is no longer so: news that is old now, a plan whose day is past, \
         something a newer fact contradicts. Never retire something only because it is old. \
         A delivery a bird kept - a package delivered, on its way, or expected - is news only \
         for a few days: once it arrived, or was due, more than three days ago, retire it. \
         The mail's own orders (order:...) the world settles by itself; leave those.
         - Same is for ids that are one thing: one place, one person, one plan. Sure only when \
-        the record itself says so - the same name, the same description. Never sure about a \
-        person from a role alone: two people can both clean a house. When not sure, it is \
-        a question.
+        the record itself says so - the same name, the same description - or April did. Never \
+        sure about a person from a role alone: two people can both clean a house. When not \
+        sure, it is a question.
         - A rename is for an id filed as the wrong kind: a restaurant, a church, a town, or a \
         ferry filed as a person - person:rocket-taco is place:rocket-taco. Rename only from \
         the ids listed as maybe the wrong kind, and only when what is said of it shows it is \
         not a person; a person with an unusual name stays a person.
         - A kind gives each new name you settle on its meaning, for every bird to read. A name \
         listed under "what kinds mean" keeps the meaning it has.
+        - April's word settles the record. After it come the questions you asked her last \
+        night and what she said to the birds that day. Where she says a fact belongs, rewrite \
+        it onto the subject she named, replacing the misfiled one; ids she says are one thing \
+        are a sure same; what she says something is, file it so. Her words settle only what \
+        the record holds - never file anything new from them - and never ask again what she \
+        has answered.
         - Leave alone what is already filed well. Use only the fact ids and subject ids in \
         the record. At most \(maximumChanges) rewrites, retires, sames, and renames together. If \
         nothing needs filing, answer with empty lists.
@@ -254,10 +269,11 @@ struct Librarian: Sendable {
     }
 
     /// The record as the librarian reads it: the kept and filed facts by subject, what was
-    /// written over, and the kinds already meant.
+    /// written over, and the kinds already meant; then what it asked April last night and
+    /// what she said to the birds that day (#254).
     static func record(
         learned: [Fact], overwritten: [OverwrittenFact], kinds: [FactKind],
-        candidates: [KindCandidate] = []
+        candidates: [KindCandidate] = [], asked: [String] = [], heard: Heard? = nil
     ) -> String {
         var lines = ["What the minds kept, and what you filed before, by subject:"]
         let bySubject = Dictionary(grouping: learned, by: \.subjectID)
@@ -297,8 +313,46 @@ struct Librarian: Sendable {
             lines.append("What kinds mean:")
             for kind in kinds { lines.append("  \(kind.predicate): \(kind.meaning)") }
         }
+        if !asked.isEmpty {
+            lines.append("")
+            lines.append("What you asked April last night:")
+            for question in asked { lines.append("  - \(question)") }
+        }
+        if let heard, !heard.lines.isEmpty {
+            lines.append("")
+            lines.append("What April said to the birds on \(heard.day), in order:")
+            for line in heard.lines {
+                let who = EntityID(rawValue: line.who).map(FactPhrasing.name(of:)) ?? line.who
+                lines.append(
+                    "  - \(FactPhrasing.clock(line.at, in: heard.timeZone)) \(who): \(line.text)")
+            }
+        }
         return lines.joined(separator: "\n")
     }
+
+    /// What people said to the birds on the day the night files, from the day record the
+    /// nightly memory reads (#254). On 2026-10-20 April told Beaky, field by field, which
+    /// workshop facts belong to the new workshop - the librarian's own question - and a bird
+    /// could only keep new facts, never move one. The birds' lines stay out: a correction is
+    /// hers, and they cost eight times as much.
+    struct Heard: Equatable, Sendable {
+        var day: String
+        var timeZone: TimeZone
+        var lines: [DayDigest.Line]
+
+        /// Every line a person said, in order; the newest `maximumHeard` of them.
+        init(_ digest: DayDigest) {
+            day = digest.day
+            timeZone = TimeZone(identifier: digest.timeZone) ?? .current
+            let said = digest.conversation.enumerated().filter {
+                EntityID(rawValue: $0.element.who)?.rawValue.hasPrefix("person:") == true
+            }.sorted { ($0.element.at, $0.offset) < ($1.element.at, $1.offset) }.map(\.element)
+            lines = Array(said.suffix(Librarian.maximumHeard))
+        }
+    }
+
+    /// The most of April's lines one night reads: a busy day held 32.
+    static let maximumHeard = 200
 
     /// Filed by the librarian: its own earlier work, which it may fold a new keeping into.
     private static func isFiled(_ fact: Fact) -> Bool {
@@ -511,6 +565,39 @@ struct Librarian: Sendable {
                 "The world could not list ids that may be the wrong kind; filing without them",
                 metadata: ["error": "\(error)"])
             return []
+        }
+    }
+
+    /// The questions of the newest filing of an earlier day - last night's, when there was one.
+    /// A filing of `day` itself is this night's own, from a run before a retry. None when the
+    /// World cannot say; the night files without them.
+    private func fetchAsked(before day: String) async -> [String] {
+        do {
+            let page: WorldFilingPage = try await get(
+                "filings", query: [URLQueryItem(name: "limit", value: "3")])
+            let last = page.events.first {
+                if case .string(let filed)? = $0.payload["day"] { filed < day } else { false }
+            }
+            return last.flatMap(LibrarianProposal.init(filed:))?.questions ?? []
+        } catch {
+            logger.warning(
+                "The world could not say what was asked last night; filing without it",
+                metadata: ["error": "\(error)"])
+            return []
+        }
+    }
+
+    /// What April said to the birds on `day`, from the day record; none when the World cannot
+    /// say, and the night files without it.
+    private func fetchHeard(day: String) async -> Heard? {
+        do {
+            let digest: DayDigest = try await get("days/\(day)", query: [])
+            return Heard(digest)
+        } catch {
+            logger.warning(
+                "The world could not say what April said; filing without it",
+                metadata: ["memory.day": "\(day)", "error": "\(error)"])
+            return nil
         }
     }
 

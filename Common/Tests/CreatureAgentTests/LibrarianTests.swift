@@ -67,6 +67,92 @@ struct LibrarianTests {
 
     private func answer(_ json: String) -> Data { Data(json.utf8) }
 
+    /// The day record of the 14th, in small: April settling a question, and a bird's reply.
+    private func day() throws -> DayDigest {
+        DayDigest(
+            day: "2026-10-14", timeZone: "America/Los_Angeles", happenings: [],
+            conversation: [
+                .init(
+                    at: now.addingTimeInterval(60), who: "character:beaky", text: "Noted, April."),
+                .init(
+                    at: now, who: "person:april",
+                    text: "The flight school is Wings Over Whidbey; the other one is it too."),
+            ], scenes: [], learned: [])
+    }
+
+    /// A night's filing, as `GET /v1/filings` returns it.
+    private func filing(day: String, questions: [String]) throws -> WorldEventEnvelope {
+        try WorldEventEnvelope(
+            type: WorldEventType(validating: LibrarianFiling.filedEventType), occurredAt: now,
+            source: EventSource(
+                id: SourceID(validating: "mind:beaky"), kind: "mind",
+                sourceEventID: "librarian:\(day):run"),
+            subjectIDs: [beaky], epistemic: EpistemicState(type: .remembered, confidence: 1),
+            payload: [
+                "day": .string(day),
+                "proposal": try LibrarianProposal(questions: questions).json,
+            ])
+    }
+
+    @Test("What the librarian hears is what people said to the birds, in order, the newest kept")
+    func hearsPeopleInOrder() throws {
+        var lines: [DayDigest.Line] = [
+            .init(at: now.addingTimeInterval(30), who: "character:kenny", text: "Kenny heard."),
+            .init(at: now.addingTimeInterval(20), who: "person:april", text: "second"),
+            .init(at: now.addingTimeInterval(10), who: "person:april", text: "first"),
+        ]
+        var heard = Librarian.Heard(
+            DayDigest(
+                day: "2026-10-20", timeZone: "America/Los_Angeles", happenings: [],
+                conversation: lines, scenes: [], learned: []))
+        #expect(heard.lines.map(\.text) == ["first", "second"])
+        for index in 0..<(Librarian.maximumHeard + 5) {
+            lines.append(
+                .init(
+                    at: now.addingTimeInterval(100 + Double(index)), who: "person:april",
+                    text: "line \(index)"))
+        }
+        heard = Librarian.Heard(
+            DayDigest(
+                day: "2026-10-20", timeZone: "America/Los_Angeles", happenings: [],
+                conversation: lines, scenes: [], learned: []))
+        #expect(heard.lines.count == Librarian.maximumHeard)
+        #expect(heard.lines.last?.text == "line \(Librarian.maximumHeard + 4)")
+    }
+
+    @Test("The record ends with what was asked last night and what April said, by the clock")
+    func recordEndsWithAprilsWord() throws {
+        let (learned, overwritten) = try record()
+        let said = Date(timeIntervalSince1970: 1_792_545_119)  // 2026-10-20 6:11:59 PM, Pacific
+        let heard = Librarian.Heard(
+            DayDigest(
+                day: "2026-10-20", timeZone: "America/Los_Angeles", happenings: [],
+                conversation: [
+                    .init(
+                        at: said, who: "person:april",
+                        text: "workshop.rebuild should be on the new workshop.")
+                ], scenes: [], learned: []))
+        let text = Librarian.record(
+            learned: learned, overwritten: overwritten, kinds: [],
+            asked: ["Which workshop notes describe the current room?"], heard: heard)
+        #expect(
+            text.hasSuffix(
+                """
+                What you asked April last night:
+                  - Which workshop notes describe the current room?
+
+                What April said to the birds on 2026-10-20, in order:
+                  - 6:11 PM April: workshop.rebuild should be on the new workshop.
+                """))
+        let instructions = Librarian.instructions(name: "Beaky")
+        #expect(instructions.contains("April's word settles the record"))
+        #expect(instructions.contains("rewrite it onto the subject she named"))
+        #expect(instructions.contains("never ask again what she has answered"))
+        // The new workshop's hard floor, written over by the current one's carpet, stays put:
+        // moved, it would end the carpet.
+        #expect(instructions.contains("on the subject it was written over on"))
+    }
+
     @Test(
         "The record holds what can be filed: never a kind with its own rules, a merged id, or bookkeeping; the librarian's own filings are in"
     )
@@ -347,6 +433,25 @@ struct LibrarianTests {
                                     said: ["April often eats at Rocket Taco."])
                             ])))))
         }
+        // What she said that day, and what was asked: this night's own filing from a run
+        // before a retry is not last night's (#254).
+        let day = try self.day()
+        let filings = WorldFilingPage(events: [
+            try filing(day: "2026-10-14", questions: ["Asked tonight already?"]),
+            try filing(day: "2026-10-13", questions: ["Which flight school is the right one?"]),
+        ])
+        router.get("world/v1/days/2026-10-14") { _, _ in
+            Response(
+                status: .ok, headers: [.contentType: "application/json"],
+                body: ResponseBody(
+                    byteBuffer: ByteBuffer(bytes: try WorldJSON.makeEncoder().encode(day))))
+        }
+        router.get("world/v1/filings") { _, _ in
+            Response(
+                status: .ok, headers: [.contentType: "application/json"],
+                body: ResponseBody(
+                    byteBuffer: ByteBuffer(bytes: try WorldJSON.makeEncoder().encode(filings))))
+        }
         let application = Application(
             router: router, configuration: .init(address: .hostname("127.0.0.1", port: 0)))
         let casts = Casts()
@@ -382,6 +487,14 @@ struct LibrarianTests {
         #expect(await origins.seen == ["mind:", "librarian:"])
         #expect(
             await asked.prompts.first?.contains("never alone in gusty wind (filed by you") == true)
+        // What she said, and last night's questions - never this night's own (#254).
+        let prompt = try #require(await asked.prompts.first)
+        #expect(prompt.contains("What you asked April last night:\n  - Which flight school"))
+        #expect(!prompt.contains("Asked tonight already?"))
+        #expect(prompt.contains("What April said to the birds on 2026-10-14, in order:"))
+        #expect(
+            prompt.contains("The flight school is Wings Over Whidbey; the other one is it too."))
+        #expect(!prompt.contains("Noted, April."))
         let events = await casts.events
         // Watching: the proposal and nothing else - no fact cast, no kind written.
         #expect(events.count == 1)
@@ -391,6 +504,7 @@ struct LibrarianTests {
         #expect(filing.payload["day"] == .string("2026-10-14"))
         #expect(filing.payload["learned"] == .number(6))
         #expect(filing.payload["overwritten"] == .number(1))
+        #expect(filing.payload["heard"] == .number(1))
         #expect(filing.source.id.rawValue == "mind:beaky")
         #expect(
             filing.source.sourceEventID
@@ -406,6 +520,66 @@ struct LibrarianTests {
         #expect(questions == [.string("Is Amber Tamara?")])
         #expect(
             LibrarianProposal(filed: filing)?.renames.map(\.to.rawValue) == ["place:rocket-taco"])
+    }
+
+    @Test("A World that cannot say what April said or asked still has the night filed")
+    func filesWithoutTheDay() async throws {
+        let (learned, _) = try record()
+        let router = Router(context: BasicRequestContext.self)
+        router.get("world/v1/facts") { request, _ in
+            let origin = request.uri.queryParameters["origin_prefix"].map(String.init)
+            return Response(
+                status: .ok, headers: [.contentType: "application/json"],
+                body: ResponseBody(
+                    byteBuffer: ByteBuffer(
+                        bytes: try WorldJSON.makeEncoder().encode(
+                            WorldFactPage(
+                                facts: origin == "mind:" ? learned : [], nextFactID: nil,
+                                hasMore: false)))))
+        }
+        router.get("world/v1/facts/overwritten") { _, _ in
+            Response(
+                status: .ok, headers: [.contentType: "application/json"],
+                body: ResponseBody(
+                    byteBuffer: ByteBuffer(
+                        bytes: try WorldJSON.makeEncoder().encode(OverwrittenFactPage(items: [])))
+                ))
+        }
+        router.get("world/v1/fact-kinds") { _, _ in
+            Response(
+                status: .ok, headers: [.contentType: "application/json"],
+                body: ResponseBody(
+                    byteBuffer: ByteBuffer(
+                        bytes: try WorldJSON.makeEncoder().encode(FactKindPage(kinds: [])))))
+        }
+        let application = Application(
+            router: router, configuration: .init(address: .hostname("127.0.0.1", port: 0)))
+        let casts = Casts()
+        let asked = Asked()
+        let beaky = self.beaky
+        let now = self.now
+        try await application.test(.live) { liveClient in
+            let port = try #require(liveClient.port)
+            let client = HTTPClient(eventLoopGroupProvider: .singleton)
+            defer { Task { try? await client.shutdown() } }
+            try await Librarian(
+                worldURL: URL(string: "http://localhost:\(port)/world/v1")!, characterID: beaky,
+                persona: .text("You are Beaky."),
+                model: MemoryModel(
+                    modelName: "gpt-6-astra",
+                    ask: { transcript in
+                        await asked.note(transcript.last?.content ?? "")
+                        return Data("{}".utf8)
+                    }),
+                cast: { await casts.note($0) }, client: client,
+                logger: Logger(label: "librarian-tests")
+            ).file(
+                day: "2026-10-14",
+                run: try EventID(validating: "5a8b0c8e-0000-4000-8000-000000000231"), now: now)
+        }
+        #expect(await asked.prompts.first?.contains("What April said") == false)
+        #expect(await asked.prompts.first?.contains("What you asked April") == false)
+        #expect(await casts.events.first?.payload["heard"] == .number(0))
     }
 
     @Test("A night with nothing kept asks nothing")

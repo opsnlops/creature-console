@@ -601,6 +601,18 @@ Beaky's five minutes after she kept it. Two things keep learning durable:
   the same way. The answer drops, as `dropped`, a rewrite writing such a kind, a rewrite onto a
   name the record holds with a fact it doesn't fold in (the review would end that fact), and a
   meaning for a kind that already has one.
+- **April's word settles the record** (`2.102.0`, #254). Her answers to the librarian's
+  questions came in conversation, where a bird can only keep new facts: on 2026-10-20 she said
+  which workshop facts belong to the new workshop, and nothing could move them. The record now
+  ends with the questions of the newest filing of an earlier day (`GET /v1/filings?limit=3`;
+  this night's own, from a run before a retry, is skipped) and every line a person said to the
+  birds that day, by the clock, from the day record the nightly memory reads
+  (`GET /v1/days/{day}`, the newest 200; 32 lines on the 20th). The instructions: where she says
+  a fact belongs, a rewrite moves it onto that subject; ids she says are one thing are a sure
+  same; her words settle only what the record holds, and a question she answered is not asked
+  again. A written-over value comes back only on the subject it was written over on. Either
+  piece missing, the night files without it. The filing carries `heard` (her lines read); the
+  span `librarian.asked` and `librarian.heard`.
 - In Honeycomb, the night is `agent.librarian.file` with `invoke_agent Beaky` beneath it
   (conversation `librarian:<day>:<run>`), and `librarian.rewrites` / `.retires` / `.same` /
   `.questions` / `.dropped` on the span.
