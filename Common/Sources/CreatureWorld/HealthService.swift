@@ -22,7 +22,10 @@ struct HealthService: Sendable {
             service: "creature-world",
             buildVersion: buildInfo.version,
             mongodb: isReady ? "ok" : "unavailable",
-            schemaVersion: buildInfo.schemaVersion
+            schemaVersion: buildInfo.schemaVersion,
+            // Ready is the database holding this build's newest migration
+            // (`MongoWorldPersistence.isHealthy`), so the number is the database's own.
+            migrationVersion: isReady ? buildInfo.migrationVersion : nil
         )
     }
 

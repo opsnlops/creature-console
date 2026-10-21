@@ -1,3 +1,13 @@
+creature-cli (2.103.0+world0.62.0+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.62.0: /world/v1/health reports migration_version,
+    the newest database migration recorded, beside schema_version, the
+    wire contract every event and fact carries. World Viewer 0.21.0
+    shows both: "MongoDB ok · contract v1 · migration 15" instead of a
+    bare "schema 1", which read as the database's version.
+
+ -- April White <april@creature.engineering>  Wed, 21 Oct 2026 00:30:00 -0700
+
 creature-cli (2.103.0+world0.61.0+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * April teaches the birds her places (#248, slice 2). creature-agent

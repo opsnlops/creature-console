@@ -763,6 +763,14 @@ preparation failures leave the running service unready until they are corrected.
 - HTTP 503 with `status: "unavailable"` and `mongodb: "unavailable"` means callers must not send
   work that depends on persistence.
 
+Two versions ride along, and they are different things (`0.62.0`):
+
+- `schema_version` is the **wire contract**: the version every event, fact, and request carries
+  (`WorldSchema.currentVersion`, 1). It changes only when a shape breaks older readers.
+- `migration_version` is the **database**: the newest migration recorded (15,
+  `filed_fact_dates`). Ready means the database holds this build's newest migration, so it is
+  present only with `mongodb: "ok"`. A World older than 0.62.0 does not send it.
+
 An HTTP 503 does not mean the process should be restarted. Supervisors should use process exit for
 liveness and `/world/v1/health` for readiness. This distinction allows Creature World to survive a
 MongoDB restart or temporary network outage and recover in place.

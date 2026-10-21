@@ -32,7 +32,10 @@ records; everything else works against `0.2.x`.
 
 The sidebar lists the panels with live counts, and its footer shows where the Viewer is looking:
 the stream state, the World's `build_version` and MongoDB state from `/world/v1/health`, the
-latest sequence, and the world URI.
+latest sequence, and the world URI. The MongoDB line reads `MongoDB ok · contract v1 · migration
+15` (`0.21.0`): the wire contract's version, then the newest database migration. It said
+"schema 1" before, which read as the database's version; it never was. An older World shows no
+migration.
 
 **Stream state** is the World's own vocabulary: *Connecting*, *Live*, *Resuming after N* (the
 World restarted; the Viewer reconnected with `Last-Event-ID` and received the gap), *Taking a new

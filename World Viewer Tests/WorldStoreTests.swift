@@ -12,6 +12,18 @@ struct WorldStoreTests {
     private let april = try! EntityID(validating: "person:april")
     private let beaky = try! EntityID(validating: "character:beaky")
 
+    @Test("The health line names the contract and the migration, never a bare \"schema\"")
+    func healthLine() {
+        var health = WorldHealth(
+            status: "ok", service: "creature-world", buildVersion: "0.62.0", mongodb: "ok",
+            schemaVersion: 1, migrationVersion: 15)
+        #expect(health.databaseLine == "MongoDB ok · contract v1 · migration 15")
+        // An older World, or a database not ready: no migration to name.
+        health.migrationVersion = nil
+        health.mongodb = "unavailable"
+        #expect(health.databaseLine == "MongoDB unavailable · contract v1")
+    }
+
     @Test("A snapshot seeds facts and timers and the timeline is bounded to the newest events")
     func snapshotSeedsAndBounds() async throws {
         let total = WorldStore.maximumEvents + 50

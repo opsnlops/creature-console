@@ -8,16 +8,23 @@ public struct WorldHealth: Codable, Equatable, Sendable {
     public var service: String
     public var buildVersion: String
     public var mongodb: String
+    /// The version of the wire contract every event, fact, and request carries
+    /// (`WorldSchema.currentVersion`); it changes only when a shape breaks older readers.
     public var schemaVersion: Int
+    /// The newest database migration recorded, when the database is ready; nil while it is
+    /// not, and from a World older than 0.62.0.
+    public var migrationVersion: Int?
 
     public init(
-        status: String, service: String, buildVersion: String, mongodb: String, schemaVersion: Int
+        status: String, service: String, buildVersion: String, mongodb: String, schemaVersion: Int,
+        migrationVersion: Int? = nil
     ) {
         self.status = status
         self.service = service
         self.buildVersion = buildVersion
         self.mongodb = mongodb
         self.schemaVersion = schemaVersion
+        self.migrationVersion = migrationVersion
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -26,6 +33,7 @@ public struct WorldHealth: Codable, Equatable, Sendable {
         case buildVersion = "build_version"
         case mongodb
         case schemaVersion = "schema_version"
+        case migrationVersion = "migration_version"
     }
 }
 

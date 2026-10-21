@@ -151,7 +151,7 @@ struct WorldConnectionHeader: View {
                 Text("\(health.service) \(health.buildVersion)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                Text("MongoDB \(health.mongodb) · schema \(health.schemaVersion)")
+                Text(health.databaseLine)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -269,5 +269,16 @@ private struct JSONLines: View {
         Text(text)
             .font(.system(.callout, design: .monospaced))
             .fixedSize(horizontal: true, vertical: false)
+    }
+}
+
+extension WorldHealth {
+    /// "MongoDB ok · contract v1 · migration 15": the database, the version of the wire
+    /// contract every event and fact carries, and the newest migration the database holds.
+    /// "Schema 1" read as the database's version, which it never was.
+    var databaseLine: String {
+        var parts = ["MongoDB \(mongodb)", "contract v\(schemaVersion)"]
+        if let migrationVersion { parts.append("migration \(migrationVersion)") }
+        return parts.joined(separator: " · ")
     }
 }

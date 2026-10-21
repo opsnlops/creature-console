@@ -81,6 +81,7 @@ struct CreatureWorld: AsyncParsableCommand {
             metadata: [
                 "build.version": "\(CreatureWorldBuildInfo.current.version)",
                 "world.schema_version": "\(CreatureWorldBuildInfo.current.schemaVersion)",
+                "mongodb.migration_version": "\(CreatureWorldBuildInfo.current.migrationVersion)",
             ]
         )
         logger.debug(
