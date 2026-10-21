@@ -26,15 +26,20 @@ jobs:
 
   creature-world-mongodb-tests:
     name: Linux Tests (Swift 6.3.3, MongoDB 8.3)
-    runs-on: ubuntu-24.04
+    # MongoDB 8.3 refuses to start on kernels 6.19 and newer (SERVER-121912), and the
+    # ubuntu-24.04 image moved to one on 2026-10-18 (#257). ubuntu-22.04's 6.8 kernel keeps the
+    # tests on production's MongoDB.
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      # No --rm: a mongod that exits at start keeps its container, so its logs say why.
       - name: Start MongoDB 8.3 replica set
         run: |
-          docker run --detach --rm \
+          echo "Kernel $(uname -r)"
+          docker run --detach \
             --name creature-world-mongodb-tests \
             --network host \
             mongo:8.3.8 \
