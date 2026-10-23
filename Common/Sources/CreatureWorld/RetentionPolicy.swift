@@ -51,6 +51,9 @@ struct RetentionPolicy: Codable, Equatable, Sendable {
         Self.cheapEvents.contains(eventType) ? cheapEventDays : eventDays
     }
 
+    /// How long an event's processing marker lives before its TTL removes it.
+    var processingRetention: TimeInterval { TimeInterval(processingDays) * 86_400 }
+
     /// When an event of this type, at this time, stops mattering.
     func expiry(for eventType: WorldEventType, occurredAt: Date) -> Date {
         occurredAt.addingTimeInterval(TimeInterval(days(for: eventType)) * 86_400)

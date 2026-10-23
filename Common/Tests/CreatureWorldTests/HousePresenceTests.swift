@@ -46,6 +46,59 @@ struct HousePresenceTests {
             observed.validUntil == start.addingTimeInterval(FactBackedPresenceProvider.validity))
     }
 
+    @Test(
+        "A restart's announcement, its marker expired, never lays the old assumption over evidence (#259)"
+    )
+    func restartKeepsEvidence() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "house-presence-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let april = try EntityID(validating: "person:april-\(UUID().uuidString.lowercased())")
+        // 13 September, as on the live world.
+        let start = Date(timeIntervalSince1970: 1_789_600_000)
+        let clock = ManualWorldClock(now: start)
+        let world = World(
+            eventStore: persistence.events, factStore: persistence.facts,
+            reducers: [AssumedPersonPresenceReducer(), HouseReducer()], clock: clock)
+        let assumptions = PresenceConfiguration(
+            assumed: [april: try .init(state: .home, physicallyAudible: true, confidence: 0.9)])
+        // The first start announces the assumption.
+        let announced = try #require(
+            try AssumedPresenceAnnouncement.events(for: assumptions, at: start).first)
+        _ = try await world.accept(announced)
+
+        // Five weeks on, the house sees her leave.
+        try await clock.advance(by: 35 * 86_400)
+        _ = try await world.accept(
+            try WorldEventEnvelope(
+                type: HouseEvents.personLeft, occurredAt: await clock.now,
+                source: EventSource(
+                    id: try SourceID(validating: "home-assistant:person-april"),
+                    kind: HouseEvents.sourceKind, sourceEventID: UUID().uuidString),
+                subjectIDs: [april], epistemic: EpistemicState(type: .observed, confidence: 1),
+                payload: ["entity_id": .string("person.april")]))
+        func state() async throws -> Fact? {
+            try await persistence.facts.currentFacts(subjectID: april, at: await clock.now)
+                .first { $0.predicate == WorldFacts.personState }
+        }
+        let left = try #require(try await state())
+        #expect(left.value == .string("away") && left.epistemic.type == .observed)
+
+        // A deploy: the same announcement again. Its marker has long expired (the TTL keeps
+        // a week); the event itself is kept ninety days.
+        try await clock.advance(by: 60)
+        _ = try await persistence.database[MongoWorldCollection.eventProcessing].deleteOne(
+            where: ["_id": announced.eventID.rawValue])
+        let again = try #require(
+            try AssumedPresenceAnnouncement.events(for: assumptions, at: await clock.now).first)
+        let acceptance = try await world.accept(again)
+        #expect(acceptance.disposition == .duplicateSourceEvent)
+
+        // She is still away, as the house saw; nothing replaced it.
+        #expect(try await state()?.factID == left.factID)
+    }
+
     @Test("A scene ask goes to the house and comes back as the fact the mind is told")
     func sceneAskBecomesARequest() async throws {
         let uri = try #require(mongoTestURI)

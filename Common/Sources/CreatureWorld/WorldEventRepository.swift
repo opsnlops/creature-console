@@ -177,6 +177,8 @@ struct WorldEventRepository: Sendable {
         return try document.map(decode)?.worldSequence ?? 0
     }
 
+    var processingRetention: TimeInterval { retention.processingRetention }
+
     func isProcessed(eventID: EventID) async throws -> Bool {
         try await eventProcessing.findOne(["_id": eventID.rawValue]) != nil
     }

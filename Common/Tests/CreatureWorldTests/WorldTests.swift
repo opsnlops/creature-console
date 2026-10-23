@@ -284,6 +284,38 @@ struct WorldTests {
         #expect(await world.publishedDeltaCount == 1)
     }
 
+    @Test(
+        "A duplicate older than its marker's lifetime was processed; a newer one is recovered (#259)"
+    )
+    func expiredMarkerIsNotUnprocessed() async throws {
+        let store = TestWorldStore()
+        let eventType = try WorldEventType(validating: "test.announced")
+        let reducer = TestWorldReducer(eventTypes: [eventType]) { event in
+            WorldReduction(changedFacts: [try makeFact(factID: .generated(), event: event)])
+        }
+        func world(after days: Double) -> World {
+            World(
+                eventStore: store, factStore: store, reducers: [reducer],
+                clock: FixedWorldClock(now: Self.receivedAt.addingTimeInterval(days * 86_400)))
+        }
+        let event = try makeEvent(
+            eventID: "00000000-0000-0000-0000-000000000023", type: eventType,
+            sourceEventID: "announced-at-start")
+        _ = try await world(after: 0).accept(event)
+        #expect(await store.savedFactIDs.count == 1)
+
+        // A day later its marker is gone: appended and never reduced, so it is reduced now.
+        await store.forgetProcessed(event.eventID)
+        _ = try await world(after: 1).accept(event)
+        #expect(await store.savedFactIDs.count == 2)
+
+        // Eight days later its marker is gone again: the TTL took it, not a crash.
+        await store.forgetProcessed(event.eventID)
+        let late = try await world(after: 8).accept(event)
+        #expect(late.disposition == .duplicateEvent)
+        #expect(await store.savedFactIDs.count == 2)
+    }
+
     @Test("Matching reducers run in registration order")
     func reducersRunInRegistrationOrder() async throws {
         let store = TestWorldStore()
@@ -800,6 +832,11 @@ private actor TestWorldStore: WorldEventStore, WorldFactStore {
 
     func isProcessed(eventID: EventID) -> Bool {
         processedEventIDs.contains(eventID)
+    }
+
+    /// As the TTL on `event_processing` does, or a crash before the marker was written.
+    func forgetProcessed(_ eventID: EventID) {
+        processedEventIDs.remove(eventID)
     }
 
     func markProcessed(eventID: EventID, processedAt: Date) throws {

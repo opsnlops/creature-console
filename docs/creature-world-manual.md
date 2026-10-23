@@ -884,6 +884,16 @@ before the root. If a marker write fails, a retry may therefore republish a delt
 previously completed descendant. Subscribers must treat event IDs as idempotency keys and obtain a
 fresh snapshot after reconnecting; an in-memory delta is not a durable acknowledgement.
 
+A marker lives `processing_days` (7); the event lives 90. So a duplicate received longer ago than
+a marker lives counts as processed, whatever the markers say (`0.64.1`, #259): its marker
+expired, the event wasn't left unreduced. Before that, the same events sent again after a week
+were reduced again, and their first day's facts were laid over newer ones. That meant the
+World's startup announcements on every restart, and the house's snapshot of a person after its
+own restart. On 2026-10-22 a deploy turned April's observed presence back into the 13 September
+assumption, and inverted the replaced fact's interval. Not covered: once the event itself expires
+(90 days), a restart's announcement is a new event, and a configured assumption is cast afresh
+over evidence (#260).
+
 Reducers are synchronous and side-effect-free. They may calculate facts and proposed derived
 events, but they cannot suspend for MongoDB, HTTP, model inference, or other external I/O. Those
 operations belong outside the actor and return their results as later world events.

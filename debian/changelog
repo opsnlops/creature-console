@@ -1,3 +1,14 @@
+creature-cli (2.103.0+world0.64.1+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.64.1: a restart no longer lays old announcements
+    over newer facts (#259). An event's processing marker lives a week
+    and the event ninety days, so the startup announcements (the same
+    events every time) were reduced again on each restart: April's
+    observed presence became the September assumption. A duplicate
+    received longer ago than a marker lives now counts as processed.
+
+ -- April White <april@creature.engineering>  Thu, 22 Oct 2026 20:00:00 -0700
+
 creature-cli (2.103.0+world0.64.0+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.64.0: the birds know where April is without being

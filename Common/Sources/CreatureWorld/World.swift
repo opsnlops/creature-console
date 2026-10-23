@@ -285,6 +285,22 @@ private struct WorldEventProcessor: Sendable {
     let maximumDerivedEvents: Int
     let telemetry: WorldTelemetry
 
+    /// Whether a duplicate was reduced already: its marker says so, or it arrived longer ago
+    /// than a marker lives, so the marker expired, not the processing. A duplicate with no
+    /// marker is otherwise an event appended and never reduced, and is reduced now. Without the
+    /// age, the same events sent again after a week - the World's startup announcements on every
+    /// restart, the house's snapshot of a person after its own restart - were reduced again,
+    /// laying their first day's facts over newer ones. On 2026-10-22 April's observed presence
+    /// became the 13 September assumption at a deploy (#259).
+    private func wasProcessed(_ event: WorldEventEnvelope, at now: Date) async throws -> Bool {
+        if let receivedAt = event.receivedAt,
+            now.timeIntervalSince(receivedAt) >= eventStore.processingRetention
+        {
+            return true
+        }
+        return try await eventStore.isProcessed(eventID: event.eventID)
+    }
+
     func process(
         _ rootEvent: WorldEventEnvelope,
         reduce: @escaping @Sendable (WorldEventEnvelope) async throws -> WorldReduction,
@@ -311,7 +327,7 @@ private struct WorldEventProcessor: Sendable {
 
                 let acceptedEvent = acceptance.event
                 if acceptance.disposition != .accepted,
-                    try await eventStore.isProcessed(eventID: acceptedEvent.eventID)
+                    try await wasProcessed(acceptedEvent, at: receivedAt)
                 {
                     continue
                 }

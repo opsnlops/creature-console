@@ -5,6 +5,12 @@ protocol WorldEventStore: Sendable {
     func append(_ event: WorldEventEnvelope, receivedAt: Date) async throws -> EventAppendResult
     func isProcessed(eventID: EventID) async throws -> Bool
     func markProcessed(eventID: EventID, processedAt: Date) async throws
+    /// How long an event's processing marker lives before it expires (#259).
+    var processingRetention: TimeInterval { get }
+}
+
+extension WorldEventStore {
+    var processingRetention: TimeInterval { RetentionPolicy().processingRetention }
 }
 
 protocol WorldFactStore: Sendable {
