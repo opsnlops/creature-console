@@ -1,3 +1,4 @@
+import CoreLocation
 import MapKit
 import SwiftUI
 import WorldCore
@@ -34,8 +35,8 @@ struct PlaceFix: Equatable, Sendable {
     }
 }
 
-/// A place April taught the birds, as the world pinned it from her phone (#248): read from its
-/// `place.geo`.
+/// A place April taught the birds, as the world pinned it from her phone (#248), or where she
+/// moved it on the map (#258): read from its `place.geo`.
 struct TaughtPlace: Equatable, Identifiable, Sendable {
     var id: EntityID
     var latitude: Double
@@ -46,6 +47,8 @@ struct TaughtPlace: Equatable, Identifiable, Sendable {
     var fixes: Int
     /// The bird that kept her word last: "Beaky".
     var teacher: String
+    /// Who moved it by hand on this map, "April"; empty while it is where her phone was.
+    var placer: String = ""
     var since: Date
 
     var name: String { FactPageSections.name(of: id) }
@@ -65,44 +68,105 @@ struct TaughtPlace: Equatable, Identifiable, Sendable {
             var fixes = 1
             if case .number(let count)? = fields["fixes"] { fixes = Int(count) }
             var teacher = ""
-            if case .string(let source)? = fields["taught_by"] {
-                teacher = source.split(separator: ":").last.map { $0.capitalized } ?? source
-            }
+            if case .string(let source)? = fields["taught_by"] { teacher = who(source) }
+            var placer = ""
+            if case .string(let source)? = fields["placed_by"] { placer = who(source) }
             return TaughtPlace(
                 id: fact.subjectID, latitude: latitude, longitude: longitude, radius: radius,
-                fixes: fixes, teacher: teacher, since: fact.validFrom)
+                fixes: fixes, teacher: teacher, placer: placer, since: fact.validFrom)
         }.sorted { $0.name < $1.name }
+    }
+
+    /// A source by its name: `mind:beaky` is "Beaky", `wizard:april` is "April".
+    private static func who(_ source: String) -> String {
+        source.split(separator: ":").last.map { $0.capitalized } ?? source
+    }
+
+    // MARK: - Moving it on the map (#258)
+
+    /// Dragged from `start` to `end`: the whole place moves as far as the pointer did, so it
+    /// does not jump to where the pin was grabbed.
+    func moved(from start: CLLocationCoordinate2D, to end: CLLocationCoordinate2D) -> TaughtPlace {
+        var place = self
+        place.latitude += end.latitude - start.latitude
+        place.longitude += end.longitude - start.longitude
+        return place
+    }
+
+    /// Its edge dragged to `point`: it reaches that far, within the bounds the world holds it to.
+    func reaching(_ point: CLLocationCoordinate2D) -> TaughtPlace {
+        let meters = CLLocation(latitude: latitude, longitude: longitude)
+            .distance(from: CLLocation(latitude: point.latitude, longitude: point.longitude))
+        var place = self
+        place.radius = min(
+            max(meters, PlacePlacement.reach.lowerBound), PlacePlacement.reach.upperBound)
+        return place
+    }
+
+    /// Where the edge's handle sits: due east of the point, as far as the place reaches.
+    var edge: CLLocationCoordinate2D {
+        let metersPerDegree = 111_320 * cos(latitude * .pi / 180)
+        return CLLocationCoordinate2D(
+            latitude: latitude, longitude: longitude + radius / max(metersPerDegree, 1))
+    }
+
+    /// Where it is drawn now, as a Wizard's word to the world.
+    func placement(by wizard: String) -> PlacePlacement {
+        PlacePlacement(latitude: latitude, longitude: longitude, radius: radius, placedBy: wizard)
     }
 }
 
 /// Where April is, as the world knows it (#248): her phone's fix on a map, how sure it is, and
-/// how old, and the places she taught the birds, each as far as it reaches. The world's alone -
-/// shown to April here, and never to a bird.
+/// how old, and the places she taught the birds, each as far as it reaches. She moves a place
+/// by dragging its pin, and sets how far it reaches by dragging the dot on its edge (#258). The
+/// world's alone - shown to April here, and never to a bird.
 struct PlacesPanel: View {
     let store: WorldStore
     @State private var camera: MapCameraPosition = .automatic
+    /// Places April is moving, drawn where her drag has them until the world's fact arrives.
+    @State private var drafts: [EntityID: TaughtPlace] = [:]
+    /// Each place being dragged, as it was when the drag began.
+    @State private var dragOrigins: [EntityID: TaughtPlace] = [:]
 
     private var fix: PlaceFix? { PlaceFix.april(in: store.facts) }
-    private var places: [TaughtPlace] { TaughtPlace.all(in: store.facts) }
+    private var stored: [TaughtPlace] { TaughtPlace.all(in: store.facts) }
+    private var places: [TaughtPlace] { stored.map { drafts[$0.id] ?? $0 } }
 
     var body: some View {
-        if fix != nil || !places.isEmpty {
-            Map(position: $camera) {
-                ForEach(places) { place in
-                    MapCircle(center: place.coordinate, radius: place.radius)
-                        .foregroundStyle(.teal.opacity(0.15))
-                        .stroke(.teal, lineWidth: 1)
-                    Marker(place.name, systemImage: "mappin", coordinate: place.coordinate)
-                        .tint(.teal)
-                }
-                if let fix {
-                    if let accuracy = fix.accuracy {
-                        MapCircle(center: fix.coordinate, radius: accuracy)
-                            .foregroundStyle(.purple.opacity(0.15))
-                            .stroke(.purple, lineWidth: 1)
+        if fix != nil || !stored.isEmpty {
+            MapReader { proxy in
+                Map(position: $camera) {
+                    ForEach(places) { place in
+                        MapCircle(center: place.coordinate, radius: place.radius)
+                            .foregroundStyle(.teal.opacity(0.15))
+                            .stroke(.teal, lineWidth: 1)
+                        Annotation(place.name, coordinate: place.coordinate, anchor: .center) {
+                            PlaceHandle(systemImage: "mappin", size: 28)
+                                .help("Drag to move \(place.name)")
+                                .highPriorityGesture(
+                                    drag(place, on: proxy) { origin, start, end in
+                                        origin.moved(from: start, to: end)
+                                    })
+                        }
+                        Annotation(place.name, coordinate: place.edge, anchor: .center) {
+                            PlaceHandle(systemImage: nil, size: 12)
+                                .help("Drag to set how far \(place.name) reaches")
+                                .highPriorityGesture(
+                                    drag(place, on: proxy) { origin, _, end in
+                                        origin.reaching(end)
+                                    })
+                        }
+                        .annotationTitles(.hidden)
                     }
-                    Marker("April", systemImage: "hare.fill", coordinate: fix.coordinate)
-                        .tint(.purple)
+                    if let fix {
+                        if let accuracy = fix.accuracy {
+                            MapCircle(center: fix.coordinate, radius: accuracy)
+                                .foregroundStyle(.purple.opacity(0.15))
+                                .stroke(.purple, lineWidth: 1)
+                        }
+                        Marker("April", systemImage: "hare.fill", coordinate: fix.coordinate)
+                            .tint(.purple)
+                    }
                 }
             }
             .mapStyle(.standard(elevation: .realistic))
@@ -128,7 +192,15 @@ struct PlacesPanel: View {
                 }
             }
             .onChange(of: fix) { camera = .automatic }
-            .onChange(of: places) { camera = .automatic }
+            // Only a place added or taken away refits the map: one April just moved stays
+            // where she is looking.
+            .onChange(of: stored.map(\.id)) { camera = .automatic }
+            // The world's fact for a moved place arrived: what it holds is what is drawn.
+            .onChange(of: stored) { old, new in
+                for place in new where !old.contains(place) {
+                    drafts[place.id] = nil
+                }
+            }
         } else {
             ContentUnavailableView(
                 "No Fix From April's Phone", systemImage: "location.slash",
@@ -136,6 +208,59 @@ struct PlacesPanel: View {
                     "The house tells the world where her phone is when it has a GPS fix, and the world holds one for half an hour. A place appears here once she tells a bird she is there."
                 ))
         }
+    }
+}
+
+/// A drag on one of a place's handles: `change` turns the place as the drag found it, where the
+/// drag began, and where it is now into the place drawn. Letting go asks the world to keep it
+/// there; a refusal puts it back.
+extension PlacesPanel {
+    private func drag(
+        _ place: TaughtPlace, on proxy: MapProxy,
+        _ change:
+            @escaping (TaughtPlace, CLLocationCoordinate2D, CLLocationCoordinate2D) ->
+            TaughtPlace
+    ) -> some Gesture {
+        // In the window's space: the handle moves under the pointer, so its own space would too.
+        DragGesture(minimumDistance: 2, coordinateSpace: .global)
+            .onChanged { value in
+                let origin = dragOrigins[place.id] ?? place
+                dragOrigins[place.id] = origin
+                guard let start = proxy.convert(value.startLocation, from: .global),
+                    let end = proxy.convert(value.location, from: .global)
+                else { return }
+                drafts[place.id] = change(origin, start, end)
+            }
+            .onEnded { _ in
+                dragOrigins[place.id] = nil
+                guard let moved = drafts[place.id] else { return }
+                Task {
+                    let kept = await store.move(moved)
+                    if !kept { drafts[place.id] = nil }
+                }
+            }
+    }
+}
+
+/// A handle April drags on the map: a place's pin, or the dot on its edge.
+private struct PlaceHandle: View {
+    let systemImage: String?
+    let size: CGFloat
+
+    var body: some View {
+        ZStack {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: size * 0.5, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+        }
+        .frame(width: size, height: size)
+        .glassEffect(.regular.tint(.teal).interactive(), in: .circle)
+        // A little room around the small one, so it is easy to catch.
+        .padding(6)
+        .contentShape(.circle)
+        .pointerStyle(.grabIdle)
     }
 }
 
@@ -154,6 +279,9 @@ private struct TaughtPlacesList: View {
                     )
                     if !place.teacher.isEmpty {
                         Text("· taught by \(place.teacher),")
+                    }
+                    if !place.placer.isEmpty {
+                        Text("placed by \(place.placer),")
                     }
                     Text("\(place.since, style: .relative) ago")
                 }

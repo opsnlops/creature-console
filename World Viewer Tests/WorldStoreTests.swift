@@ -242,6 +242,22 @@ struct WorldStoreTests {
         #expect(store.conversationItems.count <= WorldStore.maximumConversationItems)
     }
 
+    @Test("A place April drops on the map goes to the world as her placement (#258)")
+    func moveSendsThePlacement() async throws {
+        let world = ScriptedWorld(history: [])
+        let store = makeStore(world)
+        // A made-up point in Kansas, never April's.
+        let gym = TaughtPlace(
+            id: try EntityID(validating: "place:gym"), latitude: 40.002, longitude: -100,
+            radius: 90, fixes: 2, teacher: "Beaky", since: Date())
+        #expect(await store.move(gym))
+        #expect(
+            await world.pins[gym.id]
+                == PlacePlacement(
+                    latitude: 40.002, longitude: -100, radius: 90, placedBy: "wizard:april"))
+        #expect(store.lastError == nil)
+    }
+
     // MARK: - Helpers
 
     private func makeStore(_ world: ScriptedWorld) -> WorldStore {
@@ -322,6 +338,8 @@ actor ScriptedWorld {
     private(set) var resumePoints: [Int64?] = []
     private var items: [ConversationItem] = []
     private var deliveries: [CharacterDeliveryRecord] = []
+    /// Where the Viewer asked the world to keep each place it moved.
+    private(set) var pins: [EntityID: PlacePlacement] = [:]
 
     init(history: [WorldEventEnvelope]) {
         self.history = history
@@ -338,6 +356,10 @@ actor ScriptedWorld {
 
     func conversation() -> ([ConversationItem], [CharacterDeliveryRecord]) {
         (items, deliveries)
+    }
+
+    func pin(_ place: EntityID, _ placement: PlacePlacement) {
+        pins[place] = placement
     }
 
     func nextConnection(resumingAfter sequence: Int64?) -> [ScriptedFrame] {
@@ -456,5 +478,35 @@ struct ScriptedScryer: WorldScrying {
         -> WorldConversationUpdateStream
     {
         WorldConversationUpdateStream { _ in }
+    }
+}
+
+/// The scripted world takes a place moved on the map; it has no glossary, filings, or scenes to
+/// change.
+extension ScriptedScryer: WorldCasting {
+    func setFactKind(
+        _ predicate: String, meaning: String, audience: FactAudience?, by wizard: String
+    ) async throws -> FactKind {
+        throw WorldConversationClientError.unexpectedResponse
+    }
+
+    func forget(_ subjectID: EntityID, _ predicate: String, by wizard: String) async throws {
+        throw WorldConversationClientError.unexpectedResponse
+    }
+
+    func applyFiling(_ filing: EventID, _ selection: FilingSelection) async throws
+        -> FilingApplyResult
+    {
+        throw WorldConversationClientError.unexpectedResponse
+    }
+
+    func setHouseScene(_ name: String, description: String, askable: Bool, by wizard: String)
+        async throws -> HouseScene
+    {
+        throw WorldConversationClientError.unexpectedResponse
+    }
+
+    func pinPlace(_ place: EntityID, _ placement: PlacePlacement) async throws {
+        await world.pin(place, placement)
     }
 }

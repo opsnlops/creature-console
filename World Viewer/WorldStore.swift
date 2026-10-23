@@ -193,6 +193,21 @@ final class WorldStore {
         }
     }
 
+    /// April moved a place she taught on the map (#258): the world keeps it where she put it.
+    /// True when it took it; its fact comes back on the stream.
+    func move(_ place: TaughtPlace) async -> Bool {
+        do {
+            guard let caster = try makeScryer() as? any WorldCasting else {
+                throw WorldConversationClientError.unexpectedResponse
+            }
+            try await caster.pinPlace(place.id, place.placement(by: "wizard:april"))
+            return true
+        } catch {
+            lastError = ErrorAlert(title: "The World Did Not Move \(place.name)", error: error)
+            return false
+        }
+    }
+
     /// The entity April has asked to see whole; the root view turns to the Entities panel.
     var chosenEntity: EntityID?
 

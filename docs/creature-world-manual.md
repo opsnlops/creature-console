@@ -990,6 +990,17 @@ teaching logs it and keeps listening. A still iPhone sends no fix: on 2026-10-22
 none for 39 minutes at the dentist and 70 at the gym, so `location.gps` lapses after half an
 hour and a place is pinned only when it is taught soon after she arrives.
 
+**April moves a place** (`0.63.0`, #258). `PUT /v1/places/{id}/pin` with `{"latitude",
+"longitude", "radius_m", "placed_by"}` puts a taught place where she dropped it on the
+Viewer's map: a `facts.given` of `place.geo` from `placed_by` (kind `person`, reported), caused
+by the pin it replaces. It is built by the same `PlacePin` the rule uses, with the radius held
+to 75–500 m (`PlacePlacement.reach`), the fixes and the teacher kept, and `placed_by` added.
+Only a Wizard (`wizard:`) may place, only a point on the Earth with a radius in meters (400
+otherwise), and only a place the world has pinned (404 otherwise: adding one by hand is not
+built). It answers with the cast's acceptance. Then "Keep mine": a teaching within 1 km of a
+placed pin counts the fix and the bird but leaves the point and the radius where she put them,
+and one farther off pins it afresh, no longer placed.
+
 **The day's record is the minds' view** (`0.62.1`, #244). `GET /v1/days/{day}` and
 `query_day` leave out every world-only kind: the glossary's world-audience kinds (`contact.*`
 numbers and streets, the calendar's raw times, order and reminder timestamps) and the kinds

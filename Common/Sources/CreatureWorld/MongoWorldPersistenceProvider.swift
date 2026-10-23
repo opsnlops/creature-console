@@ -57,6 +57,7 @@ struct MongoWorldPersistenceConnection: Sendable {
     let houseAsks: @Sendable () async throws -> HouseAsks
     let houseScenes: @Sendable () async throws -> HouseScenePage
     let setHouseScene: @Sendable (String, HouseSceneUpdate) async throws -> HouseScene
+    let pinPlace: @Sendable (EntityID, PlacePlacement) async throws -> WorldEventAcceptance?
     let shutdown: @Sendable () async -> Void
 
     init(
@@ -435,6 +436,13 @@ struct MongoWorldPersistenceConnection: Sendable {
         houseAsks = { try await houseAskDesk.asks() }
         houseScenes = { try await houseAskDesk.scenes() }
         setHouseScene = { try await persistence.houseScenes.set($0, $1, at: await clock.now) }
+        pinPlace = { place, placement in
+            guard
+                let event = try await placeRule.placement(
+                    of: place, placement, at: await clock.now)
+            else { return nil }
+            return try await world.accept(event)
+        }
         filingReview = { try await filingDesk.review($0) }
         applyFiling = { try await filingDesk.apply($0, $1) }
         kindCandidates = { try await filingDesk.kindCandidates() }
@@ -847,6 +855,10 @@ struct MongoWorldPersistenceConnection: Sendable {
         setHouseScene: @escaping @Sendable (String, HouseSceneUpdate) async throws -> HouseScene = {
             _, _ in throw WorldAPIError.databaseUnavailable
         },
+        pinPlace:
+            @escaping @Sendable (EntityID, PlacePlacement) async throws -> WorldEventAcceptance? = {
+                _, _ in throw WorldAPIError.databaseUnavailable
+            },
         dayDigest: @escaping @Sendable (String) async throws -> DayDigest? = {
             _ in throw WorldAPIError.databaseUnavailable
         },
@@ -895,6 +907,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.houseAsks = houseAsks
         self.houseScenes = houseScenes
         self.setHouseScene = setHouseScene
+        self.pinPlace = pinPlace
         self.shutdown = shutdown
     }
 }
@@ -1224,6 +1237,13 @@ actor MongoWorldPersistenceProvider {
     func setHouseScene(_ name: String, _ update: HouseSceneUpdate) async throws -> HouseScene {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
         return try await connection.setHouseScene(name, update)
+    }
+
+    func pinPlace(_ place: EntityID, _ placement: PlacePlacement) async throws
+        -> WorldEventAcceptance?
+    {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.pinPlace(place, placement)
     }
 
     func remember(_ day: String) async throws -> WorldEventAcceptance {

@@ -129,6 +129,17 @@ public struct WorldViewerClient: Sendable {
         return try WorldJSON.makeDecoder().decode(HouseScene.self, from: data)
     }
 
+    /// Moves a place April taught to where she dropped it on the map (#258). The new pin comes
+    /// back on the world's stream like any fact.
+    public func pinPlace(_ place: EntityID, _ placement: PlacePlacement) async throws {
+        var request = try request(pathComponents: ["places", place.rawValue, "pin"])
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try WorldJSON.makeEncoder().encode(placement)
+        let (_, response) = try await loader.data(for: request)
+        try Self.validate(response)
+    }
+
     /// One entity, whole: its facts (every audience), what points at it, its recent events.
     /// Why a fact is what it is: the events and facts behind it, and what superseded it.
     /// `nil` when the world no longer holds the fact at all - not an error, an answer.

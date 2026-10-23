@@ -1,3 +1,16 @@
+creature-cli (2.103.0+world0.63.0+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.63.0: April moves a place she taught (#258).
+    PUT /world/v1/places/{id}/pin puts a taught place where she
+    dropped it on the Viewer's map, as her word, its reach held to
+    75-500 m; only a Wizard, and only a place the world has pinned.
+    A later teaching nearby leaves it where she put it ("Keep mine"),
+    and counts the fix; one more than a kilometre off pins it afresh.
+    World Viewer 0.22.0: drag a place's pin to move it and the dot on
+    its edge to set how far it reaches; the list says who placed it.
+
+ -- April White <april@creature.engineering>  Thu, 22 Oct 2026 18:45:00 -0700
+
 creature-cli (2.103.0+world0.62.1+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.62.1: the day's record is the minds' view (#244).

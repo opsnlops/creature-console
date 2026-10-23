@@ -136,11 +136,47 @@ stale or vague fix, at home, a value that is no place, or a source that is no mi
 teaching moves the mean); `place.geo` is world-only. The Viewer: taught places read from the
 facts.
 
+## Moving a place (#258, World 0.63.0, Viewer 0.22.0)
+
+April, 2026-10-22: "I wish I could tweak them by dragging them around on the map." The gym pin
+was her phone's fix 4½ minutes before she said it, and she left from about 230 m north of it.
+Her call on what a later teaching does to a place she has placed: **"Keep mine."**
+
+**The World.**
+- `PUT /v1/places/{id}/pin` takes `{"latitude", "longitude", "radius_m", "placed_by"}` and
+  casts `place.geo` from the Wizard (`placed_by`, kind `person`, *reported*). The World builds
+  the value with the same `PlacePin` the rule uses, so the World stays the only writer of its
+  shape.
+- The radius is held to the rule's bounds, 75 to 500 m. The fixes and who taught it last are
+  kept, and `placed_by` is added.
+- It answers with the cast's acceptance, 404 for a place the World never pinned (adding a place
+  by hand is not this slice), and 400 for a point off the Earth or a radius that is no number.
+- **The rule, after a placement:** a teaching within 1 km leaves the point and the radius where
+  April put them, and only counts the fix and the bird that kept it. Farther than 1 km, the
+  place has moved (or was taught by mistake): pinned afresh, as before, and no longer placed.
+
+**The Viewer.**
+- On the Places map, each place's pin is a handle: drag it to move the place. A smaller handle
+  on the circle's east edge sets how far it reaches.
+- Each drag is drawn as it goes and saved on release. The drawing gives way when the World's
+  fact arrives, and snaps back if the World refuses.
+- The list says "placed by April". The map's camera no longer jumps back to fit everything when
+  a place changes, only when a place is added or removed.
+
+**Check:** drag the gym onto the building and shrink it. The circle stays where it was dropped
+after the World's fact arrives, and the list says "placed by April". The next "I'm at the gym"
+counts a fix but leaves the circle where it is.
+
+**Tests.**
+- The World: a placement keeps the fixes and the teacher and holds the radius in bounds; a
+  teaching near a placed pin keeps its point, and one far off pins it afresh; the route
+  answers 404 and 400 as above; against MongoDB, a placement casts `place.geo` from the
+  Wizard.
+- The Viewer: `placed_by` is read; a drag's new point and radius come from the handle's
+  movement, with the radius held to the World's bounds.
+
 ## Not yet
 
-- April moves a place by dragging it on the Viewer's map. Her placement stays where she puts
-  it: a later teaching nearby doesn't average it away, while one more than 1 km off still means
-  the place moved (April, 2026-10-22: "Keep mine").
 - Distance from home when she is at no known place ("about 12 miles out").
 - Places from Home Assistant zones or the Bridge's calendar locations.
 - Speed or history ("passing the airfield at 60 mph is not being at the airfield").
@@ -148,4 +184,5 @@ facts.
 ## Versions
 
 Slice 1: house 0.5.0, World 0.60.0, Viewer 0.19.0. Slice 2: agent 2.103.0, World 0.61.0,
-Viewer 0.20.0. Slice 3: World, and the Viewer's inferred place.
+Viewer 0.20.0. Moving a place: World 0.63.0, Viewer 0.22.0. Slice 3: World, and the Viewer's
+inferred place.

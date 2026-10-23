@@ -76,6 +76,67 @@ struct PlacePinTests {
         // The world's alone: never on a page, in a tool, in the glossary, or kept by a mind.
         #expect(WorldKnowledgeLimits.worldOnlyPredicates.contains(WorldFacts.placeGeo))
     }
+
+    @Test("Moved on the map: where April put it, within bounds, keeping its fixes and teacher")
+    func placed() {
+        let taught = PlacePin(
+            latitude: latitude, longitude: longitude, radius: 90, fixes: 3,
+            taughtBy: "mind:mango")
+        let north = latitude + 230 / 111_195.0
+        let pin = PlacePin.placed(
+            taught,
+            as: PlacePlacement(
+                latitude: north, longitude: longitude, radius: 40, placedBy: "wizard:april"))
+        #expect(
+            pin
+                == PlacePin(
+                    latitude: north, longitude: longitude, radius: 75, fixes: 3,
+                    taughtBy: "mind:mango", placedBy: "wizard:april"))
+        let wide = PlacePlacement(
+            latitude: north, longitude: longitude, radius: 2_000, placedBy: "wizard:april")
+        #expect(PlacePin.placed(taught, as: wide).radius == 500)
+        // And it reads back, placed.
+        #expect(PlacePin(pin.value) == pin)
+        guard case .object(let fields) = pin.value else {
+            Issue.record("not an object")
+            return
+        }
+        #expect(fields["placed_by"] == .string("wizard:april"))
+        // A pin where her phone was says nothing of it.
+        guard case .object(let unplaced) = taught.value else {
+            Issue.record("not an object")
+            return
+        }
+        #expect(unplaced["placed_by"] == nil)
+    }
+
+    @Test("Keep mine: taught near a pin April placed, it stays; a kilometre off, it has moved")
+    func keepsWhatAprilPlaced() {
+        let placed = PlacePin(
+            latitude: latitude, longitude: longitude, radius: 80, fixes: 2,
+            taughtBy: "mind:beaky", placedBy: "wizard:april")
+        let again = PlacePin.taught(placed, at: fix(200 / 111_195.0), by: "mind:kenny")
+        #expect(again.latitude == latitude && again.longitude == longitude)
+        #expect(again.radius == 80 && again.placedBy == "wizard:april")
+        #expect(again.fixes == 3 && again.taughtBy == "mind:kenny")
+
+        let moved = PlacePin.taught(placed, at: fix(2_000 / 111_195.0), by: "mind:kenny")
+        #expect(moved.latitude == latitude + 2_000 / 111_195.0)
+        #expect(moved.fixes == 1 && moved.radius == 75 && moved.placedBy == nil)
+    }
+
+    @Test("A placement is a point on the Earth and a reach in meters")
+    func placementValidity() {
+        func placement(_ lat: Double, _ lon: Double, _ radius: Double) -> PlacePlacement {
+            PlacePlacement(latitude: lat, longitude: lon, radius: radius, placedBy: "wizard:april")
+        }
+        #expect(placement(latitude, longitude, 100).isValid)
+        #expect(!placement(91, longitude, 100).isValid)
+        #expect(!placement(latitude, -181, 100).isValid)
+        #expect(!placement(.nan, longitude, 100).isValid)
+        #expect(!placement(latitude, longitude, 0).isValid)
+        #expect(!placement(latitude, longitude, .infinity).isValid)
+    }
 }
 
 /// The rule against the store: a bird keeping where April is pins the place where her phone is.
@@ -192,6 +253,53 @@ struct PlaceTeachingMongoTests {
         let again = try #require(try await h.pin(at: later))
         #expect(again.fixes == 2)
         #expect(again.taughtBy == "mind:mango")
+    }
+
+    @Test("April moves the dentist on the map: her word, where she put it, and it stays put")
+    func aprilMovesAPlace() async throws {
+        let h = try await harness()
+        defer { Task { await h.persistence.cluster.disconnect() } }
+        let north = latitude + 230 / 111_195.0
+        let move = PlacePlacement(
+            latitude: north, longitude: longitude, radius: 60, placedBy: "wizard:april")
+        // A place the world never pinned is not moved.
+        #expect(try await h.rule.placement(of: h.dentist, move, at: h.now) == nil)
+
+        try await h.phone()
+        try await h.taught(h.dentist.rawValue)
+        let taught = try #require(
+            try await h.persistence.facts.currentFacts(subjectID: h.dentist, at: h.now)
+                .first { $0.predicate == WorldFacts.placeGeo })
+        let event = try #require(try await h.rule.placement(of: h.dentist, move, at: h.now))
+        _ = try await h.world.accept(event)
+        #expect(event.causedBy == [.fact(taught.factID)])
+        let fact = try #require(
+            try await h.persistence.facts.currentFacts(subjectID: h.dentist, at: h.now)
+                .first { $0.predicate == WorldFacts.placeGeo })
+        #expect(fact.epistemic.type == .reported)
+        #expect(fact.origin?.rawValue == "wizard:april")
+        #expect(
+            try await h.pin()
+                == PlacePin(
+                    latitude: north, longitude: longitude, radius: 75, fixes: 1,
+                    taughtBy: "mind:beaky", placedBy: "wizard:april"))
+
+        // "I'm at the dentist" again, her phone where it was: counted, but the pin stays.
+        let later = h.now.addingTimeInterval(600)
+        try await h.persistence.facts.save(
+            try Fact(
+                subjectID: h.april, predicate: WorldFacts.locationGPS,
+                value: .object([
+                    "latitude": .number(latitude), "longitude": .number(longitude),
+                    "accuracy_m": .number(20),
+                ]),
+                epistemic: EpistemicState(type: .observed, confidence: 1),
+                validFrom: later.addingTimeInterval(-60), derivedFrom: [],
+                producer: FactProducer(kind: "presence", id: "house", version: "1")))
+        try await h.taught(h.dentist.rawValue, by: "mind:mango", at: later)
+        let kept = try #require(try await h.pin(at: later))
+        #expect(kept.latitude == north && kept.radius == 75 && kept.fixes == 2)
+        #expect(kept.taughtBy == "mind:mango" && kept.placedBy == "wizard:april")
     }
 
     @Test("Nothing is pinned from a stale or vague fix, at home, or from a word that is no place")

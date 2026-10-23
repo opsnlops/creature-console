@@ -38,21 +38,27 @@ struct PlacePin: Equatable, Sendable {
     var fixes: Int
     /// The mind that kept her word last: `mind:beaky`.
     var taughtBy: String
+    /// The Wizard who put it where it is by hand, on the Viewer's map (#258); nil while it is
+    /// where her phone was.
+    var placedBy: String?
 
-    /// The least a taught place reaches - a building and its parking lot - and the most, so a
-    /// teaching from the road cannot make a place of a town.
-    static let minimumRadius: Double = 75
-    static let maximumRadius: Double = 500
+    /// The least a taught place reaches and the most, the same for April's hand on the map.
+    static let minimumRadius = PlacePlacement.reach.lowerBound
+    static let maximumRadius = PlacePlacement.reach.upperBound
     /// Taught farther than this from its pin, a place has moved, or was taught by mistake: the
     /// newest word wins, and it is pinned afresh.
     static let movedDistance: Double = 1_000
 
-    init(latitude: Double, longitude: Double, radius: Double, fixes: Int, taughtBy: String) {
+    init(
+        latitude: Double, longitude: Double, radius: Double, fixes: Int, taughtBy: String,
+        placedBy: String? = nil
+    ) {
         self.latitude = latitude
         self.longitude = longitude
         self.radius = radius
         self.fixes = fixes
         self.taughtBy = taughtBy
+        self.placedBy = placedBy
     }
 
     /// The pin a `place.geo` value holds; nil for anything else.
@@ -66,24 +72,29 @@ struct PlacePin: Equatable, Sendable {
         else { return nil }
         var taughtBy = ""
         if case .string(let teacher)? = fields["taught_by"] { taughtBy = teacher }
+        var placedBy: String?
+        if case .string(let wizard)? = fields["placed_by"] { placedBy = wizard }
         self.init(
             latitude: latitude, longitude: longitude, radius: radius, fixes: max(Int(fixes), 1),
-            taughtBy: taughtBy)
+            taughtBy: taughtBy, placedBy: placedBy)
     }
 
     /// As `place.geo` holds it: a GeoJSON point, longitude first, so it can be indexed as it is.
     var value: WorldJSONValue {
-        .object([
+        var fields: [String: WorldJSONValue] = [
             "type": .string("Point"),
             "coordinates": .array([.number(longitude), .number(latitude)]),
             "radius_m": .number(radius.rounded()),
             "fixes": .number(Double(fixes)),
             "taught_by": .string(taughtBy),
-        ])
+        ]
+        if let placedBy { fields["placed_by"] = .string(placedBy) }
+        return .object(fields)
     }
 
     /// The pin after April says she is there, her phone at `fix`: the running mean of the
-    /// fixes, its reach grown to cover where the old circle was and where she is now.
+    /// fixes, its reach grown to cover where the old circle was and where she is now. A pin she
+    /// placed by hand stays where she put it, and only counts the fix: "Keep mine" (#258).
     static func taught(_ pin: PlacePin?, at fix: PhoneFix, by teacher: String) -> PlacePin {
         let least = min(max(minimumRadius, fix.accuracy), maximumRadius)
         guard let pin,
@@ -92,6 +103,12 @@ struct PlacePin: Equatable, Sendable {
             return PlacePin(
                 latitude: fix.latitude, longitude: fix.longitude, radius: least, fixes: 1,
                 taughtBy: teacher)
+        }
+        if pin.placedBy != nil {
+            var kept = pin
+            kept.fixes += 1
+            kept.taughtBy = teacher
+            return kept
         }
         let weight = Double(pin.fixes)
         let latitude = (pin.latitude * weight + fix.latitude) / (weight + 1)
@@ -102,6 +119,15 @@ struct PlacePin: Equatable, Sendable {
             latitude: latitude, longitude: longitude,
             radius: min(max(least, pin.radius + shift, reach), maximumRadius),
             fixes: pin.fixes + 1, taughtBy: teacher)
+    }
+
+    /// The pin after April moves it on the map (#258): where she put it, as far as she drew it
+    /// within a taught place's bounds. Its fixes and its teacher stay.
+    static func placed(_ pin: PlacePin, as placement: PlacePlacement) -> PlacePin {
+        PlacePin(
+            latitude: placement.latitude, longitude: placement.longitude,
+            radius: min(max(placement.radius, minimumRadius), maximumRadius), fixes: pin.fixes,
+            taughtBy: pin.taughtBy, placedBy: placement.placedBy)
     }
 
     /// Meters between two points on the Earth (haversine).
@@ -122,6 +148,7 @@ struct PlacePin: Equatable, Sendable {
 /// dentist" as `person:april presence.place = place:dentist` pins `place:dentist` where her
 /// phone is right now. The bird judges what she meant; this only reads the link it kept and
 /// the fix the house sent. The pin is the world's alone - a bird is told a place, never a point.
+/// April may move a pin on the Viewer's map, and it stays where she puts it (#258).
 actor PlaceTeachingRule {
     static let sourceID = try! SourceID(validating: "world:places")
     /// The oldest fix that still says where she is: the house sends a still phone's every ten
@@ -183,5 +210,31 @@ actor PlaceTeachingRule {
                 ],
                 causedBy: [.event(event.eventID), .fact(gps.factID)],
                 trace: event.trace))
+    }
+
+    /// April moving a place on the Viewer's map (#258): the cast that puts its pin where she
+    /// dropped it, in her word. Nil for a place the world never pinned.
+    func placement(of place: EntityID, _ placement: PlacePlacement, at now: Date) async throws
+        -> WorldEventEnvelope?
+    {
+        guard
+            let current = try await facts.currentFacts(subjectID: place, at: now)
+                .first(where: { $0.predicate == WorldFacts.placeGeo }),
+            let pin = PlacePin(current.value)
+        else { return nil }
+        return try WorldEventEnvelope(
+            type: GivenFactAnnouncement.eventType,
+            occurredAt: now,
+            source: EventSource(
+                id: try SourceID(validating: placement.placedBy), kind: "person",
+                sourceEventID: UUID().uuidString),
+            subjectIDs: [place],
+            epistemic: EpistemicState(type: .reported, confidence: 1),
+            payload: [
+                "subject_id": .string(place.rawValue),
+                "predicate": .string(WorldFacts.placeGeo),
+                "value": PlacePin.placed(pin, as: placement).value,
+            ],
+            causedBy: [.fact(current.factID)])
     }
 }

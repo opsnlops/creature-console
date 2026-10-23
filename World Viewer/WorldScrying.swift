@@ -40,7 +40,8 @@ protocol WorldScrying: Sendable {
 }
 
 /// The Viewer's writes, kept apart from the reads on purpose: a Wizard casting a meaning into
-/// the world's glossary, forgetting what a bird learned, or applying a night's filing.
+/// the world's glossary, forgetting what a bird learned, applying a night's filing, or moving a
+/// place on the map.
 protocol WorldCasting: Sendable {
     func setFactKind(
         _ predicate: String, meaning: String, audience: FactAudience?, by wizard: String
@@ -53,6 +54,8 @@ protocol WorldCasting: Sendable {
     /// Describes one of the house's scenes, or sets it aside from the birds.
     func setHouseScene(_ name: String, description: String, askable: Bool, by wizard: String)
         async throws -> HouseScene
+    /// Moves a place April taught to where she dropped it on the map (#258).
+    func pinPlace(_ place: EntityID, _ placement: PlacePlacement) async throws
 }
 
 /// The real thing: the typed viewer client for reads and the world stream, and the conversation
@@ -151,6 +154,10 @@ extension LiveWorldScryer: WorldCasting {
         -> FilingApplyResult
     {
         try await viewer.applyFiling(filing, selection)
+    }
+
+    func pinPlace(_ place: EntityID, _ placement: PlacePlacement) async throws {
+        try await viewer.pinPlace(place, placement)
     }
 
     func setFactKind(

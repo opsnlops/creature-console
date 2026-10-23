@@ -420,6 +420,41 @@ struct CreatureWorldBlackBoxTests {
             try await api.factKinds()["seen.vehicle"]
                 == "a car or truck the camera noticed; usually a delivery")
 
+        // April moves a place she taught on the Viewer's map (#258): only a place the world
+        // pinned, only a Wizard, only a point on the Earth - and then it is where she put it.
+        // Made-up points in Kansas, never hers.
+        let gym = try EntityID(validating: "place:gym-\(UUID().uuidString.lowercased())")
+        let move = PlacePlacement(
+            latitude: 40.002, longitude: -100, radius: 60, placedBy: "wizard:black-box")
+        #expect(try await api.pinPlace(gym, move) == .notFound)
+        let taught = try WorldEventEnvelope(
+            type: GivenFactAnnouncement.eventType, occurredAt: Date(),
+            source: EventSource(
+                id: PlaceTeachingRule.sourceID, kind: "world", sourceEventID: UUID().uuidString),
+            subjectIDs: [gym], epistemic: EpistemicState(type: .inferred, confidence: 1),
+            payload: [
+                "subject_id": .string(gym.rawValue), "predicate": .string(WorldFacts.placeGeo),
+                "value": PlacePin(
+                    latitude: 40, longitude: -100, radius: 75, fixes: 1, taughtBy: "mind:beaky"
+                ).value,
+            ])
+        #expect(try await api.post(taught).status == .accepted)
+        var offTheEarth = move
+        offTheEarth.latitude = 91
+        #expect(try await api.pinPlace(gym, offTheEarth) == .badRequest)
+        var aBird = move
+        aBird.placedBy = "mind:beaky"
+        #expect(try await api.pinPlace(gym, aBird) == .badRequest)
+        #expect(try await api.pinPlace(gym, move) == .ok)
+        let placed = try #require(
+            try await api.facts(about: gym).first { $0.predicate == WorldFacts.placeGeo })
+        #expect(placed.origin?.rawValue == "wizard:black-box")
+        #expect(
+            PlacePin(placed.value)
+                == PlacePin(
+                    latitude: 40.002, longitude: -100, radius: 75, fixes: 1,
+                    taughtBy: "mind:beaky", placedBy: "wizard:black-box"))
+
         // Kill the process. Everything accepted before the kill must still be there afterwards.
         try await service.stop()
         try await service.start()
@@ -863,6 +898,19 @@ private struct WorldServiceAPI {
         #expect(response.status == .ok)
         let body = try await response.body.collect(upTo: 1_048_576)
         return try WorldJSON.makeDecoder().decode(FactKind.self, from: body)
+    }
+
+    /// April moving a place on the map: the reply's status.
+    func pinPlace(_ place: EntityID, _ placement: PlacePlacement) async throws
+        -> HTTPResponseStatus
+    {
+        var request = HTTPClientRequest(url: "\(base)/places/\(place.rawValue)/pin")
+        request.method = .PUT
+        request.headers.add(name: "content-type", value: "application/json")
+        request.body = .bytes(try WorldJSON.makeEncoder().encode(placement))
+        let response = try await client.execute(request, timeout: .seconds(15))
+        _ = try await response.body.collect(upTo: 1_048_576)
+        return response.status
     }
 
     func facts(about subjectID: EntityID) async throws -> [Fact] {

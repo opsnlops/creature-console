@@ -270,6 +270,14 @@ the dentist") is a teal circle as far as it reaches, with its name, from its `pl
 list in the corner says how far each reaches, how many times her phone was there when she said
 so, which bird kept her word last, and when. The map shows when there are places and no fix.
 
+**Moving a place** (`0.22.0`, #258): drag a place's pin to move it, and the small dot on its
+circle's east edge to set how far it reaches (75 to 500 m, the World's bounds). The circle
+follows the drag and is saved when you let go. It stays where you dropped it once the World's
+fact arrives, or goes back if the World refuses (an alert says why). The list then says "placed
+by April". A later "I'm at the gym" counts a fix but leaves the place where you put it, unless
+the phone is more than a kilometre away, which means the place has moved. The map refits only
+when a place is added or removed, so a place you just moved stays in view.
+
 ### House (`0.16.0`, #241)
 
 The house's lighting scenes as the birds are told them. **Birds may ask for** lists the

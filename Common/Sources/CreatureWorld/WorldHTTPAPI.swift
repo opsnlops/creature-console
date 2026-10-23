@@ -532,6 +532,35 @@ struct WorldHTTPAPI: Sendable {
             }
         }
 
+        // April moves a place she taught, on the Viewer's map: it stays where she puts it
+        // (#258). A Wizard's alone, and only a place the world has pinned.
+        router.put("v1/places/:place/pin") { request, context in
+            await respond {
+                try requireJSON(request)
+                guard let raw = context.parameters.get("place"),
+                    let place = raw.removingPercentEncoding.flatMap(EntityID.init(rawValue:)),
+                    place.rawValue.hasPrefix("place:")
+                else { throw WorldAPIError.invalidQuery(name: "place") }
+                let placement = try await decode(
+                    PlacePlacement.self, from: request, maximumBytes: limits.maximumBodyBytes)
+                guard placement.isValid else {
+                    throw WorldAPIError.invalidQuery(name: "placement")
+                }
+                guard placement.placedBy.hasPrefix("wizard:"),
+                    (try? SourceID(validating: placement.placedBy)) != nil
+                else { throw WorldAPIError.invalidQuery(name: "placed_by") }
+                return try await execute {
+                    guard let acceptance = try await service.pinPlace(place, placement) else {
+                        return try jsonResponse(
+                            WorldAPIErrorResponse(
+                                error: "not_found", message: "No such taught place"),
+                            status: .notFound)
+                    }
+                    return try jsonResponse(WorldEventAcceptanceResponse(acceptance))
+                }
+            }
+        }
+
         // April's checked items, applied where they still stand: each item's outcome.
         router.post("v1/filings/:filingID/apply") { request, context in
             await respond {

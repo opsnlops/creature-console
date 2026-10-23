@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 import Testing
 import WorldCore
@@ -71,5 +72,67 @@ struct PlaceFixTests {
         #expect(dentist.radius == 75 && dentist.fixes == 1 && dentist.teacher == "Beaky")
         #expect(dentist.since == at)
         #expect(places.last?.teacher == "Mango")
+        // Nobody moved either by hand.
+        #expect(places.allSatisfy { $0.placer.isEmpty })
+    }
+
+    @Test("A place April moved on the map says so (#258)")
+    func readsWhoPlacedIt() throws {
+        let places = TaughtPlace.all(in: [
+            try fact(
+                "place:gym", WorldFacts.placeGeo,
+                .object([
+                    "type": .string("Point"), "coordinates": .array([.number(-100), .number(40)]),
+                    "radius_m": .number(75), "fixes": .number(2),
+                    "taught_by": .string("mind:beaky"), "placed_by": .string("wizard:april"),
+                ]))
+        ])
+        #expect(places.map(\.placer) == ["April"])
+        #expect(places.map(\.teacher) == ["Beaky"])
+    }
+
+    @Test(
+        "Dragging the pin moves the place as far as the pointer went, not to where it was grabbed")
+    func dragMoves() throws {
+        let place = try #require(TaughtPlace.all(in: [try dentist(radius: 90)]).first)
+        // Grabbed a little off its point, and moved about 230 m north.
+        let start = CLLocationCoordinate2D(latitude: 40.0001, longitude: -100.0001)
+        let end = CLLocationCoordinate2D(
+            latitude: 40.0001 + 230 / 111_195.0, longitude: -100.0001)
+        let moved = place.moved(from: start, to: end)
+        #expect(abs(moved.latitude - (40 + 230 / 111_195.0)) < 1e-9)
+        #expect(abs(moved.longitude - -100) < 1e-9)
+        #expect(moved.radius == 90 && moved.id == place.id)
+        #expect(
+            moved.placement(by: "wizard:april")
+                == PlacePlacement(
+                    latitude: moved.latitude, longitude: moved.longitude, radius: 90,
+                    placedBy: "wizard:april"))
+    }
+
+    @Test("Dragging the edge sets how far it reaches, within the world's 75 to 500 m")
+    func dragReaches() throws {
+        let place = try #require(TaughtPlace.all(in: [try dentist(radius: 90)]).first)
+        let center = CLLocation(latitude: place.latitude, longitude: place.longitude)
+        // The edge's handle sits as far east as the place reaches.
+        let edge = CLLocation(latitude: place.edge.latitude, longitude: place.edge.longitude)
+        #expect(abs(center.distance(from: edge) - 90) < 1)
+        func north(_ meters: Double) -> CLLocationCoordinate2D {
+            CLLocationCoordinate2D(latitude: 40 + meters / 111_195.0, longitude: -100)
+        }
+        #expect(abs(place.reaching(north(150)).radius - 150) < 1)
+        #expect(place.reaching(north(10)).radius == PlacePlacement.reach.lowerBound)
+        #expect(place.reaching(north(3_000)).radius == PlacePlacement.reach.upperBound)
+        #expect(place.reaching(north(150)).latitude == place.latitude)
+    }
+
+    private func dentist(radius: Double) throws -> Fact {
+        try fact(
+            "place:dentist", WorldFacts.placeGeo,
+            .object([
+                "type": .string("Point"), "coordinates": .array([.number(-100), .number(40)]),
+                "radius_m": .number(radius), "fixes": .number(1),
+                "taught_by": .string("mind:beaky"),
+            ]))
     }
 }

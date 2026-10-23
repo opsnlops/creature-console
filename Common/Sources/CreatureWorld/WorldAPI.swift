@@ -135,6 +135,10 @@ protocol WorldApplicationService: Sendable {
     /// Every scene the house offers, with what it is and whether a bird may ask (#241).
     func houseScenes() async throws -> HouseScenePage
     func setHouseScene(_ name: String, _ update: HouseSceneUpdate) async throws -> HouseScene
+    /// April moves a place she taught, on the Viewer's map (#258); nil for a place the world
+    /// never pinned.
+    func pinPlace(_ place: EntityID, _ placement: PlacePlacement) async throws
+        -> WorldEventAcceptance?
 }
 
 extension WorldApplicationService {
@@ -161,6 +165,11 @@ extension WorldApplicationService {
         throw WorldAPIError.databaseUnavailable
     }
     func setHouseScene(_ name: String, _ update: HouseSceneUpdate) async throws -> HouseScene {
+        throw WorldAPIError.databaseUnavailable
+    }
+    func pinPlace(_ place: EntityID, _ placement: PlacePlacement) async throws
+        -> WorldEventAcceptance?
+    {
         throw WorldAPIError.databaseUnavailable
     }
     func applyFiling(_ filing: EventID, _ selection: FilingSelection) async throws

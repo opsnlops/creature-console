@@ -181,6 +181,41 @@ public struct FactKindUpdate: Codable, Equatable, Sendable {
     }
 }
 
+/// April moving a place she taught, on the Viewer's map (#258): where its point goes, how far
+/// it reaches, and who moved it. The world keeps it where she puts it.
+public struct PlacePlacement: Codable, Equatable, Sendable {
+    public var latitude: Double
+    public var longitude: Double
+    /// How far the place reaches, in meters; the world holds it to a taught place's bounds.
+    public var radius: Double
+    /// The Wizard who moved it: `wizard:april`.
+    public var placedBy: String
+
+    /// How far a place reaches, in meters: at least a building and its parking lot, and never
+    /// so far that a teaching from the road makes a place of a town.
+    public static let reach: ClosedRange<Double> = 75...500
+
+    public init(latitude: Double, longitude: Double, radius: Double, placedBy: String) {
+        self.latitude = latitude
+        self.longitude = longitude
+        self.radius = radius
+        self.placedBy = placedBy
+    }
+
+    /// A point on the Earth, and a reach that is a number of meters.
+    public var isValid: Bool {
+        latitude.isFinite && longitude.isFinite && (-90...90).contains(latitude)
+            && (-180...180).contains(longitude) && radius.isFinite && radius > 0
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case latitude
+        case longitude
+        case radius = "radius_m"
+        case placedBy = "placed_by"
+    }
+}
+
 /// What a mind would be handed right now: the facts about a character, its region, and April,
 /// with the mentions in `text` if any, the meanings of those kinds, and the story so far. The
 /// WorldMCP `query_character_perspective` tool - the same knowledge a scene offer carries.
