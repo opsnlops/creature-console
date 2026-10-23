@@ -276,7 +276,10 @@ follows the drag and is saved when you let go. It stays where you dropped it onc
 fact arrives, or goes back if the World refuses (an alert says why). The list then says "placed
 by April". A later "I'm at the gym" counts a fix but leaves the place where you put it, unless
 the phone is more than a kilometre away, which means the place has moved. The map refits only
-when a place is added or removed, so a place you just moved stays in view.
+when a place is added or removed, so a place you just moved stays in view. Since `0.22.1` the
+pins, edge dots and names are drawn over the map, not as MapKit annotations. In 0.22.0 the gym's
+pin wouldn't drag and the dentist vanished beside it: MapKit hides annotations that crowd each
+other, and handles a drag on the views it hosts itself.
 
 ### House (`0.16.0`, #241)
 

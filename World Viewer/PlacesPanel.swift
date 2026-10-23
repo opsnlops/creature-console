@@ -123,10 +123,10 @@ struct TaughtPlace: Equatable, Identifiable, Sendable {
 struct PlacesPanel: View {
     let store: WorldStore
     @State private var camera: MapCameraPosition = .automatic
+    /// Where the map is looking, for the handles drawn over it.
+    @State private var looking = MapLooking()
     /// Places April is moving, drawn where her drag has them until the world's fact arrives.
     @State private var drafts: [EntityID: TaughtPlace] = [:]
-    /// Each place being dragged, as it was when the drag began.
-    @State private var dragOrigins: [EntityID: TaughtPlace] = [:]
 
     private var fix: PlaceFix? { PlaceFix.april(in: store.facts) }
     private var stored: [TaughtPlace] { TaughtPlace.all(in: store.facts) }
@@ -140,23 +140,6 @@ struct PlacesPanel: View {
                         MapCircle(center: place.coordinate, radius: place.radius)
                             .foregroundStyle(.teal.opacity(0.15))
                             .stroke(.teal, lineWidth: 1)
-                        Annotation(place.name, coordinate: place.coordinate, anchor: .center) {
-                            PlaceHandle(systemImage: "mappin", size: 28)
-                                .help("Drag to move \(place.name)")
-                                .highPriorityGesture(
-                                    drag(place, on: proxy) { origin, start, end in
-                                        origin.moved(from: start, to: end)
-                                    })
-                        }
-                        Annotation(place.name, coordinate: place.edge, anchor: .center) {
-                            PlaceHandle(systemImage: nil, size: 12)
-                                .help("Drag to set how far \(place.name) reaches")
-                                .highPriorityGesture(
-                                    drag(place, on: proxy) { origin, _, end in
-                                        origin.reaching(end)
-                                    })
-                        }
-                        .annotationTitles(.hidden)
                     }
                     if let fix {
                         if let accuracy = fix.accuracy {
@@ -168,8 +151,14 @@ struct PlacesPanel: View {
                             .tint(.purple)
                     }
                 }
+                .mapStyle(.standard(elevation: .realistic))
+                .onMapCameraChange(frequency: .continuous) { looking.camera = $0.camera }
+                .overlay {
+                    PlaceHandles(
+                        places: places, proxy: proxy, looking: looking,
+                        dragged: { drafts[$0.id] = $0 }, dropped: keep)
+                }
             }
-            .mapStyle(.standard(elevation: .realistic))
             .overlay(alignment: .topLeading) {
                 if let fix {
                     HStack(spacing: 6) {
@@ -209,35 +198,104 @@ struct PlacesPanel: View {
                 ))
         }
     }
+
+    /// April let go of a place: ask the world to keep it there; a refusal puts it back.
+    private func keep(_ id: EntityID) {
+        guard let moved = drafts[id] else { return }
+        Task {
+            let kept = await store.move(moved)
+            if !kept { drafts[id] = nil }
+        }
+    }
 }
 
-/// A drag on one of a place's handles: `change` turns the place as the drag found it, where the
-/// drag began, and where it is now into the place drawn. Letting go asks the world to keep it
-/// there; a refusal puts it back.
-extension PlacesPanel {
+/// Where the map is looking. Only the handles read it, so a pan redraws them and not the map.
+@MainActor @Observable
+private final class MapLooking {
+    var camera: MapCamera?
+}
+
+/// Each place's handles and name, drawn over the map rather than inside it (#258). Viewer 0.22.0
+/// drew them as MapKit annotations: the dentist vanished beside the gym, and a drag on the gym's
+/// pin moved nothing. MapKit hides annotations that crowd each other, and handles the events of
+/// the views it hosts itself. Over the map, each is placed where its coordinate falls and follows
+/// the camera.
+private struct PlaceHandles: View {
+    let places: [TaughtPlace]
+    let proxy: MapProxy
+    let looking: MapLooking
+    /// The place as a drag has it now.
+    let dragged: (TaughtPlace) -> Void
+    /// A drag let go of the place.
+    let dropped: (EntityID) -> Void
+    /// Each place being dragged, as it was when the drag began.
+    @State private var origins: [EntityID: TaughtPlace] = [:]
+
+    var body: some View {
+        // Read, so the handles follow as the map pans and zooms.
+        let _ = looking.camera
+        ZStack(alignment: .topLeading) {
+            ForEach(places) { place in
+                if let point = proxy.convert(place.coordinate, to: .local) {
+                    PlaceHandle(systemImage: "mappin", size: 28)
+                        .help("Drag to move \(place.name)")
+                        .gesture(
+                            drag(place, by: \.coordinate) { origin, start, end in
+                                origin.moved(from: start, to: end)
+                            }
+                        )
+                        .position(point)
+                    Text(place.name)
+                        .font(.caption.bold())
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .glassEffect(.regular, in: .capsule)
+                        .allowsHitTesting(false)
+                        .position(x: point.x, y: point.y + 30)
+                }
+                if let edge = proxy.convert(place.edge, to: .local) {
+                    PlaceHandle(systemImage: nil, size: 12)
+                        .help("Drag to set how far \(place.name) reaches")
+                        .gesture(
+                            drag(place, by: \.edge) { origin, _, end in
+                                origin.reaching(end)
+                            }
+                        )
+                        .position(edge)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    /// A drag on one of a place's handles: the handle's own point moves by the drag's
+    /// translation and is read back as a coordinate - the same conversion as a tap on the map.
+    /// `change` turns the place as the drag found it, where its handle was, and where the
+    /// handle is now into the place drawn.
     private func drag(
-        _ place: TaughtPlace, on proxy: MapProxy,
+        _ place: TaughtPlace, by handle: KeyPath<TaughtPlace, CLLocationCoordinate2D>,
         _ change:
             @escaping (TaughtPlace, CLLocationCoordinate2D, CLLocationCoordinate2D) ->
             TaughtPlace
     ) -> some Gesture {
         // In the window's space: the handle moves under the pointer, so its own space would too.
-        DragGesture(minimumDistance: 2, coordinateSpace: .global)
+        DragGesture(minimumDistance: 1, coordinateSpace: .global)
             .onChanged { value in
-                let origin = dragOrigins[place.id] ?? place
-                dragOrigins[place.id] = origin
-                guard let start = proxy.convert(value.startLocation, from: .global),
-                    let end = proxy.convert(value.location, from: .global)
+                let origin = origins[place.id] ?? place
+                origins[place.id] = origin
+                let start = origin[keyPath: handle]
+                guard let point = proxy.convert(start, to: .local),
+                    let end = proxy.convert(
+                        CGPoint(
+                            x: point.x + value.translation.width,
+                            y: point.y + value.translation.height),
+                        from: .local)
                 else { return }
-                drafts[place.id] = change(origin, start, end)
+                dragged(change(origin, start, end))
             }
             .onEnded { _ in
-                dragOrigins[place.id] = nil
-                guard let moved = drafts[place.id] else { return }
-                Task {
-                    let kept = await store.move(moved)
-                    if !kept { drafts[place.id] = nil }
-                }
+                origins[place.id] = nil
+                dropped(place.id)
             }
     }
 }
