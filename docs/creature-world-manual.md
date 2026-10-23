@@ -768,8 +768,8 @@ Two versions ride along, and they are different things (`0.62.0`):
 
 - `schema_version` is the **wire contract**: the version every event, fact, and request carries
   (`WorldSchema.currentVersion`, 1). It changes only when a shape breaks older readers.
-- `migration_version` is the **database**: the newest migration recorded (15,
-  `filed_fact_dates`). Ready means the database holds this build's newest migration, so it is
+- `migration_version` is the **database**: the newest migration recorded (16, `place_geo`,
+  since `0.64.0`; 15, `filed_fact_dates`, before). Ready means the database holds this build's newest migration, so it is
   present only with `mongodb: "ok"`. A World older than 0.62.0 does not send it.
 
 An HTTP 503 does not mean the process should be restarted. Supervisors should use process exit for
@@ -989,6 +989,29 @@ facts follow, one hop), ended by the house's arrival or departure. A rule that c
 teaching logs it and keeps listening. A still iPhone sends no fix: on 2026-10-22 there were
 none for 39 minutes at the dentist and 70 at the gym, so `location.gps` lapses after half an
 hour and a place is pinned only when it is taught soon after she arrives.
+
+**Where April is, without being told** (`0.64.0`, #248 slice 3, docs/taught-places-plan.md).
+- **The index.** A `place.geo` fact is saved with a `geo` field, its GeoJSON point alone, under
+  a `2dsphere` index, `facts_geo`. Superseding a fact unsets it, as it does `search_text`, so
+  only current pins are near anything. Migration 16, `place_geo`, gave the pins saved before it
+  their point.
+- **The query.** `FactRepository.placesNear` is one aggregate: `$geoNear` from her point over the
+  current pins, then the places whose `radius_m` plus the fix's accuracy reach her, nearest
+  first.
+- **The rule.** `PlaceInferenceRule` hears each `person.located`. It skips her at home and fixes
+  vaguer than 100 m.
+  - **Inside a place:** that place becomes `person:april presence.place`, *inferred*, from
+    `world:places`, caused by the fix and the pin, with no end. Its confidence runs from 95% at
+    the pin to 70% at the edge of the reach.
+  - **Already there** (told or inferred): nothing is cast, so "since" stays when she arrived.
+  - **Outside every place:** a current `presence.place` with a pin is ended (a `null`, a second
+    long). A told place with no pin keeps its own two hours.
+  - **No end by age:** a still phone sends nothing.
+- **Coming home or leaving** retracts inferred `presence.*` as well as told ones: the house's
+  `FactRetraction` names its `bases`, and the delivery rule's ends only what was told.
+- **The page.** A bird sees `presence.place` in the moment's lines: "since 3:40 PM · inferred
+  (85% sure)", with the place's facts one hop on, never its point. The meaning of
+  `presence.place` now says both ways.
 
 **April moves a place** (`0.63.0`, #258). `PUT /v1/places/{id}/pin` with `{"latitude",
 "longitude", "radius_m", "placed_by"}` puts a taught place where she dropped it on the

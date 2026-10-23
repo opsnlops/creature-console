@@ -270,6 +270,13 @@ the dentist") is a teal circle as far as it reaches, with its name, from its `pl
 list in the corner says how far each reaches, how many times her phone was there when she said
 so, which bird kept her word last, and when. The map shows when there are places and no fix.
 
+**Where she is** (`0.23.0`, #248 slice 3): the line in the corner adds where the World has her,
+from her `presence.place`. It reads "at the Gym · 85% · since 3:40 PM" when the World worked it
+out from her phone at a place she taught, or "· told ·" when she told a bird. That place's
+circle is drawn in her purple. It shows with no fix, too: a still phone sends none, and the
+place stays until a fix elsewhere or until she is home. `presence.place` is held whole, with
+the pins and her fix.
+
 **Moving a place** (`0.22.0`, #258; as built in `0.22.2`):
 - **Move it:** drag inside a place's circle. **Set how far it reaches:** drag its rim (75 to 500
   m, the World's bounds). The circle thickens under the pointer, and the pointer shows a grab

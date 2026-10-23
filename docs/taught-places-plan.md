@@ -68,7 +68,8 @@ phone sends nothing (seen live in slice 2).
 3. Inference: the `geo` field, the `2dsphere` index, `PlaceInferenceRule`, `presence.place`
    inferred. Check: back at a taught place, the birds know without being told. Since a still
    phone sends nothing (seen 2026-10-22), the inferred place can't end with its fix's 30
-   minutes: it lasts until a fix outside the radius, or until she's home.
+   minutes: it lasts until a fix outside the radius, or until she's home. Built 2026-10-22
+   (World 0.64.0, Viewer 0.23.0).
 
 ## Slice 2 in detail: teaching (agent 2.103.0, World 0.61.0, Viewer 0.20.0)
 
@@ -136,6 +137,75 @@ stale or vague fix, at home, a value that is no place, or a source that is no mi
 teaching moves the mean); `place.geo` is world-only. The Viewer: taught places read from the
 facts.
 
+## Slice 3 in detail: inference (World 0.64.0, Viewer 0.23.0)
+
+Planned 2026-10-22, the evening of the first live day. The dentist and the gym are taught and
+placed by April. What the day showed shapes this slice:
+- a still iPhone sends no fix;
+- her arrival fix falls where she parks;
+- no fix on the road fell inside either circle.
+
+Replayed against her placed circles, today would have read: at the dentist from 8:51 to 9:44,
+and at the gym from 3:40 (that fix 83 m from her placed pin, inside 75 m + its 10 m accuracy).
+
+**The World.**
+- **Where a place is, indexed.** A `place.geo` fact is saved with a `geo` field: its GeoJSON
+  point alone, as a fact carries `search_text`. A `2dsphere` index on it, `facts_geo`, is sparse
+  by its nature. Superseding a fact unsets `geo`, as it does `search_text`, so only current pins
+  are near anything. Migration 16, `place_geo`, backfills the current pins.
+- **The MongoDB magic.** `FactRepository.placesNear(longitude:latitude:within:at:)` is one
+  aggregate:
+  - `$geoNear` from her point over current `place.geo` facts (spherical; distance in meters);
+  - then the places whose `radius_m` plus the fix's accuracy reaches her, nearest first.
+- **`PlaceInferenceRule`** hears each `person.located` from the house:
+  - Not at home (the house knows there), and not from a fix vaguer than 100 m.
+  - **Inside a place:** the nearest place becomes `presence.place` on her, *inferred*, from
+    `world:places`, caused by the fix and the pin, with no end. Its confidence runs from 95% at
+    the pin down to 70% at the edge of its reach; a bird reads "inferred (85% sure)". If she is
+    already at that place, by either word, nothing is cast, and "since" stays when she arrived.
+  - **Outside every place:** if her current `presence.place` is a place with a pin, and this fix
+    is out of its reach, she has left, and the rule ends it (a `null` from `world:places`, gone
+    a second later, as the World's other rules end what they cast). A place with no pin (told
+    without a fresh fix) can't be judged by a point, and stays until its own end.
+  - **No end by age.** A still phone sends nothing, so the place lasts until a fix elsewhere or
+    until she is home. A told place keeps its own two hours.
+- **Home ends it, inferred too.** Arriving or leaving retracts `presence.*` told to the World.
+  The house's retraction now names the bases it ends: reported and inferred ("the virtual world
+  can guess, but the real world knows"). The delivery rule's retraction is unchanged.
+- **The meaning** of `presence.place` says both ways: April's word, or the World's inference
+  from her phone at a place she taught.
+
+**What a bird sees.** It sees the place, never the point. An inferred fact sits in the moment's
+lines, not the told ones: `April · presence.place = Gym · since 3:40 PM · inferred (85% sure)`,
+with the gym's own facts one hop on. The birds decide what it means. No scene opens for it.
+
+**The Viewer.**
+- The fix's line in the corner adds where the World thinks she is: "at the Gym · 85% · since
+  3:40 PM".
+- The circle she is in is drawn stronger.
+- `presence.place` joins the kinds the Viewer holds whole.
+
+**Check.** At a taught place, with no word to a bird, `person:april presence.place` is that
+place, inferred, and a bird asked "where am I?" knows. A fix outside ends it, and so does coming
+home. No bird's page, tool, or glossary carries a coordinate.
+
+**Tests.**
+- The World, against MongoDB:
+  - a pin's `geo` is saved, and unset when it is superseded; the migration backfills it;
+  - `placesNear` finds the nearest place in reach and none out of reach, by radius plus
+    accuracy;
+  - the rule casts on arrival, keeps "since" on a second fix inside, and moves to a nearer
+    place;
+  - it ends the place on a fix outside, whether told or inferred, and leaves a pinless told
+    place;
+  - it does nothing at home or from a vague fix;
+  - arriving home ends an inferred place.
+- The Viewer: the inferred place is read with its confidence.
+
+**Watch, not built:** driving past a place. A fix on the road inside a circle would say she is
+there until the next fix, a few minutes later. None did today; a dwell (a few quiet minutes
+before inferring) waits until one does.
+
 ## Moving a place (#258, World 0.63.0, Viewer 0.22.0)
 
 April, 2026-10-22: "I wish I could tweak them by dragging them around on the map." The gym pin
@@ -186,5 +256,4 @@ counts a fix but leaves the circle where it is.
 ## Versions
 
 Slice 1: house 0.5.0, World 0.60.0, Viewer 0.19.0. Slice 2: agent 2.103.0, World 0.61.0,
-Viewer 0.20.0. Moving a place: World 0.63.0, Viewer 0.22.0. Slice 3: World, and the Viewer's
-inferred place.
+Viewer 0.20.0. Moving a place: World 0.63.0, Viewer 0.22.0-0.22.2. Slice 3: World 0.64.0, Viewer 0.23.0.

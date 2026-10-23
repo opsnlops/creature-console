@@ -126,6 +126,31 @@ struct PlaceFixTests {
         #expect(place.reaching(north(150)).latitude == place.latitude)
     }
 
+    @Test("Where the world has her: the place, inferred or told, how sure, and since when")
+    func readsWhereSheIs() throws {
+        var inferred = try fact("person:april", WorldFacts.presencePlace, .string("place:gym"))
+        inferred.epistemic = try EpistemicState(type: .inferred, confidence: 0.85)
+        let at = try #require(PlacePresence.april(in: [inferred]))
+        #expect(
+            at
+                == PlacePresence(
+                    place: try EntityID(validating: "place:gym"), inferred: true,
+                    confidence: 0.85, since: self.at))
+        #expect(at.name == "Gym")
+        var told = try fact("person:april", WorldFacts.presencePlace, .string("place:dentist"))
+        told.epistemic = try EpistemicState(type: .reported, confidence: 1)
+        #expect(PlacePresence.april(in: [told])?.inferred == false)
+        // Words that are no place, and someone else's place, are not where she is.
+        #expect(
+            PlacePresence.april(in: [
+                try fact("person:april", WorldFacts.presencePlace, .string("the dentist"))
+            ]) == nil)
+        #expect(
+            PlacePresence.april(in: [
+                try fact("person:jesse", WorldFacts.presencePlace, .string("place:gym"))
+            ]) == nil)
+    }
+
     @Test("Inside a circle moves the place, on its rim sets its reach, outside is the map's")
     func grips() {
         let center = CGPoint(x: 200, y: 200)

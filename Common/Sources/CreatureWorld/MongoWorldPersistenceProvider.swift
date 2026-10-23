@@ -269,20 +269,32 @@ struct MongoWorldPersistenceConnection: Sendable {
                 logger.warning("Stopped watching the daylight", metadata: ["error": "\(error)"])
             }
         }
-        // And the places' rule: a bird keeping April's "I'm at the dentist" pins the dentist
-        // where her phone is (#248).
+        // And the places' rules: a bird keeping April's "I'm at the dentist" pins the dentist
+        // where her phone is (#248), and her phone back at a taught place puts her there.
         let placeRule = PlaceTeachingRule(facts: persistence.facts) {
+            _ = try await world.accept($0)
+        }
+        let placeInference = PlaceInferenceRule(facts: persistence.facts) {
             _ = try await world.accept($0)
         }
         let placeWatcher = Task {
             do {
                 for try await delta in try await world.subscribe() {
-                    // One teaching the store could not take is lost, never the stream.
+                    // One teaching or fix the store could not take is lost, never the stream.
                     do {
                         try await placeRule.heard(delta.event)
                     } catch {
                         logger.warning(
                             "Could not pin a place April taught",
+                            metadata: [
+                                "error": "\(error)", "world.event_id": "\(delta.event.eventID)",
+                            ])
+                    }
+                    do {
+                        try await placeInference.heard(delta.event)
+                    } catch {
+                        logger.warning(
+                            "Could not tell which place April is at",
                             metadata: [
                                 "error": "\(error)", "world.event_id": "\(delta.event.eventID)",
                             ])

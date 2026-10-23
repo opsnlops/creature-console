@@ -30,6 +30,9 @@ struct FactRepository: Sendable {
             document["value"] = Null()
         }
         document[Self.searchTextField] = Self.searchText(of: fact)
+        if let point = Self.geo(of: fact) {
+            document[Self.geoField] = point
+        }
         _ = try await facts.findOneAndUpsert(
             where: ["_id": fact.factID.rawValue],
             replacement: document,
@@ -52,8 +55,9 @@ struct FactRepository: Sendable {
                     "valid_to": fact.validFrom,
                     "superseded_by": fact.factID.rawValue,
                 ] as Document,
-                // Out of the search: history must never be what a word is scored against.
-                "$unset": [Self.searchTextField: ""] as Document,
+                // Out of the search: history must never be what a word is scored against, nor
+                // an old pin what a place is found near.
+                "$unset": [Self.searchTextField: "", Self.geoField: ""] as Document,
             ]
         )
     }
@@ -82,6 +86,64 @@ struct FactRepository: Sendable {
         collect(fact.value)
         return words.joined(separator: " ")
     }
+
+    /// The field the `2dsphere` index covers (`facts_geo`): a `place.geo` fact's GeoJSON point
+    /// alone. The value carries its radius and who taught it beside the point (#248).
+    static let geoField = "geo"
+
+    /// Where a fact is found near: a taught place's point; nil for any other fact.
+    static func geo(of fact: Fact) -> Document? {
+        guard fact.predicate == WorldFacts.placeGeo, let pin = PlacePin(fact.value) else {
+            return nil
+        }
+        return ["type": "Point", "coordinates": [pin.longitude, pin.latitude]]
+    }
+
+    /// Current pins saved before `geo` existed are given it, so the index finds them (#248).
+    /// Returns how many.
+    func backfillGeo() async throws -> Int {
+        let missing: Document = [
+            "predicate": WorldFacts.placeGeo, "superseded_by": Null(),
+            Self.geoField: ["$exists": false] as Document,
+        ]
+        var count = 0
+        for document in try await facts.find(missing).drain() {
+            guard let id = document["_id"] as? String, let fact = try? decode(document),
+                let point = Self.geo(of: fact)
+            else { continue }
+            _ = try await facts.updateOne(
+                where: ["_id": id], to: ["$set": [Self.geoField: point] as Document])
+            count += 1
+        }
+        return count
+    }
+
+    /// The taught places whose reach covers a point - their radius, and `slack` meters more for
+    /// a fix that is unsure - nearest first, with how far each is: MongoDB's `$geoNear` over the
+    /// current pins (#248, slice 3).
+    func placesNear(latitude: Double, longitude: Double, slack: Double, at now: Date)
+        async throws -> [(fact: Fact, meters: Double)]
+    {
+        var current = currentQuery(at: now)
+        current["predicate"] = WorldFacts.placeGeo
+        let reach: Document = ["$add": ["$value.radius_m", slack] as Document]
+        let reaches: Document = [
+            "$expr": ["$lte": ["$\(Self.distanceField)", reach] as Document] as Document
+        ]
+        let documents = try await facts.buildAggregate {
+            GeoNear(
+                longitude: longitude, latitude: latitude, distanceField: Self.distanceField,
+                spherical: true, query: current, key: FieldPath(components: [Self.geoField]))
+            Match(where: reaches)
+        }
+        .drain()
+        return try documents.map { document in
+            (try decode(document), document[Self.distanceField] as? Double ?? 0)
+        }
+    }
+
+    /// Where `$geoNear` writes how far a pin is, in meters.
+    private static let distanceField = "distance_m"
 
     /// Current facts written before `search_text` existed are given it, so the new index finds
     /// them (#227). Returns how many.

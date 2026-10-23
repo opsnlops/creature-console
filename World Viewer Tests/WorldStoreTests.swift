@@ -256,8 +256,14 @@ struct WorldStoreTests {
             epistemic: EpistemicState(type: .inferred, confidence: 1),
             validFrom: Date(timeIntervalSince1970: 1_789_200_000), derivedFrom: [],
             producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"))
+        let there = try Fact(
+            factID: .generated(), subjectID: april, predicate: WorldFacts.presencePlace,
+            value: .string("place:dentist"),
+            epistemic: EpistemicState(type: .inferred, confidence: 0.9),
+            validFrom: Date(timeIntervalSince1970: 1_789_200_000), derivedFrom: [],
+            producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"))
         let world = ScriptedWorld(history: [])
-        await world.hold(whole: [dentist])
+        await world.hold(whole: [dentist, there])
         // The snapshot is capped, and the dentist's pin is not in it.
         await world.script([
             .snapshot(
@@ -273,7 +279,8 @@ struct WorldStoreTests {
         try await settle { store.streamState == .live }
 
         #expect(TaughtPlace.all(in: store.facts).map(\.name) == ["Dentist"])
-        #expect(store.facts.count == 2)
+        #expect(PlacePresence.april(in: store.facts)?.name == "Dentist")
+        #expect(store.facts.count == 3)
     }
 
     @Test("A place April drops on the map goes to the world as her placement (#258)")

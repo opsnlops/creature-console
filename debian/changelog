@@ -1,3 +1,16 @@
+creature-cli (2.103.0+world0.64.0+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.64.0: the birds know where April is without being
+    told (#248, slice 3). Each taught place's pin is indexed on the
+    sphere (facts_geo, migration 16), and on each fix from her phone
+    the nearest place whose circle reaches her - $geoNear - becomes
+    presence.place, inferred, with how sure the world is. A fix outside
+    the place ends it, and so does coming home; never its age, since a
+    still phone sends nothing. World Viewer 0.23.0 shows where the
+    world has her, and her place's circle in purple.
+
+ -- April White <april@creature.engineering>  Thu, 22 Oct 2026 19:20:00 -0700
+
 creature-cli (2.103.0+world0.63.0+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.63.0: April moves a place she taught (#258).

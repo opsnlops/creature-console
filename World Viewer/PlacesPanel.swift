@@ -35,6 +35,37 @@ struct PlaceFix: Equatable, Sendable {
     }
 }
 
+/// Where the world has April (#248, slice 3): the place in her `presence.place`, how it knows -
+/// her word to a bird, or her phone at a place she taught - how sure, and since when.
+struct PlacePresence: Equatable, Sendable {
+    var place: EntityID
+    /// The world worked it out from her phone, rather than being told.
+    var inferred: Bool
+    var confidence: Double
+    var since: Date
+
+    var name: String { FactPageSections.name(of: place) }
+
+    /// Her current `presence.place`, if it names a place.
+    static func april(in facts: [Fact]) -> PlacePresence? {
+        guard
+            let fact = facts.last(where: {
+                $0.subjectID == PlaceFix.april && $0.predicate == WorldFacts.presencePlace
+            }),
+            let place = WorldFacts.link(in: fact.value), place.rawValue.hasPrefix("place:")
+        else { return nil }
+        return PlacePresence(
+            place: place, inferred: fact.epistemic.type == .inferred,
+            confidence: fact.epistemic.confidence, since: fact.validFrom)
+    }
+
+    /// "at the Gym · 85% · since 3:40 PM", or "· told" for her own word.
+    var line: Text {
+        let how = inferred ? "\(Int((confidence * 100).rounded()))%" : "told"
+        return Text("at \(name) · \(how) · since \(since, style: .time)")
+    }
+}
+
 /// A place April taught the birds, as the world pinned it from her phone (#248), or where she
 /// moved it on the map (#258): read from its `place.geo`.
 struct TaughtPlace: Equatable, Identifiable, Sendable {
@@ -164,6 +195,7 @@ struct PlacesPanel: View {
     @State private var cameraMoves = 0
 
     private var fix: PlaceFix? { PlaceFix.april(in: store.facts) }
+    private var presence: PlacePresence? { PlacePresence.april(in: store.facts) }
     private var stored: [TaughtPlace] { TaughtPlace.all(in: store.facts) }
     private var places: [TaughtPlace] { stored.map { drafts[$0.id] ?? $0 } }
     private var held: PlaceHold? { dragging?.hold ?? hovering }
@@ -177,9 +209,12 @@ struct PlacesPanel: View {
                 Map(position: $camera, interactionModes: held == nil ? [.pan, .zoom] : [.zoom]) {
                     ForEach(places) { place in
                         let isHeld = held?.id == place.id
+                        // The place the world has her at, in her colour.
+                        let isHers = presence?.place == place.id
                         MapCircle(center: place.coordinate, radius: place.radius)
                             .foregroundStyle(.teal.opacity(isHeld ? 0.3 : 0.15))
-                            .stroke(.teal, lineWidth: isHeld ? 3 : 1)
+                            .stroke(
+                                isHers ? .purple : .teal, lineWidth: isHeld ? 3 : isHers ? 2 : 1)
                         Annotation(place.name, coordinate: place.south, anchor: .top) {
                             Text(place.name)
                                 .font(.caption.bold())
@@ -213,13 +248,19 @@ struct PlacesPanel: View {
                 .gesture(placeDrag(on: proxy), including: held == nil ? .subviews : .all)
             }
             .overlay(alignment: .topLeading) {
-                if let fix {
+                if fix != nil || presence != nil {
                     HStack(spacing: 6) {
                         Image(systemName: "location.fill")
-                        if let accuracy = fix.accuracy {
-                            Text("within \(Int(accuracy.rounded())) m ·")
+                        if let fix {
+                            if let accuracy = fix.accuracy {
+                                Text("within \(Int(accuracy.rounded())) m ·")
+                            }
+                            Text("\(fix.since, style: .relative) ago")
                         }
-                        Text("\(fix.since, style: .relative) ago")
+                        if let presence {
+                            if fix != nil { Text("·") }
+                            presence.line.bold()
+                        }
                     }
                     .font(.callout)
                     .padding(.horizontal, 12)

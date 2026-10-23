@@ -206,7 +206,7 @@ public enum WorldFacts {
             "which room a bird's mind is logged into; the region this scene is in is the room you are in",
         personState: "whether a person is home or away, as far as the house can tell",
         presencePlace:
-            "where a person is while out, as a place: April's own word, for a couple of hours; arriving home or leaving ends it",
+            "where a person is while out, as a place: April's own word, for a couple of hours, or the world's inference from her phone at a place she taught, until a fix shows her elsewhere; arriving home or leaving ends it",
         pronouns:
             "the pronouns someone uses - a bird's as it states them, a person's from April's address book; always refer to them this way",
         personAudible:

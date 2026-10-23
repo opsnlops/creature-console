@@ -5,7 +5,7 @@ import MongoKitten
 import WorldCore
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 15
+    static let currentVersion = 16
 
     let database: MongoDatabase
     let logger: Logger
@@ -69,6 +69,13 @@ struct MongoWorldMigrator: Sendable {
                 "What the librarian filed is as old as what it says",
                 metadata: ["facts.dated": "\(dated)"])
             try await recordMigration(version: 15, name: "filed_fact_dates")
+        }
+        if try await !isRecorded(version: 16) {
+            logger.debug("Finding the taught places on the Earth")
+            let pinned = try await FactRepository(database: database).backfillGeo()
+            logger.info(
+                "Taught places can be found near a point", metadata: ["facts.pinned": "\(pinned)"])
+            try await recordMigration(version: 16, name: "place_geo")
         }
         logger.debug(
             "MongoDB schema migrations recorded",
@@ -299,8 +306,12 @@ struct MongoWorldMigrator: Sendable {
         // "What did the minds keep?" - the librarian's question, by who said it (#229).
         let origins = CreateIndexes.Index(
             named: "fact_origins", keys: ["origin": 1, "superseded_by": 1, "valid_to": 1])
+        // "Which taught place is April at?" - each current pin's point, on the sphere (#248).
+        // Only a `place.geo` fact carries one: a 2dsphere index skips the rest.
+        let places = CreateIndexes.Index(
+            named: "facts_geo", keys: [FactRepository.geoField: "2dsphere"])
         try await database[MongoWorldCollection.facts].createIndexes([
-            factID, activeFacts, predicateSubjects, search, origins,
+            factID, activeFacts, predicateSubjects, search, origins, places,
         ])
     }
 

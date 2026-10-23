@@ -218,9 +218,12 @@ final class WorldStore {
     }
 
     /// Kinds the Viewer holds whole, past a snapshot's cap: the Places panel draws every taught
-    /// place and April's fix. The world holds more current facts than the 500 a snapshot
-    /// carries, and on 2026-10-22 the dentist's pin and her fix were not among them (#258).
-    static let wholePredicates = [WorldFacts.placeGeo, WorldFacts.locationGPS]
+    /// place, April's fix, and the place the world has her at. The world holds more current
+    /// facts than the 500 a snapshot carries, and on 2026-10-22 the dentist's pin and her fix
+    /// were not among them (#258).
+    static let wholePredicates = [
+        WorldFacts.placeGeo, WorldFacts.locationGPS, WorldFacts.presencePlace,
+    ]
 
     /// Fills in the kinds held whole, after a snapshot or a refresh replaced the facts.
     private func loadWholeKinds() async throws {

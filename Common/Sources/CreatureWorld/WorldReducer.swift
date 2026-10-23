@@ -28,16 +28,20 @@ struct WorldReduction: Equatable, Sendable {
 /// was merely *reported* about the same thing is moot. Every current fact on `subjectID` whose
 /// predicate starts with `predicatePrefix`, was told to the world (`reported` - a bird's
 /// learning, a wizard's word) rather than observed or assumed, and is not one of `except`, is
-/// closed by a `null` fact derived from the event, so Why? shows what ended it.
+/// closed by a `null` fact derived from the event, so Why? shows what ended it. A retraction may
+/// end the world's own guesses too (`inferred` in `bases`): the house's arrival ends the place
+/// her phone put her at (#248).
 struct FactRetraction: Equatable, Sendable {
     var subjectID: EntityID
     var predicatePrefix: String
     var except: Set<String>
     var producer: FactProducer
+    /// How the facts it ends were known.
+    var bases: Set<EpistemicType> = [.reported]
 
     func covers(_ fact: Fact) -> Bool {
         fact.subjectID == subjectID && fact.predicate.hasPrefix(predicatePrefix)
-            && !except.contains(fact.predicate) && fact.epistemic.type == .reported
+            && !except.contains(fact.predicate) && bases.contains(fact.epistemic.type)
             && fact.value != .null
     }
 
