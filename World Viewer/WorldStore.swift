@@ -166,6 +166,7 @@ final class WorldStore {
             guard !Task.isCancelled else { return }
             facts = loadedFacts.facts
             sweepExpiredFacts()
+            try await loadWholeKinds()
             factsTruncated = loadedFacts.hasMore
             timers = loadedTimers.timers
             factKinds = loadedKinds.kinds
@@ -214,6 +215,21 @@ final class WorldStore {
     /// Everything the world currently believes something about, by kind then name.
     var knownEntities: [EntityID] {
         Array(Set(facts.map(\.subjectID))).sorted { $0.rawValue < $1.rawValue }
+    }
+
+    /// Kinds the Viewer holds whole, past a snapshot's cap: the Places panel draws every taught
+    /// place and April's fix. The world holds more current facts than the 500 a snapshot
+    /// carries, and on 2026-10-22 the dentist's pin and her fix were not among them (#258).
+    static let wholePredicates = [WorldFacts.placeGeo, WorldFacts.locationGPS]
+
+    /// Fills in the kinds held whole, after a snapshot or a refresh replaced the facts.
+    private func loadWholeKinds() async throws {
+        var whole: [Fact] = []
+        for predicate in Self.wholePredicates {
+            whole += try await allFacts(withPrefix: predicate)
+        }
+        guard !Task.isCancelled else { return }
+        apply(changedFacts: whole)
     }
 
     /// Every current fact under a predicate prefix, paged to the end.
@@ -433,6 +449,7 @@ final class WorldStore {
                         facts = snapshot.facts
                         for fact in snapshot.facts { noteBridgeHeartbeat(fact) }
                         sweepExpiredFacts()
+                        try await loadWholeKinds()
                         factsTruncated = snapshot.factsTruncated
                         timers = snapshot.timers
                         try await loadRecentHistory(using: scryer, upTo: snapshot.latestSequence)

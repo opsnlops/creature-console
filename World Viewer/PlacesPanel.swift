@@ -103,7 +103,12 @@ struct TaughtPlace: Equatable, Identifiable, Sendable {
         return place
     }
 
-    /// Where the edge's handle sits: due east of the point, as far as the place reaches.
+    /// Where its name hangs: due south of the point, on the circle's rim.
+    var south: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude - radius / 111_195, longitude: longitude)
+    }
+
+    /// A point on its rim, due east: how big the circle is drawn, measured on the map.
     var edge: CLLocationCoordinate2D {
         let metersPerDegree = 111_320 * cos(latitude * .pi / 180)
         return CLLocationCoordinate2D(
@@ -116,30 +121,74 @@ struct TaughtPlace: Equatable, Identifiable, Sendable {
     }
 }
 
+/// Where on a place the pointer has it (#258): inside its circle moves it, on its rim sets how far
+/// it reaches. Measured in points on the map, so it holds at any zoom.
+enum PlaceGrip: Equatable, Sendable {
+    case move
+    case reach
+
+    /// How far either side of the rim still holds the rim, in points.
+    static let rimWidth: CGFloat = 8
+
+    /// The grip at `point` on a circle drawn around `center` out to `rim` points; nil outside it.
+    /// A circle too small to tell its rim from its middle only moves, and is caught a little
+    /// beyond its edge.
+    static func at(_ point: CGPoint, center: CGPoint, rim: CGFloat) -> PlaceGrip? {
+        let distance = hypot(point.x - center.x, point.y - center.y)
+        guard rim >= 3 * rimWidth else { return distance <= max(rim, rimWidth) ? .move : nil }
+        if abs(distance - rim) <= rimWidth { return .reach }
+        return distance < rim ? .move : nil
+    }
+}
+
 /// Where April is, as the world knows it (#248): her phone's fix on a map, how sure it is, and
-/// how old, and the places she taught the birds, each as far as it reaches. She moves a place
-/// by dragging its pin, and sets how far it reaches by dragging the dot on its edge (#258). The
-/// world's alone - shown to April here, and never to a bird.
+/// how old, and the places she taught the birds, each as far as it reaches. The world's alone -
+/// shown to April here, and never to a bird.
+///
+/// She moves a place by dragging its circle, and sets how far it reaches by dragging its rim
+/// (#258). MapKit draws everything; the panel only reads where the pointer is, in the map's own
+/// points, through `MapProxy` - as a tap on a map is read. Over a circle the map stops panning, so
+/// the drag is the place's. Three earlier tries drew handles of their own, and the map and the
+/// handles never agreed: as MapKit annotations (0.22.0) a drag never reached them; over the map
+/// (0.22.1, 0.22.2) they sat off their circles and moved at a different scale from the map.
 struct PlacesPanel: View {
     let store: WorldStore
     @State private var camera: MapCameraPosition = .automatic
-    /// Where the map is looking, for the handles drawn over it.
-    @State private var looking = MapLooking()
     /// Places April is moving, drawn where her drag has them until the world's fact arrives.
     @State private var drafts: [EntityID: TaughtPlace] = [:]
+    /// The place and grip under the pointer, while it is over a circle.
+    @State private var hovering: PlaceHold?
+    /// The place and grip a drag has, and the place as the drag found it.
+    @State private var dragging: PlaceDrag?
+    /// Counts the camera's moves, so the map's proxy is read afresh after each one.
+    @State private var cameraMoves = 0
 
     private var fix: PlaceFix? { PlaceFix.april(in: store.facts) }
     private var stored: [TaughtPlace] { TaughtPlace.all(in: store.facts) }
     private var places: [TaughtPlace] { stored.map { drafts[$0.id] ?? $0 } }
+    private var held: PlaceHold? { dragging?.hold ?? hovering }
 
     var body: some View {
         if fix != nil || !stored.isEmpty {
             MapReader { proxy in
-                Map(position: $camera) {
+                let _ = cameraMoves
+                // Panned and zoomed, never turned or tilted; and not panned while the pointer
+                // holds a place, so a drag there moves the place.
+                Map(position: $camera, interactionModes: held == nil ? [.pan, .zoom] : [.zoom]) {
                     ForEach(places) { place in
+                        let isHeld = held?.id == place.id
                         MapCircle(center: place.coordinate, radius: place.radius)
-                            .foregroundStyle(.teal.opacity(0.15))
-                            .stroke(.teal, lineWidth: 1)
+                            .foregroundStyle(.teal.opacity(isHeld ? 0.3 : 0.15))
+                            .stroke(.teal, lineWidth: isHeld ? 3 : 1)
+                        Annotation(place.name, coordinate: place.south, anchor: .top) {
+                            Text(place.name)
+                                .font(.caption.bold())
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .glassEffect(.regular, in: .capsule)
+                                .allowsHitTesting(false)
+                        }
+                        .annotationTitles(.hidden)
                     }
                     if let fix {
                         if let accuracy = fix.accuracy {
@@ -151,13 +200,17 @@ struct PlacesPanel: View {
                             .tint(.purple)
                     }
                 }
-                .mapStyle(.standard(elevation: .realistic))
-                .onMapCameraChange(frequency: .continuous) { looking.camera = $0.camera }
-                .overlay {
-                    PlaceHandles(
-                        places: places, proxy: proxy, looking: looking,
-                        dragged: { drafts[$0.id] = $0 }, dropped: keep)
+                .mapStyle(.standard(elevation: .flat))
+                .onMapCameraChange { cameraMoves += 1 }
+                .onContinuousHover { phase in
+                    guard dragging == nil else { return }
+                    switch phase {
+                    case .active(let location): hovering = hold(at: location, on: proxy)
+                    case .ended: hovering = nil
+                    }
                 }
+                .pointerStyle(pointer)
+                .gesture(placeDrag(on: proxy), including: held == nil ? .subviews : .all)
             }
             .overlay(alignment: .topLeading) {
                 if let fix {
@@ -177,7 +230,7 @@ struct PlacesPanel: View {
             }
             .overlay(alignment: .bottomLeading) {
                 if !places.isEmpty {
-                    TaughtPlacesList(places: places).padding(12)
+                    TaughtPlacesList(places: places, focus: focus).padding(12)
                 }
             }
             .onChange(of: fix) { camera = .automatic }
@@ -199,6 +252,61 @@ struct PlacesPanel: View {
         }
     }
 
+    /// The place and grip under `location`, in the map's points: the circle whose middle is
+    /// nearest, of those the pointer is on.
+    private func hold(at location: CGPoint, on proxy: MapProxy) -> PlaceHold? {
+        var best: (hold: PlaceHold, distance: CGFloat)?
+        for place in places {
+            guard let center = proxy.convert(place.coordinate, to: .local),
+                let edge = proxy.convert(place.edge, to: .local),
+                let grip = PlaceGrip.at(
+                    location, center: center,
+                    rim: hypot(edge.x - center.x, edge.y - center.y))
+            else { continue }
+            let distance = hypot(location.x - center.x, location.y - center.y)
+            if best.map({ distance < $0.distance }) ?? true {
+                best = (PlaceHold(id: place.id, grip: grip), distance)
+            }
+        }
+        return best?.hold
+    }
+
+    private var pointer: PointerStyle? {
+        guard let held else { return nil }
+        switch held.grip {
+        case .move: return dragging == nil ? .grabIdle : .grabActive
+        case .reach: return .frameResize(position: .trailing)
+        }
+    }
+
+    /// A drag on a place: inside it, the place moves as far as the pointer did; on its rim, it
+    /// reaches to the pointer. Letting go asks the world to keep it there.
+    private func placeDrag(on proxy: MapProxy) -> some Gesture {
+        DragGesture(minimumDistance: 1)
+            .onChanged { value in
+                if dragging == nil {
+                    guard let hold = hovering,
+                        let place = places.first(where: { $0.id == hold.id })
+                    else { return }
+                    dragging = PlaceDrag(hold: hold, origin: place)
+                }
+                guard let drag = dragging,
+                    let start = proxy.convert(value.startLocation, from: .local),
+                    let end = proxy.convert(value.location, from: .local)
+                else { return }
+                drafts[drag.hold.id] =
+                    switch drag.hold.grip {
+                    case .move: drag.origin.moved(from: start, to: end)
+                    case .reach: drag.origin.reaching(end)
+                    }
+            }
+            .onEnded { _ in
+                guard let drag = dragging else { return }
+                dragging = nil
+                keep(drag.hold.id)
+            }
+    }
+
     /// April let go of a place: ask the world to keep it there; a refusal puts it back.
     private func keep(_ id: EntityID) {
         guard let moved = drafts[id] else { return }
@@ -207,131 +315,51 @@ struct PlacesPanel: View {
             if !kept { drafts[id] = nil }
         }
     }
-}
 
-/// Where the map is looking. Only the handles read it, so a pan redraws them and not the map.
-@MainActor @Observable
-private final class MapLooking {
-    var camera: MapCamera?
-}
-
-/// Each place's handles and name, drawn over the map rather than inside it (#258). Viewer 0.22.0
-/// drew them as MapKit annotations: the dentist vanished beside the gym, and a drag on the gym's
-/// pin moved nothing. MapKit hides annotations that crowd each other, and handles the events of
-/// the views it hosts itself. Over the map, each is placed where its coordinate falls and follows
-/// the camera.
-private struct PlaceHandles: View {
-    let places: [TaughtPlace]
-    let proxy: MapProxy
-    let looking: MapLooking
-    /// The place as a drag has it now.
-    let dragged: (TaughtPlace) -> Void
-    /// A drag let go of the place.
-    let dropped: (EntityID) -> Void
-    /// Each place being dragged, as it was when the drag began.
-    @State private var origins: [EntityID: TaughtPlace] = [:]
-
-    var body: some View {
-        // Read, so the handles follow as the map pans and zooms.
-        let _ = looking.camera
-        ZStack(alignment: .topLeading) {
-            ForEach(places) { place in
-                if let point = proxy.convert(place.coordinate, to: .local) {
-                    PlaceHandle(systemImage: "mappin", size: 28)
-                        .help("Drag to move \(place.name)")
-                        .gesture(
-                            drag(place, by: \.coordinate) { origin, start, end in
-                                origin.moved(from: start, to: end)
-                            }
-                        )
-                        .position(point)
-                    Text(place.name)
-                        .font(.caption.bold())
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .glassEffect(.regular, in: .capsule)
-                        .allowsHitTesting(false)
-                        .position(x: point.x, y: point.y + 30)
-                }
-                if let edge = proxy.convert(place.edge, to: .local) {
-                    PlaceHandle(systemImage: nil, size: 12)
-                        .help("Drag to set how far \(place.name) reaches")
-                        .gesture(
-                            drag(place, by: \.edge) { origin, _, end in
-                                origin.reaching(end)
-                            }
-                        )
-                        .position(edge)
-                }
-            }
+    /// Close enough to a place to take hold of it: its circle a good size on the map.
+    private func focus(_ place: TaughtPlace) {
+        withAnimation {
+            camera = .region(
+                MKCoordinateRegion(
+                    center: place.coordinate, latitudinalMeters: place.radius * 8,
+                    longitudinalMeters: place.radius * 8))
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-
-    /// A drag on one of a place's handles: the handle's own point moves by the drag's
-    /// translation and is read back as a coordinate - the same conversion as a tap on the map.
-    /// `change` turns the place as the drag found it, where its handle was, and where the
-    /// handle is now into the place drawn.
-    private func drag(
-        _ place: TaughtPlace, by handle: KeyPath<TaughtPlace, CLLocationCoordinate2D>,
-        _ change:
-            @escaping (TaughtPlace, CLLocationCoordinate2D, CLLocationCoordinate2D) ->
-            TaughtPlace
-    ) -> some Gesture {
-        // In the window's space: the handle moves under the pointer, so its own space would too.
-        DragGesture(minimumDistance: 1, coordinateSpace: .global)
-            .onChanged { value in
-                let origin = origins[place.id] ?? place
-                origins[place.id] = origin
-                let start = origin[keyPath: handle]
-                guard let point = proxy.convert(start, to: .local),
-                    let end = proxy.convert(
-                        CGPoint(
-                            x: point.x + value.translation.width,
-                            y: point.y + value.translation.height),
-                        from: .local)
-                else { return }
-                dragged(change(origin, start, end))
-            }
-            .onEnded { _ in
-                origins[place.id] = nil
-                dropped(place.id)
-            }
     }
 }
 
-/// A handle April drags on the map: a place's pin, or the dot on its edge.
-private struct PlaceHandle: View {
-    let systemImage: String?
-    let size: CGFloat
-
-    var body: some View {
-        ZStack {
-            if let systemImage {
-                Image(systemName: systemImage)
-                    .font(.system(size: size * 0.5, weight: .bold))
-                    .foregroundStyle(.white)
-            }
-        }
-        .frame(width: size, height: size)
-        .glassEffect(.regular.tint(.teal).interactive(), in: .circle)
-        // A little room around the small one, so it is easy to catch.
-        .padding(6)
-        .contentShape(.circle)
-        .pointerStyle(.grabIdle)
-    }
+/// A place under the pointer, and how it is held.
+private struct PlaceHold: Equatable {
+    var id: EntityID
+    var grip: PlaceGrip
 }
 
-/// The taught places, with who taught each last, when, and how often her phone was there.
+/// A drag on a place: how it is held, and the place as the drag found it.
+private struct PlaceDrag: Equatable {
+    var hold: PlaceHold
+    var origin: TaughtPlace
+}
+
+/// The taught places, with who taught each last, when, and how often her phone was there. A
+/// place's name takes the map to it, close enough to move it.
 private struct TaughtPlacesList: View {
     let places: [TaughtPlace]
+    let focus: (TaughtPlace) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             ForEach(places) { place in
                 HStack(spacing: 6) {
-                    Image(systemName: "mappin.circle.fill").foregroundStyle(.teal)
-                    Text(place.name).bold()
+                    Button {
+                        focus(place)
+                    } label: {
+                        Label {
+                            Text(place.name).bold()
+                        } icon: {
+                            Image(systemName: "mappin.circle.fill").foregroundStyle(.teal)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .help("Show \(place.name) close enough to move it")
                     Text(
                         "· \(Int(place.radius.rounded())) m · \(place.fixes) \(place.fixes == 1 ? "fix" : "fixes")"
                     )

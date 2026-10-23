@@ -242,6 +242,40 @@ struct WorldStoreTests {
         #expect(store.conversationItems.count <= WorldStore.maximumConversationItems)
     }
 
+    @Test("Every taught place and April's fix are held, past the snapshot's cap (#258)")
+    func placesAreHeldWhole() async throws {
+        // A made-up point in Kansas, never April's.
+        let dentist = try Fact(
+            factID: .generated(), subjectID: try EntityID(validating: "place:dentist"),
+            predicate: WorldFacts.placeGeo,
+            value: .object([
+                "type": .string("Point"), "coordinates": .array([.number(-100), .number(40)]),
+                "radius_m": .number(75), "fixes": .number(1),
+                "taught_by": .string("mind:beaky"),
+            ]),
+            epistemic: EpistemicState(type: .inferred, confidence: 1),
+            validFrom: Date(timeIntervalSince1970: 1_789_200_000), derivedFrom: [],
+            producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"))
+        let world = ScriptedWorld(history: [])
+        await world.hold(whole: [dentist])
+        // The snapshot is capped, and the dentist's pin is not in it.
+        await world.script([
+            .snapshot(
+                WorldSnapshot(
+                    latestSequence: 0, facts: [try makeFact()], timers: [],
+                    factsTruncated: true, timersTruncated: false)),
+            .hold,
+        ])
+        let store = makeStore(world)
+
+        store.start()
+        defer { store.stop() }
+        try await settle { store.streamState == .live }
+
+        #expect(TaughtPlace.all(in: store.facts).map(\.name) == ["Dentist"])
+        #expect(store.facts.count == 2)
+    }
+
     @Test("A place April drops on the map goes to the world as her placement (#258)")
     func moveSendsThePlacement() async throws {
         let world = ScriptedWorld(history: [])
@@ -340,6 +374,8 @@ actor ScriptedWorld {
     private var deliveries: [CharacterDeliveryRecord] = []
     /// Where the Viewer asked the world to keep each place it moved.
     private(set) var pins: [EntityID: PlacePlacement] = [:]
+    /// Every current fact, for a read by predicate: more than a snapshot carries.
+    private(set) var whole: [Fact] = []
 
     init(history: [WorldEventEnvelope]) {
         self.history = history
@@ -360,6 +396,10 @@ actor ScriptedWorld {
 
     func pin(_ place: EntityID, _ placement: PlacePlacement) {
         pins[place] = placement
+    }
+
+    func hold(whole facts: [Fact]) {
+        whole = facts
     }
 
     func nextConnection(resumingAfter sequence: Int64?) -> [ScriptedFrame] {
@@ -397,7 +437,9 @@ struct ScriptedScryer: WorldScrying {
     func facts(predicatePrefix prefix: String, after factID: FactID?, limit: Int) async throws
         -> WorldFactPage
     {
-        WorldFactPage(facts: [], nextFactID: nil, hasMore: false)
+        WorldFactPage(
+            facts: await world.whole.filter { $0.predicate.hasPrefix(prefix) }, nextFactID: nil,
+            hasMore: false)
     }
 
     func timers(limit: Int) async throws -> WorldTimerPage {

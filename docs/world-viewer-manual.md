@@ -270,16 +270,35 @@ the dentist") is a teal circle as far as it reaches, with its name, from its `pl
 list in the corner says how far each reaches, how many times her phone was there when she said
 so, which bird kept her word last, and when. The map shows when there are places and no fix.
 
-**Moving a place** (`0.22.0`, #258): drag a place's pin to move it, and the small dot on its
-circle's east edge to set how far it reaches (75 to 500 m, the World's bounds). The circle
-follows the drag and is saved when you let go. It stays where you dropped it once the World's
-fact arrives, or goes back if the World refuses (an alert says why). The list then says "placed
-by April". A later "I'm at the gym" counts a fix but leaves the place where you put it, unless
-the phone is more than a kilometre away, which means the place has moved. The map refits only
-when a place is added or removed, so a place you just moved stays in view. Since `0.22.1` the
-pins, edge dots and names are drawn over the map, not as MapKit annotations. In 0.22.0 the gym's
-pin wouldn't drag and the dentist vanished beside it: MapKit hides annotations that crowd each
-other, and handles a drag on the views it hosts itself.
+**Moving a place** (`0.22.0`, #258; as built in `0.22.2`):
+- **Move it:** drag inside a place's circle. **Set how far it reaches:** drag its rim (75 to 500
+  m, the World's bounds). The circle thickens under the pointer, and the pointer shows a grab
+  or a resize.
+- The map stops panning while the pointer is over a circle, so the drag moves the place. Away
+  from the circles it pans and zooms as usual. It never turns or tilts.
+- **Zoomed out**, a 75 m circle is a dot. Click a place's name in the list to bring the map
+  close enough to take hold of it.
+- The drag is saved when you let go. The circle stays where you dropped it once the World's fact
+  arrives, or goes back if the World refuses (an alert says why). The list then says "placed by
+  April".
+- A later "I'm at the gym" counts a fix but leaves the place where you put it, unless the phone
+  is more than a kilometre away, which means the place has moved.
+- The map refits only when a place is added or removed, so a place you just moved stays in view.
+
+How it is built:
+- **MapKit draws everything:** the circles, and each name on its circle's southern rim. The
+  panel only reads where the pointer is, in the map's own points through `MapProxy`, the way a
+  tap on a map is read. `PlaceGrip` decides from there: inside, on the rim (8 points either
+  side), or the map's.
+- **Three tries that drew handles of their own failed:**
+  - 0.22.0 used MapKit annotations, and a drag never reached them.
+  - 0.22.1 drew them over the map from `MapProxy`. They sat short of their circles by the
+    sidebar and toolbar, and didn't follow a pan.
+  - 0.22.2's first build placed them by arithmetic on the camera's visible rect. They followed,
+    but moved at a different scale from the map.
+- **Every pin is loaded:** the Viewer holds every `place.geo` and `location.gps` fact, read by
+  kind after each snapshot or Refresh. The World holds more current facts than the 500 a
+  snapshot carries, and after a World restart the dentist's pin, and her fix, fell outside them.
 
 ### House (`0.16.0`, #241)
 

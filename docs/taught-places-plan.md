@@ -156,10 +156,12 @@ Her call on what a later teaching does to a place she has placed: **"Keep mine."
   place has moved (or was taught by mistake): pinned afresh, as before, and no longer placed.
 
 **The Viewer.**
-- On the Places map, each place's pin is a handle: drag it to move the place. A smaller handle
-  on the circle's east edge sets how far it reaches.
+- On the Places map, drag inside a place's circle to move it, and drag its rim to set how far it
+  reaches. (Built first with pin handles. Handles drawn by the Viewer never agreed with the
+  map, so MapKit draws everything, and the panel reads the pointer in the map's own points.)
 - Each drag is drawn as it goes and saved on release. The drawing gives way when the World's
-  fact arrives, and snaps back if the World refuses.
+  fact arrives, and snaps back if the World refuses. A place's name in the list zooms the map
+  to it.
 - The list says "placed by April". The map's camera no longer jumps back to fit everything when
   a place changes, only when a place is added or removed.
 

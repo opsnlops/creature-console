@@ -126,6 +126,28 @@ struct PlaceFixTests {
         #expect(place.reaching(north(150)).latitude == place.latitude)
     }
 
+    @Test("Inside a circle moves the place, on its rim sets its reach, outside is the map's")
+    func grips() {
+        let center = CGPoint(x: 200, y: 200)
+        // A circle drawn 100 points out.
+        #expect(PlaceGrip.at(CGPoint(x: 210, y: 190), center: center, rim: 100) == .move)
+        #expect(PlaceGrip.at(CGPoint(x: 295, y: 200), center: center, rim: 100) == .reach)
+        #expect(PlaceGrip.at(CGPoint(x: 200, y: 106), center: center, rim: 100) == .reach)
+        #expect(PlaceGrip.at(CGPoint(x: 320, y: 200), center: center, rim: 100) == nil)
+        // Zoomed out, a circle a few points across only moves, caught just past its edge.
+        #expect(PlaceGrip.at(CGPoint(x: 206, y: 200), center: center, rim: 3) == .move)
+        #expect(PlaceGrip.at(CGPoint(x: 220, y: 200), center: center, rim: 3) == nil)
+    }
+
+    @Test("A place's name hangs on its circle's southern rim")
+    func nameHangsSouth() throws {
+        let place = try #require(TaughtPlace.all(in: [try dentist(radius: 90)]).first)
+        let south = CLLocation(latitude: place.south.latitude, longitude: place.south.longitude)
+        let center = CLLocation(latitude: place.latitude, longitude: place.longitude)
+        #expect(abs(center.distance(from: south) - 90) < 1)
+        #expect(place.south.latitude < place.latitude && place.south.longitude == place.longitude)
+    }
+
     private func dentist(radius: Double) throws -> Fact {
         try fact(
             "place:dentist", WorldFacts.placeGeo,
