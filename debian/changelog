@@ -1,3 +1,14 @@
+creature-cli (2.103.0+world0.62.1+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.62.1: the day's record is the minds' view (#244).
+    /world/v1/days/{day} and query_day leave out every world-only
+    kind: the glossary's world-audience kinds and the kinds that are the
+    world's by nature. On 2026-10-22 the record carried both places
+    April taught, with their points; the nightly memory reads it, and
+    so does a bird that asks for the day.
+
+ -- April White <april@creature.engineering>  Thu, 22 Oct 2026 18:30:00 -0700
+
 creature-cli (2.103.0+world0.62.0+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.62.0: /world/v1/health reports migration_version,

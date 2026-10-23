@@ -385,6 +385,8 @@ else — persona, facts, the clock, streaming to the room — is identical.
   the minds, so what is the world's alone must not get in by that door either. Episodes,
   reflections, and beliefs are scrubbed of phone numbers and emails before they are cast
   (an order number, which April wants kept, is not a phone number), and the prompts say so.
+  Since World 0.62.1 (#244) the day's record holds no world-only kind at all (no numbers,
+  streets or a taught place's point), so the scrub is a second guard.
 - **The presence sensor wins, and a chorus does not repeat the lead** (`2.75.5`, #193). The
   first live departure had all three birds say the same sentence, twice over, and an hour
   later they "could not tell who" came through the door six minutes after Home Assistant had

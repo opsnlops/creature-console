@@ -81,11 +81,15 @@ struct DayDigestBuilder {
         // What the world was told that a memory could be about: never a body's readings (four
         // thousand a day, 370k tokens of a night's prompt) and never a heartbeat.
         let distant = Self.distantCalendarEntries(in: events, after: bounds.to)
+        // And nothing the world keeps to itself - a taught place's point, a contact's number,
+        // the calendar's raw times: the record is the minds' view of the day, read by the night's
+        // memory and by a bird asking `query_day` (#244).
+        let hidden = try await persistence.factKinds.hiddenFromMinds()
         let learned = Self.lastOfFolded(events.filter { Self.isMemorable($0) }).compactMap {
             event -> DayDigest.Line? in
             guard case .string(let subject)? = event.payload["subject_id"],
                 case .string(let predicate)? = event.payload["predicate"],
-                !distant.contains(subject)
+                !distant.contains(subject), !hidden.contains(predicate)
             else { return nil }
             return DayDigest.Line(
                 at: event.occurredAt, who: event.source.id.rawValue,

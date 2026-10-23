@@ -69,7 +69,6 @@ struct FactKindRepository: Sendable {
         return kind
     }
 
-    /// The predicates whose facts are the world's alone, never a mind's.
     /// Every predicate the glossary knows under a prefix: the `body.*` kinds, to leave out of
     /// an envelope that did not ask about bodies.
     func predicates(withPrefix prefix: String) async throws -> Set<String> {
@@ -80,9 +79,16 @@ struct FactKindRepository: Sendable {
         return Set(try documents.map(decode).map(\.predicate))
     }
 
+    /// The predicates the glossary gives the world alone, never a mind.
     func worldOnlyPredicates() async throws -> Set<String> {
         let documents = try await kinds.find(["audience": FactAudience.world.rawValue]).drain()
         return Set(try documents.map(decode).map(\.predicate))
+    }
+
+    /// Every predicate a mind is never handed: the glossary's world-only kinds, and the kinds
+    /// that are the world's by their nature - where a phone is, a taught place's point.
+    func hiddenFromMinds() async throws -> Set<String> {
+        try await worldOnlyPredicates().union(WorldKnowledgeLimits.worldOnlyPredicates)
     }
 
     private func decode(_ document: Document) throws -> FactKind {

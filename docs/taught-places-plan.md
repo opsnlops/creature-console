@@ -58,14 +58,17 @@ Slice 1 is built: house 0.5.0, World 0.60.0, Viewer 0.19.0. Home Assistant's `pe
 carries `latitude`, `longitude` and `gps_accuracy` from the Companion app (`source:
 device_tracker.april_s_phone`). It also merges a UniFi network tracker, which gives no
 accuracy, so the house takes a fix only when `gps_accuracy` is there. A fix every 10 minutes
-while she sits still keeps the 30-minute fact alive.
+while she sits still was meant to keep the 30-minute fact alive. It doesn't, because a still
+phone sends nothing (seen live in slice 2).
 
 1. House `person.located` → `location.gps` (world-only); the Viewer's map shows her fix. Check:
    the fix arrives and moves when she does; no bird's page or tool ever carries it.
 2. Teaching: the contract line, links as values, `PlaceTeachingRule`, `place.geo`, the taught
    places on the map. Check: "I'm at the …" pins a place where she is.
 3. Inference: the `geo` field, the `2dsphere` index, `PlaceInferenceRule`, `presence.place`
-   inferred. Check: back at a taught place, the birds know without being told.
+   inferred. Check: back at a taught place, the birds know without being told. Since a still
+   phone sends nothing (seen 2026-10-22), the inferred place can't end with its fix's 30
+   minutes: it lasts until a fix outside the radius, or until she's home.
 
 ## Slice 2 in detail: teaching (agent 2.103.0, World 0.61.0, Viewer 0.20.0)
 
@@ -111,6 +114,21 @@ are places and no fix.
 place:…`, the place appears on the map where she is, and no bird's page, tool, or glossary
 carries a coordinate.
 
+**Seen live, 2026-10-22.**
+- "Beaky, I'm at the dentist" at 8:56 AM pinned from a fix 35 seconds old. Her next fix, 40
+  minutes later, was 9 m from the pin.
+- "Hey Beaky I'm at the gym" at 3:45 PM pinned from a fix 4½ minutes old. She left from about
+  230 m north of it, so the pin may sit on the car park.
+- Coming home ended both. Kenny and Mango used the gym at once: "you're at the gym, so it's
+  someone else" on the driveway.
+- **The check failed in one place:** the day's record (`query_day`, and the nightly memory's
+  input) carried both points in its `learned` lines. World 0.62.1 builds it without world-only
+  kinds (#244).
+- **A still iPhone sends no fix.** There were none for 39 minutes at the dentist, 70 at the gym
+  and about 1½ hours at home. The house's 10-minute re-send answers only a report from Home
+  Assistant, and the Companion app makes none while the phone is still. So `location.gps` lapses
+  after 30 minutes, and a teaching pins only when it comes within 15 minutes of her last move.
+
 **Tests.** The agent: a tag's `place: the dentist` value is `place:dentist`, a known name is
 its id, text stays text, and the contract says so. The World: the pin's arithmetic (first,
 again near, moved, the caps); the rule against MongoDB (pins on a fresh fix; nothing for a
@@ -120,6 +138,9 @@ facts.
 
 ## Not yet
 
+- April moves a place by dragging it on the Viewer's map. Her placement stays where she puts
+  it: a later teaching nearby doesn't average it away, while one more than 1 km off still means
+  the place moved (April, 2026-10-22: "Keep mine").
 - Distance from home when she is at no known place ("about 12 miles out").
 - Places from Home Assistant zones or the Bridge's calendar locations.
 - Speed or history ("passing the airfield at 60 mph is not being at the airfield").

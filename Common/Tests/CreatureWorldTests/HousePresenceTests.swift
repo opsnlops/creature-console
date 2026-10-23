@@ -415,7 +415,8 @@ struct RecentHappeningsTests {
                 "person:april", "person.tools", .array([.string("soldering iron")]),
                 source: "mind:beaky-\(suffix)", kind: "mind", at: noon + 180),
             // The calendar's year-ahead window moving on a day: next year's lesson is not
-            // news about today (#208); next week's is.
+            // news about today (#208); next week's is. Its raw time is the world's own, as the
+            // Bridge marks it (#244), so its title is the line.
             try given(
                 "event:lessons-\(suffix)-20270830", WorldFacts.calendarStartsAt,
                 .string("2027-08-30T23:00:00.000Z"), source: "bridge:calendar-\(suffix)",
@@ -427,6 +428,9 @@ struct RecentHappeningsTests {
                 "event:lessons-\(suffix)-20260906", WorldFacts.calendarStartsAt,
                 .string("2026-09-06T23:00:00.000Z"), source: "bridge:calendar-\(suffix)",
                 kind: "bridge", at: noon + 300),
+            try given(
+                "event:lessons-\(suffix)-20260906", "calendar.title", .string("Flight School"),
+                source: "bridge:calendar-\(suffix)", kind: "bridge", at: noon + 300),
             // A mind's memory of the day before, written that night: its own, not news (#242).
             try given(
                 "person:april", "memory.episode.beaky.2026-08-29.1",
@@ -449,6 +453,9 @@ struct RecentHappeningsTests {
         ] {
             _ = try await persistence.events.append(event, receivedAt: event.occurredAt)
         }
+        _ = try await persistence.factKinds.set(
+            WorldFacts.calendarStartsAt, meaning: "when it starts", audience: .world,
+            by: "bridge:calendar", at: noon)
         let builder = DayDigestBuilder(
             persistence: persistence, houseConversation: conversation, memory: memory)
         let digest = try #require(try await builder.digest(of: "2026-08-30"))
@@ -457,7 +464,7 @@ struct RecentHappeningsTests {
             mine.map(\.text) == [
                 "\(order.rawValue) order.items = toothpaste",
                 "person:april person.tools = [\"soldering iron\"]",
-                "event:lessons-\(suffix)-20260906 calendar.starts_at = 2026-09-06T23:00:00.000Z",
+                "event:lessons-\(suffix)-20260906 calendar.title = Flight School",
                 "place:outside forecast.next_rain = this evening",
                 "person:jesse visitor.expected = this afternoon",
                 "person:jesse visitor.expected = here now",
@@ -466,6 +473,68 @@ struct RecentHappeningsTests {
         // carries each once (#242).
         #expect(!digest.happenings.contains { $0.subjectID.rawValue == "thing:creature-server" })
         #expect(!digest.happenings.contains { $0.type == GivenFactAnnouncement.eventType })
+    }
+
+    @Test("The day's record is the minds' view: no world-only kind reaches it (#244)")
+    func dayDigestLeavesOutWorldOnlyKinds() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "digest-world-only-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let conversation = try ConversationID(validating: "conversation:digest-\(suffix)")
+        // 2026-08-31 12:00 PDT
+        let noon = Date(timeIntervalSince1970: 1_788_202_800)
+        let memory = MemoryConfiguration(timeZone: "America/Los_Angeles")
+        let dentist = "place:dentist-\(suffix)"
+        let phone = "contact.phone-\(suffix)"
+        _ = try await persistence.factKinds.set(
+            phone, meaning: "a phone number", audience: .world, by: "bridge:contacts", at: noon)
+        func given(
+            _ subject: String, _ predicate: String, _ value: WorldJSONValue, source: String,
+            kind: String, at: Date
+        ) throws -> WorldEventEnvelope {
+            try WorldEventEnvelope(
+                type: GivenFactAnnouncement.eventType, occurredAt: at,
+                source: EventSource(
+                    id: try SourceID(validating: source), kind: kind,
+                    sourceEventID: UUID().uuidString),
+                subjectIDs: [try EntityID(validating: subject)],
+                epistemic: EpistemicState(type: .reported, confidence: 1),
+                payload: [
+                    "subject_id": .string(subject), "predicate": .string(predicate),
+                    "value": value,
+                ])
+        }
+        for event in [
+            // April tells Beaky where she is: the minds' own word.
+            try given(
+                "person:april", "presence.place", .string(dentist), source: "mind:beaky-\(suffix)",
+                kind: "mind", at: noon),
+            // The World pins the place where her phone is: world-only by its nature.
+            try given(
+                dentist, WorldFacts.placeGeo,
+                .object([
+                    "type": .string("Point"), "coordinates": .array([.number(-100), .number(40)]),
+                    "radius_m": .number(75), "fixes": .number(1),
+                    "taught_by": .string("mind:beaky"),
+                ]), source: "world:places-\(suffix)", kind: "world", at: noon + 4),
+            // A contact's number, which the glossary gives the world alone.
+            try given(
+                "person:jesse", phone, .string("360-555-0100"),
+                source: "bridge:contacts-\(suffix)", kind: "bridge", at: noon + 60),
+        ] {
+            _ = try await persistence.events.append(event, receivedAt: event.occurredAt)
+        }
+
+        let digest = try #require(
+            try await DayDigestBuilder(
+                persistence: persistence, houseConversation: conversation, memory: memory
+            ).digest(of: "2026-08-31"))
+        #expect(
+            digest.learned.filter { $0.who.hasSuffix(suffix) }.map(\.text) == [
+                "person:april presence.place = \(dentist)"
+            ])
     }
 
     @Test("A day bigger than one page is read to its end, in order")

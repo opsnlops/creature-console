@@ -348,7 +348,8 @@ no mark (the month written before the birds could choose) stays with its bird. T
 that: "Old memories get privacy too, even before anyone adds a mark." A call with `audience` but
 no `mind` sees only memories marked shared. **`query_timeline`** is gated for a mind too, since
 a raw event carries the value: a `facts.given` event with a world-only fact, or another bird's
-private memory, is left out. `query_day`'s `learned` lines are not filtered yet (#244).
+private memory, is left out. `query_day` carries no world-only kind for anyone (`0.62.1`,
+#244): the day's record is built without them.
 **Search** (`0.33.0`): `GET /v1/search?q=cleaner&limit=10` and the `search_world` tool — one
 ranked query over MongoDB's text index on the facts collection (`facts_search`, since `0.47.2`:
 each current fact's `search_text` - the words of the subject's slug, the predicate, and every
@@ -977,7 +978,7 @@ bird as `person:april presence.place = place:dentist`, a link, for two hours.
 `place:dentist place.geo` = `{"type": "Point", "coordinates": [lon, lat], radius_m, fixes,
 taught_by}`, a `facts.given` from `world:places`, inferred, caused by the teaching and the fix,
 with no end. Only a mind's keeping teaches, only a `place:` link, only from a fix at most 15
-minutes old (the house re-sends a still phone's every 10) and accurate to 100 m, and never
+minutes old and accurate to 100 m, and never
 while the house says she is `home` (a room taught at home would claim the house's own point).
 Taught again within 1 km, the point is the running mean of the fixes and the radius grows to
 cover the old circle and the new fix, from 75 m (or the fix's accuracy) to at most 500 m;
@@ -985,7 +986,17 @@ farther, the place has moved, and is pinned afresh. One pin per teaching event. 
 world-only by nature: never on a page, in a tool, in a bird's glossary, or kept by a mind.
 `presence.place` is an ordinary reported `presence.*`: on the page as a link (the place's own
 facts follow, one hop), ended by the house's arrival or departure. A rule that cannot pin one
-teaching logs it and keeps listening.
+teaching logs it and keeps listening. A still iPhone sends no fix: on 2026-10-22 there were
+none for 39 minutes at the dentist and 70 at the gym, so `location.gps` lapses after half an
+hour and a place is pinned only when it is taught soon after she arrives.
+
+**The day's record is the minds' view** (`0.62.1`, #244). `GET /v1/days/{day}` and
+`query_day` leave out every world-only kind: the glossary's world-audience kinds (`contact.*`
+numbers and streets, the calendar's raw times, order and reminder timestamps) and the kinds
+that are the world's by their nature (`place.geo`, `entity.same_as`). The nightly memory reads
+this record, and so does a bird that calls `query_day`. On 2026-10-22 it carried both taught
+places' points: 14 of the day's 55 `learned` lines go. Far-off calendar entries are still found
+from the raw events.
 
 **What was told keeps its thirty** (`0.60.1`, #251, docs/standing-page-plan.md). The thirty
 are drawn by how they are known: up to thirty of what the world was told (`reported`), the layer a

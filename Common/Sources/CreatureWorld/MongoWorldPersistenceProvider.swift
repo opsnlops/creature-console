@@ -1335,8 +1335,7 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         }
         // What is the world's alone stays with the world - and never takes a mind's place on
         // the capped page.
-        var worldOnly = try await kinds.worldOnlyPredicates().union(
-            WorldKnowledgeLimits.worldOnlyPredicates)
+        var worldOnly = try await kinds.hiddenFromMinds()
         // And kinds that ride only on request: a bird's body is thirty lines a clock question
         // does not need; the words "board", "power", "servo" bring them.
         let wordsInText = Set(
@@ -1509,7 +1508,7 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         async let aroundList = surroundings(of: subjects)
         async let people = knownPeople(at: now)
         async let orders = knownOrders(at: now)
-        async let stored = kinds.worldOnlyPredicates()
+        async let hidden = kinds.hiddenFromMinds()
         let mind = subjects.first(where: { $0.rawValue.hasPrefix("character:") })
         let around = Set(try await aroundList)
         var named = WorldMentions.mentioned(in: text, among: try await people)
@@ -1520,7 +1519,7 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         named = unique(named).filter { !around.contains($0) }
         // The world-only kinds stay with the world; a kind that rides on request stays with it
         // too, unless these words asked for it.
-        let worldOnly = try await stored.union(WorldKnowledgeLimits.worldOnlyPredicates)
+        let worldOnly = try await hidden
         // What the minds kept and what the bird remembers, found by the words whatever their age
         // (#229): searches, the slowest of these, so they run while the rest is gathered.
         async let learned = keptFacts(matching: text, excluding: worldOnly, at: now)
