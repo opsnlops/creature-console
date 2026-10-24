@@ -37,7 +37,11 @@ final class MQTTMessageProcessor: MessageProcessor {
     private let nameResolver: CreatureNameResolver
     private let fetchCreatureName: @Sendable (CreatureIdentifier) async -> String?
     private let animationNameResolver: AnimationNameResolver
-    private let fetchAnimationName: @Sendable (AnimationIdentifier) async -> String?
+    private let fetchAnimationName:
+        @Sendable (AnimationIdentifier, ActivityReason?) async -> String?
+    /// The animation each creature's activity topic last said it was playing, by topic base: a
+    /// name fetched later is published only while it still is (#267).
+    private let playing = NIOLockedValueBox<[String: AnimationIdentifier]>([:])
     private let reloadAnimationNames: @Sendable () async -> [AnimationIdentifier: String]
     private let lastPublished: NIOLockedValueBox<[String: String]>
     private let retainMessages: Bool
@@ -53,7 +57,9 @@ final class MQTTMessageProcessor: MessageProcessor {
         nameResolver: CreatureNameResolver,
         fetchCreatureName: @escaping @Sendable (CreatureIdentifier) async -> String?,
         animationNameResolver: AnimationNameResolver,
-        fetchAnimationName: @escaping @Sendable (AnimationIdentifier) async -> String?,
+        fetchAnimationName:
+            @escaping @Sendable (AnimationIdentifier, ActivityReason?) async ->
+            String?,
         reloadAnimationNames: @escaping @Sendable () async -> [AnimationIdentifier: String],
         retainMessages: Bool
     ) {
@@ -127,6 +133,27 @@ final class MQTTMessageProcessor: MessageProcessor {
 
     private func publishDate(_ date: Date, components: [String]) {
         publishValue(ISO8601DateFormatter().string(from: date), components: components)
+    }
+
+    /// The animation a creature is playing, and its name: now when known, and again once a name
+    /// fetched later arrives, if the creature is still playing it (#267). A bird's spoken line
+    /// is an ad-hoc animation, which `fetchAnimationName` looks for where those are kept.
+    private func publishAnimation(
+        _ animationId: AnimationIdentifier, reason: ActivityReason?, components base: [String]
+    ) {
+        publishValue(animationId, components: base + ["animation_id"])
+        let key = base.joined(separator: "/")
+        playing.withLockedValue { $0[key] = animationId }
+        let fetch = fetchAnimationName
+        let name = animationNameResolver.resolve(
+            id: animationId, fetchIfMissing: { await fetch($0, reason) },
+            whenResolved: { [weak self] name in
+                guard let self, self.playing.withLockedValue({ $0[key] }) == animationId else {
+                    return
+                }
+                self.publishValue(name, components: base + ["animation_name"])
+            })
+        publishValue(name, components: base + ["animation_name"])
     }
 
     private func resolveCreature(
@@ -326,11 +353,8 @@ final class MQTTMessageProcessor: MessageProcessor {
                     let activityBase = [resolved.topicComponent, "activity"]
                     publishValue(activity.state.rawValue, components: activityBase + ["state"])
                     if let animationId = activity.animationId {
-                        publishValue(animationId, components: activityBase + ["animation_id"])
-                        let animationName = animationNameResolver.resolve(
-                            id: animationId, fetchIfMissing: fetchAnimationName)
-                        publishValue(
-                            animationName, components: activityBase + ["animation_name"])
+                        publishAnimation(
+                            animationId, reason: activity.reason, components: activityBase)
                     }
                     if let sessionId = activity.sessionId {
                         publishValue(sessionId, components: activityBase + ["session_id"])
@@ -449,10 +473,7 @@ final class MQTTMessageProcessor: MessageProcessor {
             name: resolved.resolvedName ?? activity.creatureName)
         publishValue(activity.state.rawValue, components: base + ["state"])
         if let animationId = activity.animationId {
-            publishValue(animationId, components: base + ["animation_id"])
-            let animationName = animationNameResolver.resolve(
-                id: animationId, fetchIfMissing: fetchAnimationName)
-            publishValue(animationName, components: base + ["animation_name"])
+            publishAnimation(animationId, reason: activity.reason, components: base)
         }
         if let sessionId = activity.sessionId {
             publishValue(sessionId, components: base + ["session_id"])

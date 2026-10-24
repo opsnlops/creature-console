@@ -1,3 +1,17 @@
+creature-cli (2.105.1+world0.64.7+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-mqtt 2.105.1: a bird's spoken line has its name, not
+    "-unknown-" (#267). Spoken lines are ad-hoc animations, which the
+    bridge asked the stored-animation path for - a 404 every time a bird
+    spoke (1,196 in two weeks) - and a failed lookup was cached as
+    "-unknown-" for good. The activity's reason now says where to ask
+    first (ad hoc and streaming: the ad-hoc path), a failure is asked
+    again after five minutes rather than cached, and a name that arrives
+    after the first publish is published then, while the creature is
+    still playing it.
+
+ -- April White <april@creature.engineering>  Sat, 24 Oct 2026 00:00:00 -0700
+
 creature-cli (2.105.0+world0.64.7+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.64.7: the startup announcements fill a blank and

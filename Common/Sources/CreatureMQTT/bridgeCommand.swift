@@ -77,15 +77,24 @@ extension CreatureMQTT {
                     return nil
                 }
             }
-            let fetchAnimationName: @Sendable (AnimationIdentifier) async -> String? = { id in
-                let result = await server.getAnimation(animationId: id)
-                switch result {
-                case .success(let animation):
-                    return animation.metadata.title
-                case .failure:
+            // A bird's spoken line is an ad-hoc animation, kept apart from the stored ones and
+            // served at its own path: asking the stored path for it was a 404 every time a bird
+            // spoke, and the name stayed "-unknown-" (#267). The activity's reason says which
+            // to ask first; the other is asked when the first has none.
+            let fetchAnimationName:
+                @Sendable (AnimationIdentifier, ActivityReason?) async -> String? = { id, reason in
+                    let stored: @Sendable () async -> String? = {
+                        try? await server.getAnimation(animationId: id).get().metadata.title
+                    }
+                    let adHoc: @Sendable () async -> String? = {
+                        try? await server.getAdHocAnimation(animationId: id).get().metadata.title
+                    }
+                    let spoken = reason == .adHoc || reason == .streaming
+                    for lookup in spoken ? [adHoc, stored] : [stored, adHoc] {
+                        if let title = await lookup() { return title }
+                    }
                     return nil
                 }
-            }
             let reloadAnimationNames: @Sendable () async -> [AnimationIdentifier: String] = {
                 await preloadAnimationNames(from: server)
             }

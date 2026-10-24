@@ -55,7 +55,7 @@ private func makeMQTTProcessor(
         nameResolver: CreatureNameResolver(),
         fetchCreatureName: { _ in nil },
         animationNameResolver: AnimationNameResolver(),
-        fetchAnimationName: { _ in nil },
+        fetchAnimationName: { _, _ in nil },
         reloadAnimationNames: { [:] },
         retainMessages: retainMessages
     )
