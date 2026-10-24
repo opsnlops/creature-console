@@ -1,4 +1,5 @@
 import Foundation
+import MongoKitten
 import Testing
 import WorldCore
 
@@ -97,6 +98,99 @@ struct HousePresenceTests {
 
         // She is still away, as the house saw; nothing replaced it.
         #expect(try await state()?.factID == left.factID)
+    }
+
+    @Test("Ninety days on, a restart's announcements fill a blank and never cover evidence (#260)")
+    func announcementsFillInOnly() async throws {
+        let uri = try #require(mongoTestURI)
+        let persistence = try await MongoWorldPersistence.connect(
+            to: uri, logger: .init(label: "house-presence-tests"))
+        defer { Task { await persistence.cluster.disconnect() } }
+        let suffix = UUID().uuidString.lowercased()
+        let april = try EntityID(validating: "person:april-\(suffix)")
+        let guest = try EntityID(validating: "person:guest-\(suffix)")
+        let house = try EntityID(validating: "house:nest-\(suffix)")
+        // Now, in whole seconds: these events must outlive the test, as the real ones did.
+        let start = Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down))
+        let clock = ManualWorldClock(now: start)
+        let world = World(
+            eventStore: persistence.events, factStore: persistence.facts,
+            reducers: [AssumedPersonPresenceReducer(), HouseReducer(), GivenFactReducer()],
+            clock: clock)
+        let announcer = StartupAnnouncer(facts: persistence.facts) {
+            _ = try await world.accept($0)
+        }
+        let assumptions = PresenceConfiguration(
+            assumed: [april: try .init(state: .home, physicallyAudible: true, confidence: 0.9)])
+        let configured = [
+            GivenFact(subjectID: house, predicate: "house.wifi_name", value: .string("Nest"))
+        ]
+        func current(_ subject: EntityID, _ predicate: String) async throws -> Fact? {
+            try await persistence.facts.currentFacts(subjectID: subject, at: await clock.now)
+                .first { $0.predicate == predicate }
+        }
+
+        // The first start fills the blanks.
+        let first = try await announcer.announce(
+            presence: assumptions, givenFacts: configured, at: start)
+        #expect(first.cast == 2 && first.skipped == 0)
+        #expect(try await current(april, WorldFacts.personState)?.epistemic.type == .assumed)
+
+        // Then the house sees her leave, and a bird is told the wifi's new name.
+        try await clock.advance(by: 35 * 86_400)
+        _ = try await world.accept(
+            try WorldEventEnvelope(
+                type: HouseEvents.personLeft, occurredAt: await clock.now,
+                source: EventSource(
+                    id: try SourceID(validating: "home-assistant:person-april"),
+                    kind: HouseEvents.sourceKind, sourceEventID: UUID().uuidString),
+                subjectIDs: [april], epistemic: EpistemicState(type: .observed, confidence: 1),
+                payload: ["entity_id": .string("person.april")]))
+        _ = try await world.accept(
+            try WorldEventEnvelope(
+                type: GivenFactAnnouncement.eventType, occurredAt: await clock.now,
+                source: EventSource(
+                    id: try SourceID(validating: "mind:beaky"), kind: "mind",
+                    sourceEventID: UUID().uuidString),
+                subjectIDs: [house], epistemic: EpistemicState(type: .reported, confidence: 1),
+                payload: [
+                    "subject_id": .string(house.rawValue), "predicate": .string("house.wifi_name"),
+                    "value": .string("Birdhouse"),
+                ]))
+        let away = try #require(try await current(april, WorldFacts.personState))
+        let wifi = try #require(try await current(house, "house.wifi_name"))
+
+        // Past ninety days the first announcements have gone from the log, so the next
+        // restart's are new events - and would have covered what the house and the bird said.
+        try await clock.advance(by: 65 * 86_400)
+        _ = try await persistence.database[MongoWorldCollection.events].deleteAll(
+            where: [
+                "source.id": [
+                    "$in": [
+                        AssumedPresenceAnnouncement.sourceID.rawValue,
+                        GivenFactAnnouncement.sourceID.rawValue,
+                    ]
+                ] as Document,
+                "subject_ids": ["$in": [april.rawValue, house.rawValue]] as Document,
+            ])
+        let again = try await announcer.announce(
+            presence: assumptions, givenFacts: configured, at: await clock.now)
+        #expect(again.cast == 0 && again.skipped == 2)
+        #expect(try await current(april, WorldFacts.personState)?.factID == away.factID)
+        #expect(try await current(house, "house.wifi_name")?.factID == wifi.factID)
+
+        // A blank is still filled, and a changed assumption replaces an older assumption.
+        let changed = PresenceConfiguration(
+            assumed: [guest: try .init(state: .away, physicallyAudible: false, confidence: 0.6)])
+        #expect(
+            try await announcer.announce(presence: changed, givenFacts: [], at: await clock.now)
+                .cast == 1)
+        let warmer = PresenceConfiguration(
+            assumed: [guest: try .init(state: .home, physicallyAudible: true, confidence: 0.7)])
+        #expect(
+            try await announcer.announce(presence: warmer, givenFacts: [], at: await clock.now)
+                .cast == 1)
+        #expect(try await current(guest, WorldFacts.personState)?.value == .string("home"))
     }
 
     @Test("A scene ask goes to the house and comes back as the fact the mind is told")

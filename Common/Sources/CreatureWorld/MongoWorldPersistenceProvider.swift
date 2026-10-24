@@ -189,14 +189,17 @@ struct MongoWorldPersistenceConnection: Sendable {
                 : NoHouseCommands()
         )
         // What the world assumes about people is a fact with provenance, announced at startup
-        // (idempotent: the same assumption is the same event on every restart).
+        // (idempotent: the same assumption is the same event on every restart) - and only where
+        // it fills a blank, never over evidence (#260).
         let assumptionAnnouncer = Task {
             do {
-                let now = await clock.now
-                for event in try AssumedPresenceAnnouncement.events(for: presence, at: now)
-                    + GivenFactAnnouncement.events(for: givenFacts, at: now)
-                {
-                    _ = try await world.accept(event)
+                let announced = try await StartupAnnouncer(facts: persistence.facts) {
+                    _ = try await world.accept($0)
+                }.announce(presence: presence, givenFacts: givenFacts, at: await clock.now)
+                if announced.skipped > 0 {
+                    logger.info(
+                        "Startup assumptions left to the evidence",
+                        metadata: ["presence.skipped": "\(announced.skipped)"])
                 }
             } catch {
                 logger.warning(

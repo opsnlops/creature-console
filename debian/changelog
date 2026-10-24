@@ -1,3 +1,14 @@
+creature-cli (2.105.0+world0.64.7+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.64.7: the startup announcements fill a blank and
+    never cover evidence (#260). Once an announcement's first event has
+    expired (90 days - around 2026-12-12 for the 2026-09-13 one), a
+    restart's is a new event. An assumption is now cast only for a
+    person whose presence is unknown or itself assumed, and a configured
+    fact only where the configuration alone has spoken.
+
+ -- April White <april@creature.engineering>  Fri, 23 Oct 2026 23:30:00 -0700
+
 creature-cli (2.105.0+world0.64.6+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.64.6: the tests stop flaking (#247). The World

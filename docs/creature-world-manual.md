@@ -943,9 +943,18 @@ expired, the event wasn't left unreduced. Before that, the same events sent agai
 were reduced again, and their first day's facts were laid over newer ones. That meant the
 World's startup announcements on every restart, and the house's snapshot of a person after its
 own restart. On 2026-10-22 a deploy turned April's observed presence back into the 13 September
-assumption, and inverted the replaced fact's interval. Not covered: once the event itself expires
-(90 days), a restart's announcement is a new event, and a configured assumption is cast afresh
-over evidence (#260).
+assumption, and inverted the replaced fact's interval.
+
+**The announcements fill a blank, never cover evidence** (`0.64.7`, #260). Once an event itself
+expires (90 days), a restart's announcement is a new event. The first, from 2026-09-13, would
+have gone around 12-12. `StartupAnnouncer` now casts:
+- an assumption only for a person whose `presence.state` is unknown or itself assumed, so a
+  changed assumption still replaces an older one;
+- a configured fact only where the current one, if any, is the configuration's own
+  (`world:given-facts`).
+
+Whatever the house saw, a bird was told, or the World inferred stays. The skips are logged as
+"Startup assumptions left to the evidence".
 
 Reducers are synchronous and side-effect-free. They may calculate facts and proposed derived
 events, but they cannot suspend for MongoDB, HTTP, model inference, or other external I/O. Those
