@@ -27,7 +27,14 @@ struct DroppedConnectionRetryTests {
 
         let drops: Int
         let dropAfterReading: TimeAmount?
+        /// Connections opened. The client's pool may open one ahead of need, so this is a
+        /// floor, never a count of sends.
         let accepted = NIOLockedValueBox(0)
+        /// The connections a request was read on: each one a send that reached the server.
+        let readers = NIOLockedValueBox<Set<ObjectIdentifier>>([])
+
+        /// How many sends the server read.
+        var reads: Int { readers.withLockedValue { $0.count } }
 
         init(drops: Int, dropAfterReading: TimeAmount? = nil) {
             self.drops = drops
@@ -43,6 +50,11 @@ struct DroppedConnectionRetryTests {
         }
 
         func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+            // A request may arrive in more than one read; it is one send, answered once.
+            let first = readers.withLockedValue {
+                $0.insert(ObjectIdentifier(context.channel)).inserted
+            }
+            guard first else { return }
             if let dropAfterReading {
                 let channel = context.channel
                 channel.eventLoop.scheduleTask(in: dropAfterReading) { channel.close(promise: nil) }
@@ -95,7 +107,10 @@ struct DroppedConnectionRetryTests {
                 logger: Logger(label: "retry-tests"), span: span, fastDrop: .seconds(5))
         }
         #expect(response.status == .ok)
-        #expect(handler.accepted.withLockedValue { $0 } == 3)
+        // Two dropped before reading, the third read and answered - and only one send read: the
+        // pool opened four connections once on the CI runner (#247).
+        #expect(handler.accepted.withLockedValue { $0 } >= 3)
+        #expect(handler.reads == 1)
     }
 
     @Test("A reset is a dropped connection however the client reports it; a refusal is not")
@@ -131,10 +146,12 @@ struct DroppedConnectionRetryTests {
                     logger: Logger(label: "retry-tests"), span: span, fastDrop: .seconds(5))
             }
         }
-        // Every send was a connection of its own (the pool may open one more ahead).
+        // Every send was a connection of its own (the pool may open one more ahead), and none
+        // was read.
         #expect(
             handler.accepted.withLockedValue { $0 }
                 >= 1 + CreatureServerConfiguration.droppedConnectionRetries)
+        #expect(handler.reads == 0)
     }
 
     @Test("A drop after the server could have read the request is never sent again")
@@ -152,6 +169,7 @@ struct DroppedConnectionRetryTests {
                     logger: Logger(label: "retry-tests"), span: span)
             }
         }
-        #expect(handler.accepted.withLockedValue { $0 } == 1)
+        // Read once and never sent again.
+        #expect(handler.reads == 1)
     }
 }
