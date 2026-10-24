@@ -438,12 +438,17 @@ struct MongoWorldPersistenceConnection: Sendable {
         let houseAskDesk = HouseAskDesk(
             mode: houseAskMode, facts: persistence.facts, notes: persistence.houseScenes,
             clock: clock)
+        // What a mind learns in a whisper is marked with that bird, by the World (#263).
+        let whisperDesk = WhisperDesk(
+            event: { try await persistence.events.event(withID: $0) },
+            whisperedTo: { try await persistence.conversations.whisperedTo(utterance: $0) })
         acceptEvent = {
-            // A mind's keeping, at the door: never the world's own kinds (#255), and onto the
-            // kept id of a merge.
+            // A mind's keeping, at the door: marked when it was learned in a whisper (#263),
+            // never the world's own kinds (#255), and onto the kept id of a merge.
             try await world.accept(
                 try await filingDesk.redirect(
-                    try await filingDesk.check(try await houseAskDesk.check($0))))
+                    try await filingDesk.check(
+                        try await whisperDesk.mark(try await houseAskDesk.check($0)))))
         }
         houseAsks = { try await houseAskDesk.asks() }
         houseScenes = { try await houseAskDesk.scenes() }
@@ -1334,7 +1339,7 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
     /// calendar and mail are on the page by their own rules, never called up here.
     static let learnedOrigins = "^(mind|librarian):"
 
-    let facts: FactRepository
+    var facts: FactRepository
     let events: WorldEventRepository
     let kinds: FactKindRepository
     let sessions: CharacterSessionService
@@ -1342,7 +1347,27 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
     let clock: any WorldClock
     var memory = MemoryConfiguration()
 
+    /// The mind a page is for: the first character among its subjects - every caller puts it
+    /// first.
+    static func mind(among subjects: [EntityID]) -> EntityID? {
+        subjects.first { $0.rawValue.hasPrefix("character:") }
+    }
+
+    /// The world as that mind may know it: never a fact learned in another bird's whisper
+    /// (#263). Every fact on its page is read through this.
+    private func known(to subjects: [EntityID]) -> PresentWorldKnowledge {
+        var known = self
+        known.facts = facts.heard(by: Self.mind(among: subjects))
+        return known
+    }
+
     func currentFacts(about subjects: [EntityID], mentionedIn text: String?, limit: Int)
+        async throws -> [Fact]
+    {
+        try await known(to: subjects).pageFacts(about: subjects, mentionedIn: text, limit: limit)
+    }
+
+    private func pageFacts(about subjects: [EntityID], mentionedIn text: String?, limit: Int)
         async throws -> [Fact]
     {
         let now = await clock.now
@@ -1380,7 +1405,7 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
         // and newer than everything else, and would otherwise push what April taught the birds
         // yesterday off the page.
         let about = unique(expanded)
-        let mind = subjects.first(where: { $0.rawValue.hasPrefix("character:") })
+        let mind = Self.mind(among: subjects)
         let parts = try await subjectFacts(
             about: about, beside: [], mind: mind, worldOnly: worldOnly, limit: limit, now: now)
         let present = parts.present
@@ -1502,11 +1527,12 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
     func page(about subjects: [EntityID], mentionedIn text: String?, limit: Int)
         async throws -> KnowledgePage
     {
-        async let standing = currentFacts(about: subjects, mentionedIn: nil, limit: limit)
+        let known = known(to: subjects)
+        async let standing = known.pageFacts(about: subjects, mentionedIn: nil, limit: limit)
         guard let text, !text.isEmpty else {
             return KnowledgePage(facts: try await standing, calledUp: [])
         }
-        async let brought = calledUp(about: subjects, by: text, limit: limit)
+        async let brought = known.calledUp(about: subjects, by: text, limit: limit)
         let kept = try await standing
         let extra = try await brought
         var ids = Set(kept.map(\.factID))
@@ -1857,19 +1883,24 @@ struct PresentWorldKnowledge: WorldKnowledgeProviding {
     func recentHappenings(about subjects: [EntityID], since: Date, limit: Int) async throws
         -> [Happening]
     {
-        let around = unique(try await surroundings(of: subjects))
+        let known = known(to: subjects)
+        let around = unique(try await known.surroundings(of: subjects))
         // Fetch generously: heartbeats and measurements share the index and are dropped here.
         let recent = try await events.events(about: around, since: since, limit: limit * 8)
-        return recent.filter { Happening.isStoryworthy($0) }
-            .suffix(limit)
-            .map { event in
-                let subject =
-                    event.subjectIDs.first { !$0.rawValue.hasPrefix("character:") }
-                    ?? event.subjectIDs.first ?? event.placeID ?? around[0]
-                return Happening(
-                    occurredAt: event.occurredAt, type: event.type, subjectID: subject,
-                    summary: Self.summary(of: event, subject: subject))
-            }
+        // A fact learned in another bird's whisper is not this mind's story (#263).
+        let mind = Self.mind(among: subjects)
+        return recent.filter {
+            Happening.isStoryworthy($0) && GivenFactAnnouncement.isHeard($0, by: mind)
+        }
+        .suffix(limit)
+        .map { event in
+            let subject =
+                event.subjectIDs.first { !$0.rawValue.hasPrefix("character:") }
+                ?? event.subjectIDs.first ?? event.placeID ?? around[0]
+            return Happening(
+                occurredAt: event.occurredAt, type: event.type, subjectID: subject,
+                summary: Self.summary(of: event, subject: subject))
+        }
     }
 
     /// The store's meanings, with the world's own catalogue behind them for a predicate the

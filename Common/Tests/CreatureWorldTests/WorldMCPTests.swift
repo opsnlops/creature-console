@@ -507,7 +507,24 @@ struct WorldMCPTests {
             epistemic: EpistemicState(type: .reported, confidence: 1), validFrom: at,
             derivedFrom: [.event(percept.eventID)],
             producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"))
-        await world.set(facts: [kept], events: [percept, offer, arrived])
+        // Learned in the whisper: Beaky's alone, fact and event (#263).
+        let learnedAlone = try WorldEventEnvelope(
+            type: GivenFactAnnouncement.eventType, occurredAt: at,
+            source: EventSource(id: SourceID(validating: "mind:beaky"), kind: "mind"),
+            subjectIDs: [april], epistemic: EpistemicState(type: .reported, confidence: 1),
+            payload: [
+                "subject_id": .string(april.rawValue), "predicate": .string("work.week"),
+                "value": .string("long"),
+                GivenFactAnnouncement.aloneWithKey: .string(beaky.rawValue),
+            ])
+        let keptAlone = try Fact(
+            subjectID: april, predicate: "work.week", value: .string("long"),
+            epistemic: EpistemicState(type: .reported, confidence: 1), validFrom: at,
+            derivedFrom: [.event(learnedAlone.eventID)],
+            producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"),
+            aloneWith: beaky)
+        await world.set(
+            facts: [kept, keptAlone], events: [percept, offer, arrived, learnedAlone])
         let application = makeCreatureWorldApplication(
             dependencies: .testing(
                 configuration: try CreatureWorldConfiguration(port: 8080),
@@ -566,8 +583,25 @@ struct WorldMCPTests {
             let entity = try await call(
                 "query_entity", #"{"entity_id":"person:april"}"#, meta: asMind("character:mango"))
             #expect(types(entity?["result"]?["structuredContent"]?["events"]) == ["person.arrived"])
+            func predicates(_ value: WorldJSONValue?) -> [String] {
+                guard case .array(let facts)? = value else { return [] }
+                return facts.compactMap { $0["predicate"]?.stringValue }.sorted()
+            }
+            // What Beaky learned in the whisper is hers: not Mango's, nor an unnamed mind's.
+            #expect(
+                predicates(entity?["result"]?["structuredContent"]?["facts"]) == ["person.mood"])
+            let beakys = try await call(
+                "query_entity", #"{"entity_id":"person:april"}"#, meta: asMind("character:beaky"))
+            #expect(
+                predicates(beakys?["result"]?["structuredContent"]?["facts"]) == [
+                    "person.mood", "work.week",
+                ])
+            #expect(
+                types(beakys?["result"]?["structuredContent"]?["events"]) == [
+                    "person.arrived", "facts.given",
+                ])
             let timeline = try await call(
-                "query_timeline", #"{"after_sequence":0}"#, meta: asMind("character:beaky"))
+                "query_timeline", #"{"after_sequence":0}"#, meta: asMind("character:mango"))
             #expect(
                 types(timeline?["result"]?["structuredContent"]?["items"]) == ["person.arrived"])
             let why = try await call(
@@ -576,7 +610,7 @@ struct WorldMCPTests {
             #expect(types(why?["result"]?["structuredContent"]?["events"]) == [])
             let debugging = try await call(
                 "query_entity", #"{"entity_id":"person:april"}"#, meta: nil)
-            #expect(types(debugging?["result"]?["structuredContent"]?["events"]).count == 3)
+            #expect(types(debugging?["result"]?["structuredContent"]?["events"]).count == 4)
 
             // Over REST, a bird asks for its own day; without `mind` it is whole.
             try await client.execute(

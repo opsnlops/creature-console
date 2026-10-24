@@ -56,13 +56,7 @@ struct ConversationTurnRow: View {
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                     if let bird = item.aloneWith {
-                        Label(
-                            "whispered with \(WorldFacts.memoryOwner(for: bird).capitalized)",
-                            systemImage: "lock.fill"
-                        )
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .help("Between April and this bird alone; the other birds never hear it")
+                        WhisperedLabel(bird: bird)
                     }
                 }
                 Text(item.text)
@@ -88,6 +82,21 @@ struct ConversationTurnRow: View {
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+/// Between April and one bird: a whispered turn (#261), or a fact learned in a whisper (#263).
+struct WhisperedLabel: View {
+    let bird: EntityID
+
+    var body: some View {
+        Label(
+            "whispered with \(WorldFacts.memoryOwner(for: bird).capitalized)",
+            systemImage: "lock.fill"
+        )
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+        .help("Between April and this bird alone; the other birds are never handed it")
     }
 }
 

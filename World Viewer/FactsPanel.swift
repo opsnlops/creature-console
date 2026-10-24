@@ -98,8 +98,13 @@ struct FactsPanel: View {
 
     private func factRow(_ fact: Fact, heading: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(heading)
-                .font(.headline)
+            HStack(spacing: 8) {
+                Text(heading)
+                    .font(.headline)
+                if let bird = fact.aloneWith {
+                    WhisperedLabel(bird: bird)
+                }
+            }
             Text(describe(fact.value))
                 .font(.system(.body, design: .monospaced))
                 .lineLimit(2)

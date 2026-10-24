@@ -22,6 +22,15 @@ public protocol AddresseeResolving: Sendable {
     func addressee(for utterance: PersonUtterance, hinted: EntityID) async throws -> Addressee
 }
 
+/// Who hears a whisper (#261, #263): everything said in the room, and what was whispered with
+/// that bird - never another bird's. A reader that does not say which bird it is hears the room
+/// alone. One rule for the conversation, the day's record, and the facts learned in a whisper.
+public enum Whispers {
+    public static func isHeard(_ aloneWith: EntityID?, by characterID: EntityID?) -> Bool {
+        aloneWith == nil || aloneWith == characterID
+    }
+}
+
 /// The world before the flock: whoever the sender said, and nobody else.
 public struct HintedAddresseeResolver: AddresseeResolving {
     public init() {}

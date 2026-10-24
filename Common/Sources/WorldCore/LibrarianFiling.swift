@@ -384,18 +384,22 @@ public struct FilingApplication: WorldEventPayload, Equatable {
         /// When it began where it was: a move keeps the fact's age.
         public var validFrom: Date?
         public var validTo: Date?
+        /// And whose whisper it was learned in: a move never makes it the room's (#263).
+        public var aloneWith: EntityID?
 
         public init(_ fact: Fact) {
             self.fact = Touched(fact)
             value = fact.value
             validFrom = fact.validFrom
             validTo = fact.validTo
+            aloneWith = fact.aloneWith
         }
 
         private enum CodingKeys: String, CodingKey {
             case fact, value
             case validFrom = "valid_from"
             case validTo = "valid_to"
+            case aloneWith = "alone_with"
         }
     }
 

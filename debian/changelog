@@ -1,3 +1,18 @@
+creature-cli (2.104.1+world0.64.3+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.64.3: what a bird learns in a whisper is that bird's
+    alone (#263). A mind's facts.given caused by a whispered percept is
+    marked alone_with at the door (WhisperDesk); a mind's own mark is
+    never taken. Every path to a mind reads only what it heard: its
+    page (FactRepository.heard(by:)), its story, the day record's
+    learned lines, and the minds' tools. room=true on /v1/facts,
+    /v1/facts/overwritten and /v1/days/{day} is the room's alone; kind
+    candidates are room facts; a merge's move keeps the mark. Migration
+    18 marks what was learned in past whispers.
+  * creature-agent 2.104.1: the librarian reads what the room heard.
+
+ -- April White <april@creature.engineering>  Fri, 23 Oct 2026 21:00:00 -0700
+
 creature-cli (2.104.0+world0.64.2+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.104.0: the night lands by morning, and never costs

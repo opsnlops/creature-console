@@ -62,7 +62,9 @@ the Communicator, or `failed: <error_code>`. Hover for the attempt ID, decision 
 Creature Server animation ID of a performance. A turn with no chip was cast by hand or
 pre-dates the router. A whisper ("@beaky …") and the bird's answer to it carry
 **🔒 whispered with Beaky** (`0.23.1`, World `0.64.2`, #261): it is between April and that bird,
-and no other bird hears it, live or at night. This panel refreshes whenever the conversation
+and no other bird hears it, live or at night. A fact a bird learned in a whisper carries the same
+mark in the Facts and Entities panels (`0.23.2`, World `0.64.3`, #263): only that bird is handed
+it. This panel refreshes whenever the conversation
 stream announces a new item.
 
 ### Characters

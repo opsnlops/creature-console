@@ -259,6 +259,30 @@ struct ConversationServiceTests {
         #expect(decoded.isHeard(by: nil))
     }
 
+    @Test(
+        "A fact learned in a whisper carries its bird as alone_with; an older fact decodes without")
+    func whisperedFactRoundTrips() throws {
+        let beaky = try EntityID(validating: "character:beaky")
+        let fact = try Fact(
+            subjectID: EntityID(validating: "person:april"), predicate: "work.week",
+            value: .string("a long one"), epistemic: EpistemicState(type: .reported, confidence: 1),
+            validFrom: Self.now, derivedFrom: [],
+            producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"),
+            origin: SourceID(validating: "mind:beaky"), aloneWith: beaky)
+        let encoded = try WorldJSON.makeEncoder().encode(fact)
+        let json = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        #expect(json["alone_with"] as? String == "character:beaky")
+        #expect(try WorldJSON.makeDecoder().decode(Fact.self, from: encoded) == fact)
+        #expect(fact.isHeard(by: beaky))
+        #expect(!fact.isHeard(by: try EntityID(validating: "character:mango")))
+        #expect(!fact.isHeard(by: nil))
+        var older = json
+        older["alone_with"] = nil
+        let decoded = try WorldJSON.makeDecoder().decode(
+            Fact.self, from: JSONSerialization.data(withJSONObject: older))
+        #expect(decoded.aloneWith == nil && decoded.isHeard(by: nil))
+    }
+
     @Test("A day as a bird heard it keeps the room and its own whispers, never another's (#261)")
     func dayAsABirdHeardIt() throws {
         let beaky = try EntityID(validating: "character:beaky")
@@ -270,14 +294,19 @@ struct ConversationServiceTests {
         let toMango = DayDigest.Line(
             at: at, who: "person:april", text: "@mango just us", aloneWith: mango)
         let learned = DayDigest.Line(at: at, who: "mind:beaky", text: "house:test x = y")
+        // Learned in a whisper with Beaky: hers alone, like the whisper (#263).
+        let learnedAlone = DayDigest.Line(
+            at: at, who: "mind:beaky", text: "person:april work.week = long", aloneWith: beaky)
         let day = DayDigest(
             day: "2026-10-22", timeZone: "America/Los_Angeles", happenings: [],
-            conversation: [room, toBeaky, toMango], scenes: [], learned: [learned])
+            conversation: [room, toBeaky, toMango], scenes: [], learned: [learned, learnedAlone])
 
         #expect(day.heard(by: beaky).conversation == [room, toBeaky])
         #expect(day.heard(by: mango).conversation == [room, toMango])
         #expect(day.heard(by: nil).conversation == [room])
-        #expect(day.heard(by: beaky).learned == [learned])
+        #expect(day.heard(by: beaky).learned == [learned, learnedAlone])
+        #expect(day.heard(by: mango).learned == [learned])
+        #expect(day.heard(by: nil).learned == [learned])
         let encoded = try WorldJSON.makeEncoder().encode(day)
         #expect(try WorldJSON.makeDecoder().decode(DayDigest.self, from: encoded) == day)
         #expect(String(decoding: encoded, as: UTF8.self).contains("\"alone_with\""))

@@ -151,6 +151,21 @@ struct SceneMemoryReducer: WorldReducer {
 struct GivenFactAnnouncement {
     static let eventType = WorldEventType(rawValue: "facts.given")!
     static let sourceID = try! SourceID(validating: "world:given-facts")
+    /// The payload key of the bird a fact was learned in a whisper with (#263).
+    static let aloneWithKey = "alone_with"
+
+    /// The bird a fact was learned in a whisper with, as the World marked it at the door
+    /// (`WhisperDesk`, #263).
+    static func aloneWith(in event: WorldEventEnvelope) -> EntityID? {
+        guard event.type == eventType, case .string(let raw)? = event.payload[aloneWithKey]
+        else { return nil }
+        return EntityID(rawValue: raw)
+    }
+
+    /// Whether `mind` may read `event`: anything but a fact learned in another bird's whisper.
+    static func isHeard(_ event: WorldEventEnvelope, by mind: EntityID?) -> Bool {
+        Whispers.isHeard(aloneWith(in: event), by: mind)
+    }
 
     static func events(for facts: [GivenFact], at now: Date) throws -> [WorldEventEnvelope] {
         try facts.map { fact in
@@ -179,6 +194,7 @@ struct GivenFactAnnouncement {
 struct GivenFactReducer: WorldReducer {
     let eventTypes: Set<WorldEventType> = [GivenFactAnnouncement.eventType]
 
+
     func reduce(_ event: WorldEventEnvelope) throws -> WorldReduction {
         guard case .string(let rawSubject)? = event.payload["subject_id"],
             let subject = EntityID(rawValue: rawSubject),
@@ -205,7 +221,8 @@ struct GivenFactReducer: WorldReducer {
                     validTo: validTo,
                     derivedFrom: [.event(event.eventID)],
                     producer: producer,
-                    origin: event.source.id
+                    origin: event.source.id,
+                    aloneWith: GivenFactAnnouncement.aloneWith(in: event)
                 )
             ],
             retractions: Self.endsVisit(predicate: predicate, value: value)

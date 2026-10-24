@@ -62,7 +62,8 @@ public struct DayDigest: Codable, Equatable, Sendable {
         public var at: Date
         public var who: String
         public var text: String
-        /// The bird a whispered line was for (#261); nil for the room.
+        /// The bird a whispered line was for (#261), or a fact was learned in a whisper with
+        /// (#263); nil for the room.
         public var aloneWith: EntityID?
 
         public init(at: Date, who: String, text: String, aloneWith: EntityID? = nil) {
@@ -117,12 +118,14 @@ public struct DayDigest: Codable, Equatable, Sendable {
     }
 
     /// The day as `characterID` heard it: the room's conversation and its own whispers, never
-    /// another bird's (#261). Nil - a reader that does not say which bird it is - hears none.
+    /// another bird's (#261), and what was learned the same way (#263). Nil - a reader that
+    /// does not say which bird it is - hears the room alone.
     public func heard(by characterID: EntityID?) -> DayDigest {
         var heard = self
         heard.conversation = conversation.filter {
-            ConversationItem.isHeard($0.aloneWith, by: characterID)
+            Whispers.isHeard($0.aloneWith, by: characterID)
         }
+        heard.learned = learned.filter { Whispers.isHeard($0.aloneWith, by: characterID) }
         return heard
     }
 

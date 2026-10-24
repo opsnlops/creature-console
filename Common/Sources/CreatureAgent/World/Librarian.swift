@@ -514,6 +514,11 @@ struct Librarian: Sendable {
 
     // MARK: - The record
 
+    /// What the librarian reads is the room's alone (#263): it is Beaky, its questions are
+    /// asked in the room, and what it files is the world's - so a fact learned in a whisper, or
+    /// April's whispered words, are never filed for every bird.
+    static let roomOnly = URLQueryItem(name: "room", value: "true")
+
     /// Every current fact a mind kept or the librarian filed, memories aside, paged.
     private func fetchKept() async throws -> [Fact] {
         var facts: [Fact] = []
@@ -524,7 +529,7 @@ struct Librarian: Sendable {
                     "facts",
                     query: [
                         URLQueryItem(name: "origin_prefix", value: origin),
-                        URLQueryItem(name: "limit", value: "200"),
+                        URLQueryItem(name: "limit", value: "200"), Self.roomOnly,
                     ]
                         + (after.map { [URLQueryItem(name: "after_fact_id", value: $0.rawValue)] }
                             ?? []))
@@ -543,7 +548,7 @@ struct Librarian: Sendable {
                 query: [
                     URLQueryItem(name: "origin_prefix", value: origin),
                     URLQueryItem(name: "since", value: WorldJSON.timestamp(since)),
-                    URLQueryItem(name: "limit", value: "200"),
+                    URLQueryItem(name: "limit", value: "200"), Self.roomOnly,
                 ])
             items += page.items
         }
@@ -587,13 +592,11 @@ struct Librarian: Sendable {
         }
     }
 
-    /// What April said to the birds on `day`, from the day record as the librarian's own bird
-    /// heard it - never another bird's whispers (#261); none when the World cannot say, and the
-    /// night files without it.
+    /// What April said to the birds on `day`, from the day record as the room heard it - never
+    /// a whisper (#261, #263); none when the World cannot say, and the night files without it.
     private func fetchHeard(day: String) async -> Heard? {
         do {
-            let digest: DayDigest = try await get(
-                "days/\(day)", query: [URLQueryItem(name: "mind", value: characterID.rawValue)])
+            let digest: DayDigest = try await get("days/\(day)", query: [Self.roomOnly])
             return Heard(digest)
         } catch {
             logger.warning(

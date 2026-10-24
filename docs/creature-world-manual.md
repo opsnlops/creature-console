@@ -197,6 +197,29 @@ As Mango, `query_entity person:april` returned 35 of Beaky's and Caroll's. What 
 and their answers. The marks also went on the copies of each item kept in `utterance_ingresses`
 and `character_deliveries`, so a retried write still matches.
 
+**What a bird learns in a whisper is that bird's alone** (`0.64.3`, #263,
+`docs/whispered-facts-plan.md`). After the 22nd was remembered again, two of its whispered topics
+came back. While April whispered, Beaky had kept facts, and every bird was handed them as things
+"the house recorded". April: "let's go with the world deciding. It's more like real life."
+- **Marked at the door.** A mind's `facts.given` is caused by the percept it answered.
+  `WhisperDesk` marks it `alone_with` when that percept is an utterance whispered to a bird, and a
+  mind's own mark is never taken. The fact carries it as `Fact.aloneWith`.
+- **Only that bird is handed it:**
+  - its page, built from `FactRepository.heard(by:)`, which every query reads through, so the
+    thirty, links, searches and the calendar alike;
+  - its story;
+  - its day record's `learned` lines;
+  - the minds' tools, both the fact and its `facts.given` event.
+- **The house's rules and April see it whole.** A later fact of the same kind said to the room
+  replaces it as usual.
+- **The librarian reads the room's alone.** It is Beaky, and it asks its questions in the room.
+  `room=true` on `GET /v1/facts`, `/v1/facts/overwritten` and `/v1/days/{day}`, and kind
+  candidates are drawn from room facts, so a whispered fact or word is never filed for every
+  bird. A merge that moves a whispered fact keeps its mark.
+- **Migration 18, `whispered_facts`,** marked the facts learned in past whispers. It follows
+  each whispered utterance to its percept, then to the keepings that percept caused, then to the
+  facts those made, including copies a filing made.
+
 ### Scenes
 
 When April speaks to a character while other characters are logged into the same region, the
@@ -793,8 +816,8 @@ Two versions ride along, and they are different things (`0.62.0`):
 
 - `schema_version` is the **wire contract**: the version every event, fact, and request carries
   (`WorldSchema.currentVersion`, 1). It changes only when a shape breaks older readers.
-- `migration_version` is the **database**: the newest migration recorded (17, `whispers`,
-  since `0.64.2`; 16, `place_geo`, since `0.64.0`). Ready means the database holds this build's newest migration, so it is
+- `migration_version` is the **database**: the newest migration recorded (18,
+  `whispered_facts`, since `0.64.3`; 17, `whispers`, since `0.64.2`). Ready means the database holds this build's newest migration, so it is
   present only with `mongodb: "ok"`. A World older than 0.62.0 does not send it.
 
 An HTTP 503 does not mean the process should be restarted. Supervisors should use process exit for

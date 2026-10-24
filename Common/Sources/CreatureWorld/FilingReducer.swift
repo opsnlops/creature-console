@@ -68,7 +68,8 @@ struct FilingReducer: WorldReducer {
                         validTo: move.validTo,
                         derivedFrom: [.event(event.eventID), .fact(move.fact.factID)],
                         producer: Self.producer,
-                        origin: event.source.id))
+                        origin: event.source.id,
+                        aloneWith: move.aloneWith))
             }
         }
         return WorldReduction(changedFacts: facts)

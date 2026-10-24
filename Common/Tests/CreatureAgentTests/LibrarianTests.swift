@@ -393,6 +393,8 @@ struct LibrarianTests {
         let origins = Origins()
         let router = Router(context: BasicRequestContext.self)
         router.get("world/v1/facts") { request, _ in
+            // The room's facts alone: nothing learned in a whisper is filed (#263).
+            #expect(request.uri.queryParameters["room"].map(String.init) == "true")
             let origin = request.uri.queryParameters["origin_prefix"].map(String.init)
             await origins.note(origin ?? "")
             return Response(
@@ -406,6 +408,7 @@ struct LibrarianTests {
         }
         router.get("world/v1/facts/overwritten") { request, _ in
             #expect(request.uri.queryParameters["since"] != nil)
+            #expect(request.uri.queryParameters["room"].map(String.init) == "true")
             let origin = request.uri.queryParameters["origin_prefix"].map(String.init)
             return Response(
                 status: .ok, headers: [.contentType: "application/json"],
@@ -441,8 +444,8 @@ struct LibrarianTests {
             try filing(day: "2026-10-13", questions: ["Which flight school is the right one?"]),
         ])
         router.get("world/v1/days/2026-10-14") { request, _ in
-            // The librarian is Beaky: what she heard, never another bird's whispers (#261).
-            #expect(request.uri.queryParameters["mind"].map(String.init) == "character:beaky")
+            // What the room heard, never a whisper: the librarian files for every bird (#263).
+            #expect(request.uri.queryParameters["room"].map(String.init) == "true")
             return Response(
                 status: .ok, headers: [.contentType: "application/json"],
                 body: ResponseBody(

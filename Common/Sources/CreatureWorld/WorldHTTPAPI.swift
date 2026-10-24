@@ -430,6 +430,7 @@ struct WorldHTTPAPI: Sendable {
                     return prefix
                 }
                 let limit = try pageLimit(request)
+                let room = try roomOnly(request)
                 return try await execute {
                     if let originPrefix {
                         guard subjectID == nil, predicatePrefix == nil else {
@@ -437,7 +438,8 @@ struct WorldHTTPAPI: Sendable {
                         }
                         return try jsonResponse(
                             await service.currentFacts(
-                                originPrefix: originPrefix, after: after, limit: limit))
+                                originPrefix: originPrefix, after: after, limit: limit
+                            ).heard(roomOnly: room))
                     }
                     return try jsonResponse(
                         await service.currentFacts(
@@ -445,8 +447,7 @@ struct WorldHTTPAPI: Sendable {
                             predicatePrefix: predicatePrefix,
                             after: after,
                             limit: limit
-                        )
-                    )
+                        ).heard(roomOnly: room))
                 }
             }
         }
@@ -590,10 +591,16 @@ struct WorldHTTPAPI: Sendable {
                     let since = WorldJSON.date(from: String(raw))
                 else { throw WorldAPIError.invalidQuery(name: "since") }
                 let limit = try pageLimit(request)
+                let room = try roomOnly(request)
                 return try await execute {
-                    try jsonResponse(
-                        await service.overwrittenFacts(
-                            originPrefix: prefix, since: since, limit: limit))
+                    var page = try await service.overwrittenFacts(
+                        originPrefix: prefix, since: since, limit: limit)
+                    if room {
+                        page.items = page.items.filter {
+                            $0.replaced.isHeard(by: nil) && $0.by.isHeard(by: nil)
+                        }
+                    }
+                    return try jsonResponse(page)
                 }
             }
         }
@@ -625,19 +632,22 @@ struct WorldHTTPAPI: Sendable {
 
         // One local day, for the nightly memory job: happenings, the conversation, the scenes'
         // lines, and what was cast. `mind=character:kenny` is that bird's own record, with no
-        // other bird's whispers (#261); without it the record is whole.
+        // other bird's whispers (#261) or what was learned in them (#263); `room=true` is the
+        // room's alone, for the librarian; with neither the record is whole.
         router.get("v1/days/:day") { request, context in
             await respond {
                 let day = try dayParameter(context)
                 let mind = try request.uri.queryParameters["mind"].map {
                     try EntityID(validating: String($0))
                 }
+                let room = try roomOnly(request)
                 return try await execute {
                     guard let digest = try await service.dayDigest(day) else {
                         return try jsonResponse(
                             WorldAPIErrorResponse(error: "not_found", message: "No such day"),
                             status: .notFound)
                     }
+                    if room { return try jsonResponse(digest.heard(by: nil)) }
                     return try jsonResponse(mind.map { digest.heard(by: $0) } ?? digest)
                 }
             }
@@ -831,6 +841,17 @@ struct WorldHTTPAPI: Sendable {
             MemoryConfiguration.bounds(ofDay: day, in: .current) != nil
         else { throw WorldAPIError.invalidQuery(name: "day") }
         return day
+    }
+
+    /// `room=true`: only what the room heard - no fact learned in a whisper (#263). The
+    /// librarian reads so: it is Beaky, its questions are asked in the room, and what it files
+    /// is the world's.
+    private func roomOnly(_ request: Request) throws -> Bool {
+        guard let raw = request.uri.queryParameters["room"] else { return false }
+        guard raw == "true" || raw == "false" else {
+            throw WorldAPIError.invalidQuery(name: "room")
+        }
+        return raw == "true"
     }
 
     private func pageLimit(_ request: Request) throws -> Int {
@@ -1154,5 +1175,16 @@ private actor FirstOutcome<Value: Sendable> {
     func settle(_ result: Result<Value, any Error>) {
         continuation?.resume(with: result)
         continuation = nil
+    }
+}
+
+extension WorldFactPage {
+    /// With `roomOnly`, the page less every fact learned in a whisper (#263); the cursor stays
+    /// the page's own, so a reader pages on as before.
+    fileprivate func heard(roomOnly: Bool) -> WorldFactPage {
+        guard roomOnly else { return self }
+        var heard = self
+        heard.facts = facts.filter { $0.isHeard(by: nil) }
+        return heard
     }
 }

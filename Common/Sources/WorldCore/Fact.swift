@@ -30,6 +30,9 @@ public struct Fact: Hashable, Sendable, Codable {
     /// librarian needs to find "everything a mind kept" (#229). Nil on a fact from before
     /// 0.49.0 whose event has gone.
     public var origin: SourceID?
+    /// The bird it was learned in a whisper with (#263): kept while that bird answered April's
+    /// "@beaky …", so only that bird is handed it. Nil for anything learned in the room.
+    public var aloneWith: EntityID?
 
     public init(
         factID: FactID = .generated(),
@@ -42,7 +45,8 @@ public struct Fact: Hashable, Sendable, Codable {
         derivedFrom: [ProvenanceReference],
         producer: FactProducer,
         supersededBy: FactID? = nil,
-        origin: SourceID? = nil
+        origin: SourceID? = nil,
+        aloneWith: EntityID? = nil
     ) throws {
         if let validTo, validTo < validFrom {
             throw WorldContractError.invalidDateInterval
@@ -59,6 +63,13 @@ public struct Fact: Hashable, Sendable, Codable {
         self.producer = producer
         self.supersededBy = supersededBy
         self.origin = origin
+        self.aloneWith = aloneWith
+    }
+
+    /// Whether `characterID`'s mind may be handed this: anything learned in the room, and what
+    /// was learned in a whisper with it.
+    public func isHeard(by characterID: EntityID?) -> Bool {
+        Whispers.isHeard(aloneWith, by: characterID)
     }
 
     public init(from decoder: any Decoder) throws {
@@ -88,6 +99,7 @@ public struct Fact: Hashable, Sendable, Codable {
         self.producer = try container.decode(FactProducer.self, forKey: .producer)
         self.supersededBy = try container.decodeIfPresent(FactID.self, forKey: .supersededBy)
         self.origin = try container.decodeIfPresent(SourceID.self, forKey: .origin)
+        self.aloneWith = try container.decodeIfPresent(EntityID.self, forKey: .aloneWith)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -103,5 +115,6 @@ public struct Fact: Hashable, Sendable, Codable {
         case producer
         case supersededBy = "superseded_by"
         case origin
+        case aloneWith = "alone_with"
     }
 }

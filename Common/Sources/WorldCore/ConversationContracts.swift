@@ -254,12 +254,7 @@ public struct ConversationItem: Hashable, Sendable, Codable {
     /// Whether `characterID` heard this: everything said to the room, and a whisper to it. A
     /// reader who does not say which bird it is hears no whisper.
     public func isHeard(by characterID: EntityID?) -> Bool {
-        Self.isHeard(aloneWith, by: characterID)
-    }
-
-    /// The rule itself, for anything carrying a whisper's mark: the day record's lines too.
-    public static func isHeard(_ aloneWith: EntityID?, by characterID: EntityID?) -> Bool {
-        aloneWith == nil || aloneWith == characterID
+        Whispers.isHeard(aloneWith, by: characterID)
     }
 
     public init(from decoder: any Decoder) throws {

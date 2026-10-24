@@ -339,6 +339,29 @@ struct FilingReducerTests {
         #expect(facts[2].subjectID == keep && facts[2].predicate == "workshop.tiki_room")
         #expect(facts[2].derivedFrom.contains(.fact(moving.factID)))
     }
+
+    @Test("A fact learned in a whisper keeps its bird when a merge moves it (#263)")
+    func mergeKeepsAWhisper() throws {
+        let keep = id("place:new-workshop")
+        let other = id("thing:new-workshop")
+        var moving = try kept(other, "workshop.secret", "only Beaky was told")
+        moving.aloneWith = id("character:beaky")
+        let application = FilingApplication(
+            filing: EventID.generated(), items: [FilingItemKey(.same, 0)],
+            merges: [.init(merged: [other], keep: keep, moves: [.init(moving)])])
+        let event = try WorldEventEnvelope(
+            occurredAt: now,
+            source: EventSource(id: SourceID(validating: "librarian:beaky"), kind: "librarian"),
+            subjectIDs: application.subjects,
+            epistemic: EpistemicState(type: .reported, confidence: 1), payload: application)
+        // Through the wire as the World keeps it, then reduced.
+        let decoded = try WorldJSON.makeDecoder().decode(
+            FilingApplication.self, from: WorldJSON.makeEncoder().encode(application))
+        #expect(decoded.merges.first?.moves.first?.aloneWith == id("character:beaky"))
+        let moved = try FilingReducer().reduce(event).changedFacts.last
+        #expect(moved?.subjectID == keep)
+        #expect(moved?.aloneWith == id("character:beaky"))
+    }
 }
 
 @Suite(

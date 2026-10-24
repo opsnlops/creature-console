@@ -5,7 +5,7 @@ import MongoKitten
 import WorldCore
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 17
+    static let currentVersion = 18
 
     let database: MongoDatabase
     let logger: Logger
@@ -83,6 +83,14 @@ struct MongoWorldMigrator: Sendable {
             logger.info(
                 "A whisper stays with its bird", metadata: ["conversation.whispers": "\(marked)"])
             try await recordMigration(version: 17, name: "whispers")
+        }
+        if try await !isRecorded(version: 18) {
+            logger.debug("Marking what was learned in whispers")
+            let marked = try await markWhisperedFacts()
+            logger.info(
+                "What a bird learned in a whisper stays with it",
+                metadata: ["facts.whispered": "\(marked)"])
+            try await recordMigration(version: 18, name: "whispered_facts")
         }
         logger.debug(
             "MongoDB schema migrations recorded",
@@ -196,6 +204,89 @@ struct MongoWorldMigrator: Sendable {
             marked += 1
         }
         return marked
+    }
+
+    /// Before 0.64.3 a fact a bird kept while answering a whisper was the world's like any
+    /// other (#263). From each whispered utterance (migration 17) to the percept it became, the
+    /// `facts.given` events that percept caused, and the facts they made - and the copies a
+    /// filing made of those, one hop - each is marked with the whisper's bird. Read as
+    /// documents, so an odd row is passed over. Idempotent. Returns how many facts it marked.
+    func markWhisperedFacts() async throws -> Int {
+        let items = database[MongoWorldCollection.conversationItems]
+        let events = database[MongoWorldCollection.events]
+        let facts = database[MongoWorldCollection.facts]
+        let key = GivenFactAnnouncement.aloneWithKey
+        func array(_ ids: some Sequence<String>) -> Document {
+            var array = Document(isArray: true)
+            for id in ids { array.append(id) }
+            return array
+        }
+        // The whispers: utterance → bird.
+        var whispered: [String: String] = [:]
+        let spoken: Document = [
+            "author_kind": ConversationAuthorKind.person.rawValue,
+            "alone_with": ["$ne": Null()] as Document,
+        ]
+        for item in try await items.find(spoken).drain() {
+            guard let utterance = item["utterance_id"] as? String,
+                let bird = item["alone_with"] as? String
+            else { continue }
+            whispered[utterance] = bird
+        }
+        guard !whispered.isEmpty else { return 0 }
+        // The percepts they became: event → bird.
+        var percepts: [String: String] = [:]
+        let heard: Document = [
+            "type": PersonUtterancePercept.eventType.rawValue,
+            "payload.utterance.utterance_id": ["$in": array(whispered.keys)] as Document,
+        ]
+        for event in try await events.find(heard).drain() {
+            guard let id = event["event_id"] as? String,
+                let utterance = ((event["payload"] as? Document)?["utterance"] as? Document)?[
+                    "utterance_id"] as? String,
+                let bird = whispered[utterance]
+            else { continue }
+            percepts[id] = bird
+        }
+        guard !percepts.isEmpty else { return 0 }
+        // What the minds kept answering them: event → bird, marked on the event too.
+        var keepings: [String: String] = [:]
+        let kept: Document = [
+            "type": GivenFactAnnouncement.eventType.rawValue,
+            "source.kind": "mind",
+            "caused_by": ["$in": array(percepts.keys)] as Document,
+        ]
+        for event in try await events.find(kept).drain() {
+            guard let id = event["event_id"] as? String,
+                let causes = event["caused_by"] as? Document,
+                let bird = causes.values.compactMap({ ($0 as? String).flatMap { percepts[$0] } })
+                    .first
+            else { continue }
+            keepings[id] = bird
+            _ = try await events.updateOne(
+                where: ["event_id": id], to: ["$set": ["payload.\(key)": bird] as Document])
+        }
+        guard !keepings.isEmpty else { return 0 }
+        // The facts they made, then what a filing made of those, one hop.
+        var marked: [String: String] = [:]
+        func mark(derivedFrom sources: [String: String]) async throws {
+            let made: Document = ["derived_from": ["$in": array(sources.keys)] as Document]
+            for fact in try await facts.find(made).drain() {
+                guard let id = fact["_id"] as? String, marked[id] == nil,
+                    let from = fact["derived_from"] as? Document,
+                    let bird = from.values.compactMap({ ($0 as? String).flatMap { sources[$0] } })
+                        .first
+                else { continue }
+                marked[id] = bird
+            }
+        }
+        try await mark(derivedFrom: keepings)
+        try await mark(derivedFrom: marked)
+        for (id, bird) in marked {
+            _ = try await facts.updateOne(
+                where: ["_id": id], to: ["$set": [FactRepository.aloneWithField: bird] as Document])
+        }
+        return marked.count
     }
 
     // MARK: - Retention

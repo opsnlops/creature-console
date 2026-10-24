@@ -4,22 +4,53 @@ import WorldCore
 
 struct FactRepository: Sendable {
     private let facts: MongoCollection
+    /// Whose knowledge the queries read: the world's - every fact, for its rules and April - or
+    /// one mind's (#263).
+    private var knower = Knower.world
+
+    enum Knower: Equatable, Sendable {
+        case world
+        /// What was learned in the room, and in a whisper with this bird; nil is a mind that
+        /// does not say which bird it is, and knows the room's alone.
+        case mind(EntityID?)
+    }
 
     init(database: MongoDatabase) {
         self.facts = database[MongoWorldCollection.facts]
     }
 
+    /// The facts as `mind` may know them: never one learned in another bird's whisper (#263).
+    /// Every query below reads through `currentQuery`, so a page built from this is the mind's
+    /// whole - its thirty, stage, links and searches alike.
+    func heard(by mind: EntityID?) -> FactRepository {
+        var heard = self
+        heard.knower = .mind(mind)
+        return heard
+    }
+
     /// A fact is current when nothing has replaced it and its validity window, if it has one,
-    /// has not closed: `scene.last` is true for an hour and then simply stops being so.
+    /// has not closed: `scene.last` is true for an hour and then simply stops being so. For a
+    /// mind, it is also one it heard.
     private func currentQuery(at now: Date) -> Document {
-        [
+        var query: Document = [
             "superseded_by": Null(),
             "$or": [
                 ["valid_to": Null()] as Document,
                 ["valid_to": ["$gt": now] as Document] as Document,
             ] as Document,
         ]
+        if case .mind(let mind) = knower {
+            // `null` matches a fact with no mark: everything said in the room.
+            var heard = Document(isArray: true)
+            heard.append(Null())
+            if let mind { heard.append(mind.rawValue) }
+            query[Self.aloneWithField] = ["$in": heard] as Document
+        }
+        return query
     }
+
+    /// The field a fact learned in a whisper is marked in (#263).
+    static let aloneWithField = "alone_with"
 
     func save(_ fact: Fact) async throws {
         var document = try BSONEncoder().encode(fact)

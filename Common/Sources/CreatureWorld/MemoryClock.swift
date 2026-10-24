@@ -91,9 +91,11 @@ struct DayDigestBuilder {
                 case .string(let predicate)? = event.payload["predicate"],
                 !distant.contains(subject), !hidden.contains(predicate)
             else { return nil }
+            // Marked when it was learned in a whisper: a mind is handed `heard(by:)` (#263).
             return DayDigest.Line(
                 at: event.occurredAt, who: event.source.id.rawValue,
-                text: "\(subject) \(predicate) = \(Self.rendered(event.payload["value"]))")
+                text: "\(subject) \(predicate) = \(Self.rendered(event.payload["value"]))",
+                aloneWith: GivenFactAnnouncement.aloneWith(in: event))
         }
         let items = try await persistence.conversations.conversationItems(
             in: houseConversation, from: bounds.from, to: bounds.to, limit: 2_000)

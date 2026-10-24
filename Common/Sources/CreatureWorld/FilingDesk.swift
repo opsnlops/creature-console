@@ -169,7 +169,9 @@ struct FilingDesk: Sendable {
     /// `contact.*` or `identity.*` fact - and not merged away, with up to two lines of what is
     /// said of it. `person:rocket-taco` held only memories of tacos (#236).
     func kindCandidates() async throws -> KindCandidatePage {
-        let facts = try await facts.currentFacts(
+        // The room's facts alone: the librarian is Beaky, and never reads a fact learned in a
+        // whisper (#263).
+        let facts = try await facts.heard(by: nil).currentFacts(
             subjectKind: "person", limit: Self.maximumPersonFacts, at: await clock.now)
         let bySubject = Dictionary(grouping: facts.filter { $0.value != .null }, by: \.subjectID)
         let candidates = bySubject.compactMap { id, facts -> KindCandidate? in

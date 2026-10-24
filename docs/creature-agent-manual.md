@@ -444,6 +444,10 @@ else — persona, facts, the clock, streaming to the room — is identical.
   something it saw. Since `2.100.1` it also says another bird's memories reach a bird *only*
   when that bird chose to share them. Told only "shared with you", Beaky answered "Yes, April,
   I can look up Caroll's memories" before Caroll had shared any.
+- **The librarian reads what the room heard** (`2.104.1`, #263). It is Beaky, asks its
+  questions in the room, and files for every bird. So its kept and overwritten facts and its day
+  record ask for `room=true`, and a fact learned in a whisper, or April's whispered word, is never
+  filed.
 - **A bird remembers only what it heard** (`2.103.1`, #261). On 2026-10-22 April whispered with
   Beaky ("@beaky …"), and Mango and Kenny remembered it: every bird's night read the same day
   record, the whole conversation. The memory job now asks for its own bird's day
@@ -639,9 +643,8 @@ Beaky's five minutes after she kept it. Two things keep learning durable:
   which workshop facts belong to the new workshop, and nothing could move them. The record now
   ends with the questions of the newest filing of an earlier day (`GET /v1/filings?limit=3`;
   this night's own, from a run before a retry, is skipped) and every line a person said to the
-  birds that day, by the clock, from the day record the nightly memory reads
-  (`GET /v1/days/{day}?mind=` its own bird's since `2.103.1`, so never another bird's whispers;
-  the newest 200; 32 lines on the 20th). The instructions: where she says
+  birds that day, by the clock, from the day record the nightly memory reads (since `2.104.1`
+  the room's alone, `?room=true`, so never a whisper; the newest 200; 32 lines on the 20th). The instructions: where she says
   a fact belongs, a rewrite moves it onto that subject; ids she says are one thing are a sure
   same; her words settle only what the record holds, and a question she answered is not asked
   again. A written-over value comes back only on the subject it was written over on. Either

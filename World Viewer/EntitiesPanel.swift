@@ -193,6 +193,9 @@ struct EntityPageView: View {
                         .padding(.vertical, 1)
                         .glassEffect(.regular.tint(.gray.opacity(0.25)), in: .capsule)
                 }
+                if let bird = fact.aloneWith {
+                    WhisperedLabel(bird: bird)
+                }
                 Spacer()
                 Text(fact.keptBy ?? "\(fact.producer.kind) \(fact.producer.id)")
                     .font(.caption2)

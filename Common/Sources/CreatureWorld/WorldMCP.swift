@@ -324,8 +324,9 @@ struct WorldMCP: Sendable {
         return EntityID(rawValue: raw)
     }
 
-    /// The facts a caller may see: all of them, or the minds' alone - nothing world-only, and
-    /// no other bird's memory that bird kept to itself (#243).
+    /// The facts a caller may see: all of them, or the minds' alone - nothing world-only, no
+    /// other bird's memory that bird kept to itself (#243), and nothing learned in another
+    /// bird's whisper (#263).
     private func visible(_ facts: [Fact], to audience: FactAudience?, mind: EntityID? = nil)
         async throws -> [Fact]
     {
@@ -334,6 +335,7 @@ struct WorldMCP: Sendable {
         let owner = mind.map(WorldFacts.memoryOwner(for:))
         return facts.filter {
             !hidden.contains($0.predicate) && WorldFacts.memoryVisible($0, to: owner)
+                && $0.isHeard(by: mind)
         }
     }
 
@@ -358,6 +360,8 @@ struct WorldMCP: Sendable {
             // a mind's (#248).
             if WorldKnowledgeLimits.worldOnlyEventTypes.contains(event.type) { return false }
             if WorldKnowledgeLimits.perceptEventTypes.contains(event.type) { return false }
+            // Nor a fact learned in another bird's whisper (#263).
+            if !GivenFactAnnouncement.isHeard(event, by: mind) { return false }
             guard event.type == GivenFactAnnouncement.eventType,
                 case .string(let predicate)? = event.payload["predicate"]
             else { return true }
