@@ -200,6 +200,8 @@ private actor InMemoryDeliveryRepository: CharacterDeliveryRepository {
         stages[stage.decision.responseID] = stage
         return stage
     }
+
+    func whisperedTo(utterance utteranceID: UtteranceID) -> EntityID? { nil }
 }
 
 private actor RecordingSink: CharacterDeliverySink {

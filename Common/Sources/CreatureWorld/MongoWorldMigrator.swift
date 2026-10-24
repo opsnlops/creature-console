@@ -5,7 +5,7 @@ import MongoKitten
 import WorldCore
 
 struct MongoWorldMigrator: Sendable {
-    static let currentVersion = 16
+    static let currentVersion = 17
 
     let database: MongoDatabase
     let logger: Logger
@@ -77,6 +77,13 @@ struct MongoWorldMigrator: Sendable {
                 "Taught places can be found near a point", metadata: ["facts.pinned": "\(pinned)"])
             try await recordMigration(version: 16, name: "place_geo")
         }
+        if try await !isRecorded(version: 17) {
+            logger.debug("Marking the whispers")
+            let marked = try await markWhispers()
+            logger.info(
+                "A whisper stays with its bird", metadata: ["conversation.whispers": "\(marked)"])
+            try await recordMigration(version: 17, name: "whispers")
+        }
         logger.debug(
             "MongoDB schema migrations recorded",
             metadata: ["mongodb.migration_version": "\(Self.currentVersion)"]
@@ -117,6 +124,78 @@ struct MongoWorldMigrator: Sendable {
         if renamed > 0 {
             logger.info("Memories now carry their owner", metadata: ["facts.renamed": "\(renamed)"])
         }
+    }
+
+    // MARK: - Whispers
+
+    /// Before 0.64.2 nothing marked a whisper (#261): April's "@beaky …" and Beaky's answer
+    /// were kept like anything said to the room, and every bird read them. Each `@name` a person
+    /// said is marked with the bird it named - by the addressee rule, over every bird that has
+    /// ever spoken - and so is each turn that answered it. The copies of an item that its
+    /// ingress and delivery keep are marked too, so a retried write still matches. Idempotent:
+    /// a second pass writes the same marks. Returns how many items it marked.
+    func markWhispers() async throws -> Int {
+        let items = database[MongoWorldCollection.conversationItems]
+        let ingresses = database[MongoWorldCollection.utteranceIngresses]
+        let deliveries = database[MongoWorldCollection.characterDeliveries]
+        var birds: [String: EntityID] = [:]
+        let spokenBy = try await items.distinctValues(
+            forKey: "author_id",
+            where: ["author_kind": ConversationAuthorKind.character.rawValue])
+        for case let raw as String in spokenBy {
+            guard let bird = EntityID(rawValue: raw) else { continue }
+            birds[WorldFacts.memoryOwner(for: bird).lowercased()] = bird
+        }
+        // Who leads does not matter: only a whisper is marked.
+        guard let lead = birds.values.first else { return 0 }
+        let rule = LeadAddresseeRule(lead: lead)
+        func mark(_ itemID: String, as bird: EntityID) async throws {
+            _ = try await items.updateOne(
+                where: ["_id": itemID],
+                to: ["$set": ["alone_with": bird.rawValue] as Document])
+        }
+
+        let maybeWhispered: Document = [
+            "author_kind": ConversationAuthorKind.person.rawValue,
+            "text": ["$regex": "@"] as Document,
+        ]
+        // Read as documents, only the fields a mark needs: a row this build cannot decode is
+        // passed over, never a reason for the World not to start.
+        var whispered: [String: EntityID] = [:]
+        for item in try await items.find(maybeWhispered).drain() {
+            guard let itemID = item["_id"] as? String, let text = item["text"] as? String,
+                let utteranceID = item["utterance_id"] as? String
+            else { continue }
+            let addressee = rule.addressee(in: text, present: birds)
+            guard addressee.alone else { continue }
+            try await mark(itemID, as: addressee.characterID)
+            _ = try await ingresses.updateOne(
+                where: ["_id": utteranceID],
+                to: [
+                    "$set": ["conversationItem.alone_with": addressee.characterID.rawValue]
+                        as Document
+                ])
+            whispered[utteranceID] = addressee.characterID
+        }
+        guard !whispered.isEmpty else { return 0 }
+        var marked = whispered.count
+        let answers: Document = [
+            "intent.in_response_to_utterance_id": ["$in": Array(whispered.keys)] as Document
+        ]
+        for delivery in try await deliveries.find(answers).drain() {
+            guard let responseID = delivery["_id"] as? String,
+                let answered = (delivery["intent"] as? Document)?["in_response_to_utterance_id"]
+                    as? String,
+                let itemID = (delivery["conversationItem"] as? Document)?["item_id"] as? String,
+                let bird = whispered[answered]
+            else { continue }
+            try await mark(itemID, as: bird)
+            _ = try await deliveries.updateOne(
+                where: ["_id": responseID],
+                to: ["$set": ["conversationItem.alone_with": bird.rawValue] as Document])
+            marked += 1
+        }
+        return marked
     }
 
     // MARK: - Retention

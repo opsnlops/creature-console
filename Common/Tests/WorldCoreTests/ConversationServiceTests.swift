@@ -187,6 +187,102 @@ struct ConversationServiceTests {
         #expect(last.percept.priorConversationItems.first?.text == "Message 5")
     }
 
+    @Test("A whisper is heard by its bird alone, and a bird is handed only what it heard (#261)")
+    func whisperReachesItsBirdAlone() async throws {
+        let beaky = try EntityID(validating: "character:beaky")
+        let mango = try EntityID(validating: "character:mango")
+        let repository = TestUtteranceRepository()
+        let service = PersonUtteranceIngressService(
+            repository: repository, sink: TestPerceptSink(),
+            addresseeResolver: RuleResolver(
+                rule: LeadAddresseeRule(lead: beaky), present: ["beaky": beaky, "mango": mango]))
+        let context = UtteranceIngressContext(boundary: .trustedLAN)
+        func say(_ text: String, _ index: Int) async throws -> UtteranceIngressResult {
+            var input = try makeAdapterInput(sourceID: SourceID(validating: "wizard:mode"))
+            input.utteranceID = try UtteranceID(validating: "utterance:april-\(index)")
+            input.text = text
+            input.occurredAt = input.occurredAt.addingTimeInterval(Double(index))
+            return try await PersonUtteranceAdapter.wizardMode.submit(
+                input, context: context, to: service)
+        }
+
+        let whisper = try await say("@beaky I like that I can talk to you alone", 1)
+        let toMango = try await say("Mango, what do you think of the new speakers?", 2)
+        let toBeaky = try await say("Beaky, and you?", 3)
+
+        #expect(whisper.percept.characterID == beaky)
+        let whispered = try #require(
+            await repository.ingress(for: whisper.percept.utterance.utteranceID))
+        #expect(whispered.conversationItem.aloneWith == beaky)
+        #expect(!whispered.conversationItem.isHeard(by: mango))
+        #expect(!whispered.conversationItem.isHeard(by: nil))
+        // Mango never hears it; Beaky does, and the room's words reach both.
+        #expect(toMango.percept.characterID == mango)
+        #expect(toMango.percept.priorConversationItems.isEmpty)
+        #expect(
+            toBeaky.percept.priorConversationItems.map(\.text) == [
+                "@beaky I like that I can talk to you alone",
+                "Mango, what do you think of the new speakers?",
+            ])
+        #expect(toBeaky.percept.priorConversationItems.map(\.aloneWith) == [beaky, nil])
+    }
+
+    @Test("A bird's answer to a whisper is a whisper too; its answer to the room is not (#261)")
+    func answerToAWhisperIsAWhisper() async throws {
+        let beaky = try EntityID(validating: "character:beaky")
+        let dependencies = try makeRouterDependencies(testCase: .home)
+        let intent = try makeCharacterIntent()
+        await dependencies.repository.whisper(
+            try #require(intent.inResponseToUtteranceID), to: beaky)
+
+        let whispered = try await makeRouter(dependencies: dependencies).route(intent)
+        #expect(whispered.conversationItem.aloneWith == beaky)
+
+        let room = try makeRouterDependencies(testCase: .home)
+        let answered = try await makeRouter(dependencies: room).route(intent)
+        #expect(answered.conversationItem.aloneWith == nil)
+    }
+
+    @Test("A whisper's mark rides the wire as alone_with, and an older item decodes without it")
+    func whisperMarkRoundTrips() throws {
+        var item = try makePriorItem()
+        item.aloneWith = try EntityID(validating: "character:beaky")
+        let encoded = try WorldJSON.makeEncoder().encode(item)
+        let json = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        #expect(json["alone_with"] as? String == "character:beaky")
+        #expect(try WorldJSON.makeDecoder().decode(ConversationItem.self, from: encoded) == item)
+        var older = json
+        older["alone_with"] = nil
+        let decoded = try WorldJSON.makeDecoder().decode(
+            ConversationItem.self, from: JSONSerialization.data(withJSONObject: older))
+        #expect(decoded.aloneWith == nil)
+        #expect(decoded.isHeard(by: nil))
+    }
+
+    @Test("A day as a bird heard it keeps the room and its own whispers, never another's (#261)")
+    func dayAsABirdHeardIt() throws {
+        let beaky = try EntityID(validating: "character:beaky")
+        let mango = try EntityID(validating: "character:mango")
+        let at = Self.now
+        let room = DayDigest.Line(at: at, who: "person:april", text: "Goodnight, flock")
+        let toBeaky = DayDigest.Line(
+            at: at, who: "person:april", text: "@beaky just us", aloneWith: beaky)
+        let toMango = DayDigest.Line(
+            at: at, who: "person:april", text: "@mango just us", aloneWith: mango)
+        let learned = DayDigest.Line(at: at, who: "mind:beaky", text: "house:test x = y")
+        let day = DayDigest(
+            day: "2026-10-22", timeZone: "America/Los_Angeles", happenings: [],
+            conversation: [room, toBeaky, toMango], scenes: [], learned: [learned])
+
+        #expect(day.heard(by: beaky).conversation == [room, toBeaky])
+        #expect(day.heard(by: mango).conversation == [room, toMango])
+        #expect(day.heard(by: nil).conversation == [room])
+        #expect(day.heard(by: beaky).learned == [learned])
+        let encoded = try WorldJSON.makeEncoder().encode(day)
+        #expect(try WorldJSON.makeDecoder().decode(DayDigest.self, from: encoded) == day)
+        #expect(String(decoding: encoded, as: UTF8.self).contains("\"alone_with\""))
+    }
+
     @Test("An utterance ID cannot be reused to make Beaky hear different words")
     func conflictingUtteranceIdentityIsRejected() async throws {
         let repository = TestUtteranceRepository()
@@ -726,6 +822,16 @@ private struct SemanticPercept: Hashable {
     }
 }
 
+/// The world's leadership rule over a fixed flock.
+private struct RuleResolver: AddresseeResolving {
+    let rule: LeadAddresseeRule
+    let present: [String: EntityID]
+
+    func addressee(for utterance: PersonUtterance, hinted: EntityID) async throws -> Addressee {
+        rule.addressee(in: utterance.text, present: present)
+    }
+}
+
 private actor TestUtteranceRepository: UtteranceIngressRepository {
     private var records: [UtteranceID: StoredUtteranceIngress] = [:]
     private var items: [ConversationItem]
@@ -856,6 +962,15 @@ private actor TestPresenceProvider: PersonPresenceProviding {
 private actor TestDeliveryRepository: CharacterDeliveryRepository {
     private(set) var delivery: StoredCharacterDelivery?
     private(set) var stage: StoredStageDecision?
+    private var whispers: [UtteranceID: EntityID] = [:]
+
+    func whisper(_ utteranceID: UtteranceID, to characterID: EntityID) {
+        whispers[utteranceID] = characterID
+    }
+
+    func whisperedTo(utterance utteranceID: UtteranceID) -> EntityID? {
+        whispers[utteranceID]
+    }
 
     var preparedCount: Int { delivery == nil ? 0 : 1 }
 

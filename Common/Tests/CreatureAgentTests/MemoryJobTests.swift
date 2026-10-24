@@ -102,8 +102,10 @@ struct MemoryJobTests {
             epistemic: EpistemicState(type: .remembered, confidence: 0.5), validFrom: now,
             derivedFrom: [], producer: FactProducer(kind: "mind", id: "beaky", version: "1"))
         let router = Router(context: BasicRequestContext.self)
-        router.get("world/v1/days/:day") { _, _ in
-            Response(
+        router.get("world/v1/days/:day") { request, _ in
+            // The bird asks for the day as it heard it, never another's whispers (#261).
+            #expect(request.uri.queryParameters["mind"].map(String.init) == "character:beaky")
+            return Response(
                 status: .ok, headers: [.contentType: "application/json"],
                 body: ResponseBody(
                     byteBuffer: ByteBuffer(bytes: try WorldJSON.makeEncoder().encode(digest))))

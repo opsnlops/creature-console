@@ -99,6 +99,10 @@ struct MongoCharacterDeliveryRepository: CharacterDeliveryRepository, Sendable {
         return stored
     }
 
+    func whisperedTo(utterance utteranceID: UtteranceID) async throws -> EntityID? {
+        try await conversations.whisperedTo(utterance: utteranceID)
+    }
+
     /// Deliveries in one conversation in the order the character spoke, paged by response ID.
     func deliveries(
         in conversationID: ConversationID,

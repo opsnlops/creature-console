@@ -587,11 +587,13 @@ struct Librarian: Sendable {
         }
     }
 
-    /// What April said to the birds on `day`, from the day record; none when the World cannot
-    /// say, and the night files without it.
+    /// What April said to the birds on `day`, from the day record as the librarian's own bird
+    /// heard it - never another bird's whispers (#261); none when the World cannot say, and the
+    /// night files without it.
     private func fetchHeard(day: String) async -> Heard? {
         do {
-            let digest: DayDigest = try await get("days/\(day)", query: [])
+            let digest: DayDigest = try await get(
+                "days/\(day)", query: [URLQueryItem(name: "mind", value: characterID.rawValue)])
             return Heard(digest)
         } catch {
             logger.warning(

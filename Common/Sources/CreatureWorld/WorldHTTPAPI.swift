@@ -624,17 +624,21 @@ struct WorldHTTPAPI: Sendable {
         }
 
         // One local day, for the nightly memory job: happenings, the conversation, the scenes'
-        // lines, and what was cast.
-        router.get("v1/days/:day") { _, context in
+        // lines, and what was cast. `mind=character:kenny` is that bird's own record, with no
+        // other bird's whispers (#261); without it the record is whole.
+        router.get("v1/days/:day") { request, context in
             await respond {
                 let day = try dayParameter(context)
+                let mind = try request.uri.queryParameters["mind"].map {
+                    try EntityID(validating: String($0))
+                }
                 return try await execute {
                     guard let digest = try await service.dayDigest(day) else {
                         return try jsonResponse(
                             WorldAPIErrorResponse(error: "not_found", message: "No such day"),
                             status: .notFound)
                     }
-                    return try jsonResponse(digest)
+                    return try jsonResponse(mind.map { digest.heard(by: $0) } ?? digest)
                 }
             }
         }

@@ -317,24 +317,23 @@ struct WorldMCP: Sendable {
         return FactAudience(rawValue: raw)
     }
 
-    /// Which mind is asking, by its memories' segment: `_meta.mind = "character:kenny"` →
-    /// "kenny" (#243). Nil when the caller does not say.
-    private func mind(of params: WorldJSONValue) -> String? {
-        guard case .string(let raw)? = params["_meta"]?["mind"],
-            let id = EntityID(rawValue: raw)
-        else { return nil }
-        return WorldFacts.memoryOwner(for: id)
+    /// Which mind is asking: `_meta.mind = "character:kenny"` (#243). Nil when the caller does
+    /// not say.
+    private func mind(of params: WorldJSONValue) -> EntityID? {
+        guard case .string(let raw)? = params["_meta"]?["mind"] else { return nil }
+        return EntityID(rawValue: raw)
     }
 
     /// The facts a caller may see: all of them, or the minds' alone - nothing world-only, and
     /// no other bird's memory that bird kept to itself (#243).
-    private func visible(_ facts: [Fact], to audience: FactAudience?, mind: String? = nil)
+    private func visible(_ facts: [Fact], to audience: FactAudience?, mind: EntityID? = nil)
         async throws -> [Fact]
     {
         guard audience == .minds else { return facts }
         let hidden = try await worldOnly()
+        let owner = mind.map(WorldFacts.memoryOwner(for:))
         return facts.filter {
-            !hidden.contains($0.predicate) && WorldFacts.memoryVisible($0, to: mind)
+            !hidden.contains($0.predicate) && WorldFacts.memoryVisible($0, to: owner)
         }
     }
 
@@ -345,21 +344,25 @@ struct WorldMCP: Sendable {
 
     /// The events a mind may see: a cast fact that is world-only, or another bird's private
     /// memory, never reaches it through the timeline either - the raw event carries the value
-    /// (#243). Everything else, and everything for a person debugging, as it is.
-    private func visible(events: [WorldEventEnvelope], to audience: FactAudience?, mind: String?)
-        async throws -> [WorldEventEnvelope]
-    {
+    /// (#243). Nor does what a mind was handed: a percept holds its window on the conversation
+    /// and its whole page (#261). Everything else, and everything for a person debugging, as
+    /// it is.
+    private func visible(
+        events: [WorldEventEnvelope], to audience: FactAudience?, mind: EntityID?
+    ) async throws -> [WorldEventEnvelope] {
         guard audience == .minds else { return events }
         let hidden = try await worldOnly()
+        let owner = mind.map(WorldFacts.memoryOwner(for:))
         return events.filter { event in
             // An event whose payload is the world's alone - where April's phone is - is never
             // a mind's (#248).
             if WorldKnowledgeLimits.worldOnlyEventTypes.contains(event.type) { return false }
+            if WorldKnowledgeLimits.perceptEventTypes.contains(event.type) { return false }
             guard event.type == GivenFactAnnouncement.eventType,
                 case .string(let predicate)? = event.payload["predicate"]
             else { return true }
             if hidden.contains(predicate) { return false }
-            guard let whose = WorldFacts.memoryOwner(of: predicate), whose != mind else {
+            guard let whose = WorldFacts.memoryOwner(of: predicate), whose != owner else {
                 return true
             }
             return WorldFacts.memoryIsShared(event.payload["value"] ?? .null)
@@ -406,6 +409,7 @@ struct WorldMCP: Sendable {
             var page = try await service.entity(id)
             page.facts = try await visible(page.facts, to: audience, mind: mind)
             page.linkedFrom = try await visible(page.linkedFrom, to: audience, mind: mind)
+            page.events = try await visible(events: page.events, to: audience, mind: mind)
             result = page
         case "explain_fact":
             let factID: FactID
@@ -433,6 +437,8 @@ struct WorldMCP: Sendable {
                     throw Failure.notFound(factID.rawValue)
                 }
                 explanation.facts = try await visible(explanation.facts, to: audience, mind: mind)
+                explanation.events = try await visible(
+                    events: explanation.events, to: audience, mind: mind)
                 if let successor = explanation.supersededBy {
                     explanation.supersededBy = try await visible(
                         [successor], to: audience, mind: mind
@@ -453,7 +459,7 @@ struct WorldMCP: Sendable {
             result = try await sceneService.recentScenes(
                 limit: limit(arguments["limit"], default: 5, max: 50))
         case "query_conversation":
-            result = try await conversation(arguments)
+            result = try await conversation(arguments, to: audience, mind: mind)
         case "query_timers":
             let status = try arguments["status"].flatMap(\.stringValue).map { raw in
                 guard let status = WorldTimerStatus(rawValue: raw) else {
@@ -471,7 +477,8 @@ struct WorldMCP: Sendable {
             guard let digest = try await service.dayDigest(day) else {
                 throw Failure.notFound("no record of \(day)")
             }
-            result = digest
+            // A mind's day is the one it heard: no other bird's whispers (#261).
+            result = audience == .minds ? digest.heard(by: mind) : digest
         case "query_glossary":
             result = try await service.factKinds().kinds
         default:
@@ -505,7 +512,11 @@ struct WorldMCP: Sendable {
         return Array(kept.suffix(wanted))
     }
 
-    private func conversation(_ arguments: WorldJSONValue) async throws -> [ConversationItem] {
+    /// The newest items of a conversation: for a mind, only what it heard - no other bird's
+    /// whispers (#261); for a person debugging, all of them.
+    private func conversation(
+        _ arguments: WorldJSONValue, to audience: FactAudience?, mind: EntityID?
+    ) async throws -> [ConversationItem] {
         let conversationID =
             try arguments["conversation_id"].flatMap(\.stringValue).map {
                 try ConversationID(validating: $0)
@@ -517,7 +528,9 @@ struct WorldMCP: Sendable {
         for _ in 0..<40 {
             let page = try await conversationService.conversationItems(
                 in: conversationID, after: after, limit: 500)
-            items = Array((items + page.items).suffix(wanted))
+            let heard =
+                audience == .minds ? page.items.filter { $0.isHeard(by: mind) } : page.items
+            items = Array((items + heard).suffix(wanted))
             guard page.hasMore, let last = page.items.last else { break }
             after = last.itemID
         }

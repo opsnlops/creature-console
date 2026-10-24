@@ -55,6 +55,15 @@ struct ConversationTurnRow: View {
                     TraceLink(trace: item.trace)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
+                    if let bird = item.aloneWith {
+                        Label(
+                            "whispered with \(WorldFacts.memoryOwner(for: bird).capitalized)",
+                            systemImage: "lock.fill"
+                        )
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .help("Between April and this bird alone; the other birds never hear it")
+                    }
                 }
                 Text(item.text)
                     .textSelection(.enabled)

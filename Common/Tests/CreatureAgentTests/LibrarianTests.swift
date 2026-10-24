@@ -440,8 +440,10 @@ struct LibrarianTests {
             try filing(day: "2026-10-14", questions: ["Asked tonight already?"]),
             try filing(day: "2026-10-13", questions: ["Which flight school is the right one?"]),
         ])
-        router.get("world/v1/days/2026-10-14") { _, _ in
-            Response(
+        router.get("world/v1/days/2026-10-14") { request, _ in
+            // The librarian is Beaky: what she heard, never another bird's whispers (#261).
+            #expect(request.uri.queryParameters["mind"].map(String.init) == "character:beaky")
+            return Response(
                 status: .ok, headers: [.contentType: "application/json"],
                 body: ResponseBody(
                     byteBuffer: ByteBuffer(bytes: try WorldJSON.makeEncoder().encode(day))))

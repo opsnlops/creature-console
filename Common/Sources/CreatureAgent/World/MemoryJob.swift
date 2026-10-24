@@ -809,10 +809,12 @@ struct MemoryJob: Sendable {
 
     // MARK: - The digest
 
+    /// The day as this bird heard it: no other bird's whispers (#261).
     private func fetchDigest(day: String) async throws -> DayDigest {
         var url = worldURL
         url.append(path: "days")
         url.append(path: day)
+        url.append(queryItems: [URLQueryItem(name: "mind", value: characterID.rawValue)])
         let request = HTTPClientRequest(url: url.absoluteString)
         let response = try await client.execute(request, timeout: .seconds(30), logger: logger)
         let body = try await response.body.collect(upTo: 8 * 1_048_576)

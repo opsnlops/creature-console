@@ -212,6 +212,9 @@ public struct ConversationItem: Hashable, Sendable, Codable {
     public var utteranceID: UtteranceID?
     public var responseID: ResponseID?
     public var trace: W3CTraceContext?
+    /// The bird a whisper was for (#261): April's "@beaky …", and Beaky's answer to it. Nil for
+    /// anything said to the room.
+    public var aloneWith: EntityID?
 
     public init(
         itemID: ConversationItemID = .generated(),
@@ -223,7 +226,8 @@ public struct ConversationItem: Hashable, Sendable, Codable {
         inReplyToItemID: ConversationItemID? = nil,
         utteranceID: UtteranceID? = nil,
         responseID: ResponseID? = nil,
-        trace: W3CTraceContext? = nil
+        trace: W3CTraceContext? = nil,
+        aloneWith: EntityID? = nil
     ) throws {
         try validateConversationText(text)
         let hasExactlyOneOrigin = (utteranceID == nil) != (responseID == nil)
@@ -244,6 +248,18 @@ public struct ConversationItem: Hashable, Sendable, Codable {
         self.utteranceID = utteranceID
         self.responseID = responseID
         self.trace = trace
+        self.aloneWith = aloneWith
+    }
+
+    /// Whether `characterID` heard this: everything said to the room, and a whisper to it. A
+    /// reader who does not say which bird it is hears no whisper.
+    public func isHeard(by characterID: EntityID?) -> Bool {
+        Self.isHeard(aloneWith, by: characterID)
+    }
+
+    /// The rule itself, for anything carrying a whisper's mark: the day record's lines too.
+    public static func isHeard(_ aloneWith: EntityID?, by characterID: EntityID?) -> Bool {
+        aloneWith == nil || aloneWith == characterID
     }
 
     public init(from decoder: any Decoder) throws {
@@ -263,7 +279,8 @@ public struct ConversationItem: Hashable, Sendable, Codable {
             ),
             utteranceID: container.decodeIfPresent(UtteranceID.self, forKey: .utteranceID),
             responseID: container.decodeIfPresent(ResponseID.self, forKey: .responseID),
-            trace: container.decodeIfPresent(W3CTraceContext.self, forKey: .trace)
+            trace: container.decodeIfPresent(W3CTraceContext.self, forKey: .trace),
+            aloneWith: container.decodeIfPresent(EntityID.self, forKey: .aloneWith)
         )
     }
 
@@ -279,6 +296,7 @@ public struct ConversationItem: Hashable, Sendable, Codable {
         case utteranceID = "utterance_id"
         case responseID = "response_id"
         case trace
+        case aloneWith = "alone_with"
     }
 }
 

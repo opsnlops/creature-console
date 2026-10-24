@@ -444,6 +444,11 @@ else — persona, facts, the clock, streaming to the room — is identical.
   something it saw. Since `2.100.1` it also says another bird's memories reach a bird *only*
   when that bird chose to share them. Told only "shared with you", Beaky answered "Yes, April,
   I can look up Caroll's memories" before Caroll had shared any.
+- **A bird remembers only what it heard** (`2.103.1`, #261). On 2026-10-22 April whispered with
+  Beaky ("@beaky …"), and Mango and Kenny remembered it: every bird's night read the same day
+  record, the whole conversation. The memory job now asks for its own bird's day
+  (`GET /v1/days/{day}?mind=character:kenny`), and the World leaves out every whisper to another
+  bird. The librarian is Beaky and asks for hers.
 - **The night goes through the Batch API** (`2.79.0`, #201). April: "let's look at using the
   batch API to reduce the cost of the nightly memory processor." gpt-6-astra is $10 per
   million in and $50 out; the Batch API is half of both, with an answer within the day - and
@@ -622,7 +627,8 @@ Beaky's five minutes after she kept it. Two things keep learning durable:
   ends with the questions of the newest filing of an earlier day (`GET /v1/filings?limit=3`;
   this night's own, from a run before a retry, is skipped) and every line a person said to the
   birds that day, by the clock, from the day record the nightly memory reads
-  (`GET /v1/days/{day}`, the newest 200; 32 lines on the 20th). The instructions: where she says
+  (`GET /v1/days/{day}?mind=` its own bird's since `2.103.1`, so never another bird's whispers;
+  the newest 200; 32 lines on the 20th). The instructions: where she says
   a fact belongs, a rewrite moves it onto that subject; ids she says are one thing are a sure
   same; her words settle only what the record holds, and a question she answered is not asked
   again. A written-over value comes back only on the subject it was written over on. Either

@@ -22,6 +22,19 @@ struct MongoConversationRepository: UtteranceIngressRepository, Sendable {
         return stored
     }
 
+    /// The bird `utteranceID` was whispered to, read from its ingress without the percept it
+    /// carries (#261).
+    func whisperedTo(utterance utteranceID: UtteranceID) async throws -> EntityID? {
+        let found = try await ingresses.find(["_id": utteranceID.rawValue])
+            .project(["conversationItem.alone_with": 1] as Document)
+            .limit(1)
+            .drain()
+        guard let item = found.first?["conversationItem"] as? Document,
+            let raw = item["alone_with"] as? String
+        else { return nil }
+        return EntityID(rawValue: raw)
+    }
+
     func newestConversationItems(in conversationID: ConversationID, limit: Int) async throws
         -> [ConversationItem]
     {

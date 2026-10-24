@@ -160,7 +160,8 @@ message:
 
 - **A whisper, "@beaky …"** — an @-name of a character who is logged in is for that character
   **alone**: it answers by itself and no scene opens, so April can have a word with just her
-  familiar.
+  familiar. The other birds never hear it (`0.64.2`, #261): see *A whisper stays with its bird*
+  below.
 - **A name, "Beaky, …" / "Hey Kenny …"** — that character answers **first**; if others are
   logged in the world opens a scene so they may chime in (April: "I'm kinda liking the way
   everyone else chimes in when I say I love Beaky").
@@ -173,6 +174,28 @@ ingest span. A name mentioned later in the sentence ("I think Mango is right") d
 redirect it. `conversation:april-house` is the house conversation (from Communicator
 `0.3.0` and Viewer defaults): every character speaks in it. `conversation:april-beaky` holds the
 history from before the flock and stays readable.
+
+**A whisper stays with its bird** (`0.64.2`, #261, `docs/whispers-plan.md`). On 2026-10-22 April
+whispered with Beaky 39 times, and Mango and Kenny remembered it: nothing marked a whisper, so it
+was kept like anything said to the room, and every bird read the whole conversation. Now a
+conversation item carries `alone_with`, the bird a whisper was for. April's `@name` item is
+marked at ingest, and the bird's answer inherits the mark from the utterance it answers
+(`in_response_to_utterance_id`). `ConversationItem.isHeard(by:)` is the one rule: everything said
+to the room, and a whisper to that bird. Each bird is handed only what it heard:
+
+- **its window** on the conversation in a percept;
+- **its day record**, `GET /v1/days/{day}?mind=character:kenny`, which the nightly memory and the
+  librarian ask for (without `mind` the record is whole, each line carrying `alone_with`);
+- **`query_conversation` and `query_day`** for a mind. A mind that does not name itself hears no
+  whisper.
+
+A mind's `query_timeline`, `query_entity` and `explain_fact` never return a **percept event**
+(`conversation.person_utterance`, `scene.turn_offered`, `WorldKnowledgeLimits.perceptEventTypes`).
+Each one is what a mind was handed: its window and its whole page, its own private memories too.
+As Mango, `query_entity person:april` returned 35 of Beaky's and Caroll's. What was said is
+`query_conversation`'s. Migration 17, `whispers`, marked the past whispers (64 since 2026-09-13)
+and their answers. The marks also went on the copies of each item kept in `utterance_ingresses`
+and `character_deliveries`, so a retried write still matches.
 
 ### Scenes
 
@@ -348,8 +371,10 @@ no mark (the month written before the birds could choose) stays with its bird. T
 that: "Old memories get privacy too, even before anyone adds a mark." A call with `audience` but
 no `mind` sees only memories marked shared. **`query_timeline`** is gated for a mind too, since
 a raw event carries the value: a `facts.given` event with a world-only fact, or another bird's
-private memory, is left out. `query_day` carries no world-only kind for anyone (`0.62.1`,
-#244): the day's record is built without them.
+private memory, is left out. So is a percept event, which holds a bird's whole page
+(`0.64.2`, #261), and `query_entity`'s and `explain_fact`'s events pass the same gate.
+`query_day` carries no world-only kind for anyone (`0.62.1`, #244): the day's record is built
+without them.
 **Search** (`0.33.0`): `GET /v1/search?q=cleaner&limit=10` and the `search_world` tool — one
 ranked query over MongoDB's text index on the facts collection (`facts_search`, since `0.47.2`:
 each current fact's `search_text` - the words of the subject's slug, the predicate, and every
@@ -768,8 +793,8 @@ Two versions ride along, and they are different things (`0.62.0`):
 
 - `schema_version` is the **wire contract**: the version every event, fact, and request carries
   (`WorldSchema.currentVersion`, 1). It changes only when a shape breaks older readers.
-- `migration_version` is the **database**: the newest migration recorded (16, `place_geo`,
-  since `0.64.0`; 15, `filed_fact_dates`, before). Ready means the database holds this build's newest migration, so it is
+- `migration_version` is the **database**: the newest migration recorded (17, `whispers`,
+  since `0.64.2`; 16, `place_geo`, since `0.64.0`). Ready means the database holds this build's newest migration, so it is
   present only with `mongodb: "ok"`. A World older than 0.62.0 does not send it.
 
 An HTTP 503 does not mean the process should be restarted. Supervisors should use process exit for
@@ -1040,7 +1065,8 @@ numbers and streets, the calendar's raw times, order and reminder timestamps) an
 that are the world's by their nature (`place.geo`, `entity.same_as`). The nightly memory reads
 this record, and so does a bird that calls `query_day`. On 2026-10-22 it carried both taught
 places' points: 14 of the day's 55 `learned` lines go. Far-off calendar entries are still found
-from the raw events.
+from the raw events. Since `0.64.2` (#261) a bird's record holds only the conversation it heard:
+`?mind=` over REST, the asking mind's for `query_day`.
 
 **What was told keeps its thirty** (`0.60.1`, #251, docs/standing-page-plan.md). The thirty
 are drawn by how they are known: up to thirty of what the world was told (`reported`), the layer a

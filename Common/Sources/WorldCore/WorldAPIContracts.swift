@@ -62,11 +62,19 @@ public struct DayDigest: Codable, Equatable, Sendable {
         public var at: Date
         public var who: String
         public var text: String
+        /// The bird a whispered line was for (#261); nil for the room.
+        public var aloneWith: EntityID?
 
-        public init(at: Date, who: String, text: String) {
+        public init(at: Date, who: String, text: String, aloneWith: EntityID? = nil) {
             self.at = at
             self.who = who
             self.text = text
+            self.aloneWith = aloneWith
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case at, who, text
+            case aloneWith = "alone_with"
         }
     }
 
@@ -106,6 +114,16 @@ public struct DayDigest: Codable, Equatable, Sendable {
         self.conversation = conversation
         self.scenes = scenes
         self.learned = learned
+    }
+
+    /// The day as `characterID` heard it: the room's conversation and its own whispers, never
+    /// another bird's (#261). Nil - a reader that does not say which bird it is - hears none.
+    public func heard(by characterID: EntityID?) -> DayDigest {
+        var heard = self
+        heard.conversation = conversation.filter {
+            ConversationItem.isHeard($0.aloneWith, by: characterID)
+        }
+        return heard
     }
 
     private enum CodingKeys: String, CodingKey {

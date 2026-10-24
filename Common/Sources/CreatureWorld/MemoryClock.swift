@@ -97,8 +97,11 @@ struct DayDigestBuilder {
         }
         let items = try await persistence.conversations.conversationItems(
             in: houseConversation, from: bounds.from, to: bounds.to, limit: 2_000)
+        // Whole, each whisper marked with its bird: a mind is handed `heard(by:)` (#261).
         let conversation = items.map {
-            DayDigest.Line(at: $0.createdAt, who: $0.authorID.rawValue, text: $0.text)
+            DayDigest.Line(
+                at: $0.createdAt, who: $0.authorID.rawValue, text: $0.text,
+                aloneWith: $0.aloneWith)
         }
         let scenes = try await persistence.scenes.scenes(
             from: bounds.from, to: bounds.to, limit: 500)

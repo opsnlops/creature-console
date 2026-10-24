@@ -288,6 +288,13 @@ public enum WorldKnowledgeLimits {
     /// Events whose payload is the world's alone: a mind never sees them, not in its story
     /// and not in its timeline (#248).
     public static let worldOnlyEventTypes: Set<WorldEventType> = [HouseEvents.personLocated]
+    /// Events that are what a mind was handed - its window on the conversation, its whole page,
+    /// its own memories - never a happening (#261). Another bird's is never a mind's to read:
+    /// as Mango, `query_entity person:april` returned 35 of Beaky's and Caroll's, with their
+    /// private memories and April's whispers to Beaky. What was said is `query_conversation`'s.
+    public static let perceptEventTypes: Set<WorldEventType> = [
+        PersonUtterancePercept.eventType, SceneTurnOffer.eventType,
+    ]
     /// The most readings folded for one page: every sensor and forecast of the room's places,
     /// with room to spare - each subject's readings become one entry, whatever their number.
     public static let maximumFoldedReadings = 200

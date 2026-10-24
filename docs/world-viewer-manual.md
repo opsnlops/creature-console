@@ -60,8 +60,10 @@ the presence it saw (state, confidence, its basis — `assumed` until real evide
 and audible or not), and the outcome: `performed` when Beaky spoke in the room, `accepted` for
 the Communicator, or `failed: <error_code>`. Hover for the attempt ID, decision time, and the
 Creature Server animation ID of a performance. A turn with no chip was cast by hand or
-pre-dates the router. This panel refreshes whenever the conversation stream announces a new
-item.
+pre-dates the router. A whisper ("@beaky …") and the bird's answer to it carry
+**🔒 whispered with Beaky** (`0.23.1`, World `0.64.2`, #261): it is between April and that bird,
+and no other bird hears it, live or at night. This panel refreshes whenever the conversation
+stream announces a new item.
 
 ### Characters
 

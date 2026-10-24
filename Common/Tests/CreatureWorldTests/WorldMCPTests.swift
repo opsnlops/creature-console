@@ -454,6 +454,151 @@ struct WorldMCPTests {
         }
     }
 
+    @Test("A whisper reaches its bird alone, through every lookup a mind has (#261)")
+    func whispersStayWithTheirBird() async throws {
+        let world = MCPWorld()
+        let april = try EntityID(validating: "person:april")
+        let at = Date(timeIntervalSince1970: 1_789_500_000)
+        let house = try ConversationID(validating: "conversation:april-house")
+        func item(_ n: Int, _ text: String, by author: EntityID, alone: EntityID?) throws
+            -> ConversationItem
+        {
+            let person = author == april
+            return try ConversationItem(
+                itemID: ConversationItemID(validating: "conversation-item:whisper-\(n)"),
+                conversationID: house, authorID: author,
+                authorKind: person ? .person : .character, text: text,
+                createdAt: at.addingTimeInterval(Double(n)),
+                utteranceID: person ? UtteranceID(validating: "utterance:whisper-\(n)") : nil,
+                responseID: person ? nil : ResponseID(validating: "response:whisper-\(n)"),
+                aloneWith: alone)
+        }
+        let items = [
+            try item(1, "Goodnight, flock", by: april, alone: nil),
+            try item(2, "@beaky just between us", by: april, alone: beaky),
+            try item(3, "Just between us, April.", by: beaky, alone: beaky),
+        ]
+        await world.set(
+            day: DayDigest(
+                day: "2026-10-22", timeZone: "America/Los_Angeles", happenings: [],
+                conversation: items.map {
+                    DayDigest.Line(
+                        at: $0.createdAt, who: $0.authorID.rawValue, text: $0.text,
+                        aloneWith: $0.aloneWith)
+                }, scenes: [], learned: []))
+        // What a mind was handed: Beaky's percept holds the whisper and her whole page.
+        let percept = try WorldEventEnvelope(
+            type: PersonUtterancePercept.eventType, occurredAt: at,
+            source: EventSource(id: SourceID(validating: "communicator:test"), kind: "person"),
+            subjectIDs: [april, beaky], epistemic: EpistemicState(type: .reported, confidence: 1),
+            payload: ["utterance": .object(["text": .string("@beaky just between us")])])
+        let offer = try WorldEventEnvelope(
+            type: SceneTurnOffer.eventType, occurredAt: at,
+            source: EventSource(id: SourceID(validating: "world:scenes"), kind: "world"),
+            subjectIDs: [april, beaky], epistemic: EpistemicState(type: .reported, confidence: 1),
+            payload: ["world_facts": .array([])])
+        let arrived = try WorldEventEnvelope(
+            type: WorldEventType(validating: "person.arrived"), occurredAt: at,
+            source: EventSource(id: SourceID(validating: "home-assistant:test"), kind: "house"),
+            subjectIDs: [april], epistemic: EpistemicState(type: .observed, confidence: 1),
+            payload: [:])
+        let kept = try Fact(
+            subjectID: april, predicate: "person.mood", value: .string("tired"),
+            epistemic: EpistemicState(type: .reported, confidence: 1), validFrom: at,
+            derivedFrom: [.event(percept.eventID)],
+            producer: FactProducer(kind: "reducer", id: "given-facts", version: "1"))
+        await world.set(facts: [kept], events: [percept, offer, arrived])
+        let application = makeCreatureWorldApplication(
+            dependencies: .testing(
+                configuration: try CreatureWorldConfiguration(port: 8080),
+                logger: Logger(label: "whisper-tests"),
+                buildInfo: CreatureWorldBuildInfo(version: "whisper-test", schemaVersion: 1),
+                worldService: world,
+                conversationService: HeldConversation(items: items),
+                characterSessionService: UnavailableCharacterSessionApplicationService()),
+            apiConfiguration: .default)
+        try await application.test(.router) { client in
+            func call(_ tool: String, _ arguments: String, meta: String?) async throws
+                -> WorldJSONValue?
+            {
+                let params =
+                    #"{"name":"\#(tool)","arguments":\#(arguments)"#
+                    + (meta.map { #","_meta":\#($0)}"# } ?? "}")
+                let response = try await client.execute(
+                    uri: "/world/mcp", method: .post,
+                    headers: [.contentType: "application/json", .accept: "application/json"],
+                    body: ByteBuffer(
+                        string: #"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":"#
+                            + params + "}"))
+                return try WorldJSON.makeDecoder().decode(WorldJSONValue.self, from: response.body)
+            }
+            func asMind(_ mind: String?) -> String {
+                mind.map { #"{"audience":"minds","mind":"\#($0)"}"# } ?? #"{"audience":"minds"}"#
+            }
+            func texts(_ value: WorldJSONValue?) -> [String] {
+                guard case .array(let lines)? = value else { return [] }
+                return lines.compactMap { $0["text"]?.stringValue }
+            }
+            func types(_ value: WorldJSONValue?) -> [String] {
+                guard case .array(let events)? = value else { return [] }
+                return events.compactMap { $0["type"]?.stringValue }
+            }
+            let room = ["Goodnight, flock"]
+            let all = items.map(\.text)
+
+            // The conversation: the room and her own whispers for Beaky; the room for Mango and
+            // for a mind that does not say which it is; everything for April debugging.
+            for (meta, heard) in [
+                (asMind("character:beaky"), all), (asMind("character:mango"), room),
+                (asMind(nil), room), (nil, all),
+            ] {
+                let conversation = try await call("query_conversation", "{}", meta: meta)
+                #expect(texts(conversation?["result"]?["structuredContent"]?["items"]) == heard)
+            }
+            // The day the night remembers: the same.
+            let day = #"{"day":"2026-10-22"}"#
+            let mangosDay = try await call("query_day", day, meta: asMind("character:mango"))
+            #expect(
+                texts(mangosDay?["result"]?["structuredContent"]?["conversation"]) == room)
+            let beakysDay = try await call("query_day", day, meta: asMind("character:beaky"))
+            #expect(texts(beakysDay?["result"]?["structuredContent"]?["conversation"]) == all)
+            // What another mind was handed is no mind's to read, by any tool.
+            let entity = try await call(
+                "query_entity", #"{"entity_id":"person:april"}"#, meta: asMind("character:mango"))
+            #expect(types(entity?["result"]?["structuredContent"]?["events"]) == ["person.arrived"])
+            let timeline = try await call(
+                "query_timeline", #"{"after_sequence":0}"#, meta: asMind("character:beaky"))
+            #expect(
+                types(timeline?["result"]?["structuredContent"]?["items"]) == ["person.arrived"])
+            let why = try await call(
+                "explain_fact", #"{"fact_id":"\#(kept.factID.rawValue)"}"#,
+                meta: asMind("character:mango"))
+            #expect(types(why?["result"]?["structuredContent"]?["events"]) == [])
+            let debugging = try await call(
+                "query_entity", #"{"entity_id":"person:april"}"#, meta: nil)
+            #expect(types(debugging?["result"]?["structuredContent"]?["events"]).count == 3)
+
+            // Over REST, a bird asks for its own day; without `mind` it is whole.
+            try await client.execute(
+                uri: "/world/v1/days/2026-10-22?mind=character:mango", method: .get
+            ) { response in
+                #expect(response.status == .ok)
+                let digest = try WorldJSON.makeDecoder().decode(DayDigest.self, from: response.body)
+                #expect(digest.conversation.map(\.text) == room)
+            }
+            try await client.execute(uri: "/world/v1/days/2026-10-22", method: .get) { response in
+                let digest = try WorldJSON.makeDecoder().decode(DayDigest.self, from: response.body)
+                #expect(digest.conversation.map(\.text) == all)
+                #expect(digest.conversation.map(\.aloneWith) == [nil, beaky, beaky])
+            }
+            try await client.execute(
+                uri: "/world/v1/days/2026-10-22?mind=not%20a%20mind", method: .get
+            ) { response in
+                #expect(response.status == .badRequest)
+            }
+        }
+    }
+
     @Test("Why? over REST: the same walk, for the Viewer")
     func explainsOverREST() async throws {
         let world = MCPWorld()
@@ -533,10 +678,16 @@ struct WorldMCPTests {
 private actor MCPWorld: WorldApplicationService {
     private var facts: [Fact] = []
     private var events: [WorldEventEnvelope] = []
+    private var day: DayDigest?
 
     func set(facts: [Fact], events: [WorldEventEnvelope]) {
         self.facts = facts
         self.events = events
+    }
+
+    func set(day: DayDigest) { self.day = day }
+    func dayDigest(_ day: String) async throws -> DayDigest? {
+        self.day?.day == day ? self.day : nil
     }
 
     func accept(_ event: WorldEventEnvelope) async throws -> WorldEventAcceptance {
@@ -610,6 +761,48 @@ private actor MCPWorld: WorldApplicationService {
         }
         return FactExplanation(fact: fact, events: behind, facts: [], supersededBy: nil)
     }
+}
+
+/// The house conversation, held: the only thing these tests ask of the conversation service.
+private struct HeldConversation: ConversationApplicationService {
+    let items: [ConversationItem]
+
+    func conversationItems(
+        in conversationID: ConversationID, after itemID: ConversationItemID?, limit: Int
+    ) async throws -> ConversationItemPage {
+        let after = itemID.flatMap { id in items.firstIndex { $0.itemID == id } }
+        let rest = items.dropFirst(after.map { $0 + 1 } ?? 0).prefix(limit)
+        return ConversationItemPage(
+            items: Array(rest), nextItemID: rest.last?.itemID,
+            hasMore: rest.count < items.count - (after.map { $0 + 1 } ?? 0))
+    }
+
+    private var unavailable: UnavailableConversationApplicationService { .init() }
+    func ingest(_ utterance: PersonUtterance) async throws -> UtteranceIngressResult {
+        try await unavailable.ingest(utterance)
+    }
+    func respond(_ intent: CharacterUtteranceIntent) async throws -> CharacterDeliveryResult {
+        try await unavailable.respond(intent)
+    }
+    func stage(_ request: CharacterStageRequest, in conversationID: ConversationID)
+        async throws -> CharacterStageResult
+    {
+        try await unavailable.stage(request, in: conversationID)
+    }
+    func perform(_ performance: CharacterPerformance, in conversationID: ConversationID)
+        async throws -> CharacterDeliveryResult
+    {
+        try await unavailable.perform(performance, in: conversationID)
+    }
+    func deliveries(in conversationID: ConversationID, after responseID: ResponseID?, limit: Int)
+        async throws -> CharacterDeliveryPage
+    {
+        try await unavailable.deliveries(in: conversationID, after: responseID, limit: limit)
+    }
+    func subscribe(to conversationID: ConversationID) async throws -> ConversationItemStream {
+        try await unavailable.subscribe(to: conversationID)
+    }
+    func finishConversationSubscriptions() async {}
 }
 
 extension WorldJSONValue {

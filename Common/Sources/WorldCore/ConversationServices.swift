@@ -177,17 +177,18 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
                 return try await submitIfNeeded(stored, span: span)
             }
 
-            // The percept carries a window on the conversation, not its whole history: the
-            // newest items up to the contract's limit (#156).
-            let priorItems = try await repository.newestConversationItems(
-                in: utterance.conversationID,
-                limit: ConversationContractLimits.maximumContextItems
-            )
             // Who this is for is the world's call (the leadership rule); the sender's addressee
             // is a hint.
             let addressee = try await addresseeResolver.addressee(
                 for: utterance, hinted: utterance.addresseeIDs[0])
             let characterID = addressee.characterID
+            // The percept carries a window on the conversation, not its whole history: the
+            // newest items up to the contract's limit (#156), and only what this bird heard -
+            // another bird's whisper never (#261).
+            let priorItems = try await repository.newestConversationItems(
+                in: utterance.conversationID,
+                limit: ConversationContractLimits.maximumContextItems
+            ).filter { $0.isHeard(by: characterID) }
             span.attributes["agent.character_id"] = characterID.rawValue
             span.attributes["conversation.addressee.alone"] = addressee.alone
             let sceneID = try await scenePlanner.planScene(for: utterance, addressee: addressee)
@@ -240,7 +241,8 @@ public actor PersonUtteranceIngressService: PersonUtteranceIngress {
                     text: utterance.text,
                     createdAt: utterance.occurredAt,
                     utteranceID: utterance.utteranceID,
-                    trace: utterance.trace
+                    trace: utterance.trace,
+                    aloneWith: addressee.alone ? characterID : nil
                 )
             )
             let stored = try await repository.prepare(proposed)
@@ -472,6 +474,9 @@ public protocol CharacterDeliveryRepository: Sendable {
     func stageDecision(for responseID: ResponseID) async throws -> StoredStageDecision?
     /// Atomically returns the existing stage decision or persists and returns `stage`.
     func prepareStage(_ stage: StoredStageDecision) async throws -> StoredStageDecision
+    /// The bird the utterance was whispered to, so the turn answering it is a whisper too
+    /// (#261); nil for the room, or an utterance the world never took in.
+    func whisperedTo(utterance utteranceID: UtteranceID) async throws -> EntityID?
 }
 
 public enum CharacterDeliveryDisposition: String, Hashable, Sendable, Codable {
@@ -637,7 +642,7 @@ public actor CharacterDeliveryRouter {
                     StoredCharacterDelivery(
                         intent: intent,
                         decision: staged.decision,
-                        conversationItem: try makeConversationItem(for: intent)
+                        conversationItem: try await makeConversationItem(for: intent)
                     )
                 )
                 guard stored.intent.isSameIntent(as: intent) else {
@@ -708,7 +713,7 @@ public actor CharacterDeliveryRouter {
                     StoredCharacterDelivery(
                         intent: intent,
                         decision: proposedDecision,
-                        conversationItem: try makeConversationItem(for: intent)
+                        conversationItem: try await makeConversationItem(for: intent)
                     )
                 )
                 guard stored.intent.isSameIntent(as: intent) else {
@@ -755,10 +760,15 @@ public actor CharacterDeliveryRouter {
         }
     }
 
-    private func makeConversationItem(for intent: CharacterUtteranceIntent) throws
+    /// The canonical item for a turn. An answer to a whisper is a whisper (#261).
+    private func makeConversationItem(for intent: CharacterUtteranceIntent) async throws
         -> ConversationItem
     {
-        try ConversationItem(
+        var whisperedTo: EntityID?
+        if let answered = intent.inResponseToUtteranceID {
+            whisperedTo = try await repository.whisperedTo(utterance: answered)
+        }
+        return try ConversationItem(
             itemID: makeConversationItemID(),
             conversationID: intent.conversationID,
             authorID: intent.characterID,
@@ -766,7 +776,8 @@ public actor CharacterDeliveryRouter {
             text: intent.text,
             createdAt: intent.createdAt,
             responseID: intent.responseID,
-            trace: intent.trace
+            trace: intent.trace,
+            aloneWith: whisperedTo
         )
     }
 
