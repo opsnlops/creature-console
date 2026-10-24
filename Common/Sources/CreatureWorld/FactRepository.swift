@@ -229,6 +229,19 @@ struct FactRepository: Sendable {
         }
     }
 
+    /// What `subject` held for `predicate` at `moment`, current now or not: the newest fact
+    /// begun by then, unless it had already run out. What replaced it later does not matter -
+    /// it was in force then (#266).
+    func fact(of subject: EntityID, _ predicate: String, at moment: Date) async throws -> Fact? {
+        let begun: Document = ["$lte": moment]
+        let newest = try await facts.find([
+            "subject_id": subject.rawValue, "predicate": predicate, "valid_from": begun,
+        ]).sort(["valid_from": -1, "_id": -1]).limit(1).drain()
+        guard let fact = try newest.first.map(decode) else { return nil }
+        if let validTo = fact.validTo, validTo <= moment { return nil }
+        return fact
+    }
+
     /// One fact by id, current or not.
     func fact(withID factID: FactID) async throws -> Fact? {
         try await facts.findOne(["_id": factID.rawValue]).map(decode)

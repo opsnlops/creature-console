@@ -125,16 +125,18 @@ enum Household {
         return calendar
     }
 
-    /// Whether April has asked the birds to let the cameras be: a `house.cameras_quiet` in force
-    /// on the house (#220). Its own expiry ends it; a bird's `none` ends it early.
-    static func camerasQuiet(in houseFacts: [Fact]) -> Bool {
-        houseFacts.contains { $0.predicate == WorldFacts.camerasQuiet && $0.value != .null }
-    }
-
-    static func camerasQuiet(house: EntityID, facts: FactRepository, at now: Date) async throws
+    /// Whether April had asked the birds to let the cameras be (#220) when `moment` happened: a
+    /// `house.cameras_quiet` in force on the house then, ended by its own expiry or early by a
+    /// bird's `none`. A sighting is judged by when it was seen, not when the scene opener
+    /// reaches it. The opener reads the world one event at a time; a sighting seen in the quiet
+    /// and read just after it ended opened a scene April had asked to skip, and that scene's
+    /// cooldown swallowed the next sighting (#266).
+    static func camerasQuiet(house: EntityID, facts: FactRepository, at moment: Date) async throws
         -> Bool
     {
-        camerasQuiet(in: try await facts.currentFacts(subjectID: house, at: now))
+        guard let quiet = try await facts.fact(of: house, WorldFacts.camerasQuiet, at: moment)
+        else { return false }
+        return quiet.value != .null
     }
 
     static let sourceID = try! SourceID(validating: "world:household")

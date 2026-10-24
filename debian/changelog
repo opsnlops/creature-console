@@ -1,3 +1,15 @@
+creature-cli (2.105.0+world0.64.5+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.64.5: a sighting is judged by when it was seen
+    (#266). The scene opener checked the cameras' quiet when it reached
+    a sighting, so one seen in the quiet and read just after it ended
+    opened a scene April had asked to skip, and that scene's cooldown
+    swallowed the next. It now asks what the house held at the
+    sighting's moment (FactRepository.fact(of:_:at:)). The black-box
+    test that lost this race on nearly every run passes again.
+
+ -- April White <april@creature.engineering>  Fri, 23 Oct 2026 22:30:00 -0700
+
 creature-cli (2.105.0+world0.64.4+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.64.4: recent events are the newest (#265). An

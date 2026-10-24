@@ -328,10 +328,12 @@ struct MongoWorldPersistenceConnection: Sendable {
                         _ = try await world.accept(identified)
                     }
                     // April asked the birds to let the cameras be: the sighting is recorded
-                    // (above, and in the story), but no scene hands a bird the microphone (#220).
+                    // (above, and in the story), but no scene hands a bird the microphone (#220)
+                    // - judged at the moment it was seen, however late the opener reads it
+                    // (#266).
                     if HouseEvents.cameraSightings.contains(event.type),
                         try await Household.camerasQuiet(
-                            house: house, facts: persistence.facts, at: await clock.now)
+                            house: house, facts: persistence.facts, at: event.occurredAt)
                     {
                         logger.info(
                             "The cameras are quiet; no scene",
