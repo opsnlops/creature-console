@@ -21,27 +21,8 @@ struct WorldMindService: Service {
     private let memory: MemoryJob?
     /// Filing what the minds kept, after remembering - the lead's job alone (#229).
     private let librarian: Librarian?
-    /// One night's work at a time.
-    private let remembering = Remembering()
-
-    actor Remembering {
-        /// Busy while a night's work runs, free when it returns. It used to hold the Task and
-        /// ask `isCancelled` - which a finished task never is, so every night after the first
-        /// was "still remembering the last day; skipping" until a restart (#203).
-        private var busy = false
-        /// Starts `work` unless a night is still being remembered; true when started.
-        func start(_ work: @escaping @Sendable () async -> Void) -> Bool {
-            if busy { return false }
-            busy = true
-            Task {
-                await work()
-                self.finished()
-            }
-            return true
-        }
-
-        private func finished() { busy = false }
-    }
+    /// The nights to remember, one at a time and none skipped (#262).
+    private let nights: MemoryNights
 
     /// Without a `session` the mind follows the world unconditionally (no login desk — the
     /// pre-0.5 world). With one it must hold its character before it follows anything.
@@ -55,7 +36,8 @@ struct WorldMindService: Service {
         clock: any WorldClock = SystemWorldClock(),
         spectateDelay: Duration = .seconds(15),
         memory: MemoryJob? = nil,
-        librarian: Librarian? = nil
+        librarian: Librarian? = nil,
+        nights: MemoryNights? = nil
     ) {
         self.subscriber = subscriber
         self.mind = mind
@@ -67,6 +49,7 @@ struct WorldMindService: Service {
         self.spectateDelay = spectateDelay
         self.memory = memory
         self.librarian = librarian
+        self.nights = nights ?? MemoryNights(file: nil, logger: logger)
     }
 
     func run() async throws {
@@ -129,17 +112,11 @@ struct WorldMindService: Service {
     }
 
     private func follow() async throws {
-        // A night the provider was still thinking about when this process last stopped.
+        // The nights still to remember when this process last stopped: the one the provider
+        // was thinking about first, then any waiting behind it.
         if let memory {
-            let clock = self.clock
-            let logger = self.logger
-            _ = await remembering.start {
-                do {
-                    try await memory.resume(now: await clock.now)
-                } catch {
-                    logger.error(
-                        "Could not resume the night's memory", metadata: ["error": "\(error)"])
-                }
+            await nights.resume(inProgress: memory.inProgress) { night in
+                await self.remember(night)
             }
         }
         try await subscriber.run(
@@ -150,34 +127,39 @@ struct WorldMindService: Service {
             ))
     }
 
-    /// "Remember the day": the job runs on its own so the stream keeps flowing; one at a time.
+    /// "Remember the day": the night joins the line, and the stream keeps flowing. A night
+    /// still being remembered asks now rather than wait on the provider, and this one follows
+    /// it - it used to be skipped (#262).
     func remember(_ event: WorldEventEnvelope) async {
-        guard let memory else { return }
+        guard memory != nil else { return }
         guard case .string(let day)? = event.payload["day"] else { return }
-        let clock = self.clock
-        let logger = self.logger
-        let librarian = self.librarian
-        let started = await remembering.start {
-            do {
-                try await memory.remember(day: day, run: event.eventID, now: await clock.now)
-            } catch {
-                logger.error(
-                    "Could not remember the day",
-                    metadata: ["memory.day": "\(day)", "error": "\(error)"])
-            }
-            // Then, while the others sleep, the record: whatever remembering made of the day.
-            guard let librarian else { return }
-            do {
-                try await librarian.file(day: day, run: event.eventID, now: await clock.now)
-            } catch {
-                logger.error(
-                    "Could not file the record",
-                    metadata: ["memory.day": "\(day)", "error": "\(error)"])
-            }
+        let night = MemoryNights.Night(day: day, run: event.eventID.rawValue)
+        let waits = await nights.add(night) { night in await self.remember(night) }
+        if waits {
+            logger.info(
+                "Still remembering the night before; this one follows it",
+                metadata: ["memory.day": "\(day)"])
         }
-        if !started {
-            logger.warning(
-                "Still remembering the last day; skipping", metadata: ["memory.day": "\(day)"])
+    }
+
+    /// One night's work: the bird's memory, then, while the others sleep, the record -
+    /// whatever remembering made of the day.
+    private func remember(_ night: MemoryNights.Night) async {
+        guard let memory else { return }
+        do {
+            try await memory.remember(night, now: await clock.now)
+        } catch {
+            logger.error(
+                "Could not remember the day",
+                metadata: ["memory.day": "\(night.day)", "error": "\(error)"])
+        }
+        guard let librarian, let run = try? EventID(validating: night.run) else { return }
+        do {
+            try await librarian.file(day: night.day, run: run, now: await clock.now)
+        } catch {
+            logger.error(
+                "Could not file the record",
+                metadata: ["memory.day": "\(night.day)", "error": "\(error)"])
         }
     }
 

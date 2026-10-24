@@ -298,7 +298,7 @@ struct MemoryJobTests {
         """
 
     @Test(
-        "Through the batch: submitted, written down, waited for, cast the same; nothing left pending"
+        "The episodes asked now, the beliefs through the batch: each written down first; nothing left pending (#262)"
     )
     func remembersThroughABatch() async throws {
         let client = HTTPClient(eventLoopGroupProvider: .singleton)
@@ -318,8 +318,9 @@ struct MemoryJobTests {
                 model: MemoryModel(
                     modelName: "gpt-6-astra",
                     ask: { _ in
-                        Issue.record("asked now, not through the batch")
-                        return Data()
+                        // The day's episodes, asked now: written down first, with no batch.
+                        await queue.askedNow(pending: pendingFile)
+                        return Data(Self.recollection.utf8)
                     },
                     batch: MemoryModel.Batch(
                         submit: { transcript, customID in
@@ -337,12 +338,13 @@ struct MemoryJobTests {
                 day: "2026-09-13",
                 run: try EventID(validating: "5a8b0c8e-0000-4000-8000-000000000002"), now: now)
         }
-        // Two batches, one per stage, each written down before it was waited for.
+        // The episodes asked now and the beliefs through one batch, each written down before it
+        // was asked or waited for.
         let key = "memory:2026-09-13:5a8b0c8e-0000-4000-8000-000000000002"
-        #expect(await queue.submissions == ["\(key):episodes", "\(key):beliefs"])
-        #expect(await queue.answers == ["batch-1/\(key):episodes", "batch-2/\(key):beliefs"])
+        #expect(await queue.submissions == ["\(key):beliefs"])
+        #expect(await queue.answers == ["batch-1/\(key):beliefs"])
         #expect(await queue.pendingSeen.map(\.stage) == [.episodes, .beliefs])
-        #expect(await queue.pendingSeen.map(\.batchID) == ["batch-1", "batch-2"])
+        #expect(await queue.pendingSeen.map(\.batchID) == [nil, "batch-1"])
         #expect(await queue.pendingSeen.last?.episodes == 1)
         let events = await casts.events
         // The stale memory taken back, two subjects, the reflection, the belief, the summary.
@@ -391,8 +393,14 @@ struct MemoryJobTests {
                         })),
                 cast: { await casts.note($0) }, client: client,
                 logger: Logger(label: "memory-tests"), pendingFile: pendingFile)
-            try await job.resume(now: now)
-            // Nothing pending afterwards: a second resume does nothing.
+            // From the line of nights (#262): the one written down is the night in progress,
+            // and asked for, it is picked up where it was.
+            let night = MemoryNights.Night(
+                day: "2026-09-13", run: "5a8b0c8e-0000-4000-8000-000000000003")
+            #expect(job.inProgress == night)
+            try await job.remember(night, now: now)
+            // Nothing pending afterwards: a resume does nothing.
+            #expect(job.inProgress == nil)
             try await job.resume(now: now)
         }
         // The episodes were collected from batch-7, not submitted again; only the beliefs were.
@@ -447,8 +455,8 @@ struct MemoryJobTests {
                 day: "2026-09-13",
                 run: try EventID(validating: "5a8b0c8e-0000-4000-8000-000000000004"), now: now)
         }
-        // Both stages were submitted, both fell back, both landed.
-        #expect(await queue.submissions.count == 2)
+        // The episodes were asked now; the beliefs were submitted, fell back, and landed.
+        #expect(await queue.submissions.count == 1)
         #expect(await asked.events.count == 2)
         let events = await casts.events
         #expect(events.count == 6)
@@ -548,7 +556,16 @@ private actor BatchQueue {
     func answered(_ batchID: String, _ customID: String) {
         answers.append("\(batchID)/\(customID)")
         // The pending file, as the job left it once the batch was submitted.
-        if let file = pendingFileHint, let data = try? Data(contentsOf: file),
+        notePending(pendingFileHint)
+    }
+
+    /// A stage asked now: the pending file, as the job left it before asking.
+    func askedNow(pending: URL) {
+        notePending(pending)
+    }
+
+    private func notePending(_ file: URL?) {
+        if let file, let data = try? Data(contentsOf: file),
             let pending = try? WorldJSON.makeDecoder().decode(PendingMemory.self, from: data)
         {
             pendingSeen.append(pending)

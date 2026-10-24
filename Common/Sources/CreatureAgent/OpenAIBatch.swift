@@ -125,10 +125,12 @@ struct OpenAIBatchClient: Sendable {
     /// Waits for the batch, looking every `every` (a minute by default) until `deadline`,
     /// and hands back the output file. Past the deadline the batch is cancelled - the night
     /// will be remembered the ordinary way - and a batch the provider gave up on is an error
-    /// with its status.
-    func output(of batchID: String, every interval: Duration = .seconds(60), deadline: Date)
-        async throws -> Data
-    {
+    /// with its status. `giveUp` cuts the wait short the same way: the next night is waiting
+    /// behind this one (#262).
+    func output(
+        of batchID: String, every interval: Duration = .seconds(60), deadline: Date,
+        giveUp: @Sendable () async -> Bool = { false }
+    ) async throws -> Data {
         var looked = 0
         while true {
             let status = try await status(of: batchID)
@@ -155,6 +157,11 @@ struct OpenAIBatchClient: Sendable {
                 if Date() >= deadline {
                     try? await cancel(batchID: batchID)
                     throw OpenAIBatchError.unfinished("still \(stage) at the deadline; cancelled")
+                }
+                if await giveUp() {
+                    try? await cancel(batchID: batchID)
+                    throw OpenAIBatchError.unfinished(
+                        "still \(stage) with the next night waiting; cancelled")
                 }
                 try await Task.sleep(for: interval)
             }

@@ -362,6 +362,11 @@ private func runWorldMode(
     /// The nightly memory's model, when this mind has one (`llmMemoryModel`); the same key,
     /// a JSON answer, and its own effort - latency is irrelevant at 3:30 AM.
     var memoryModel: MemoryModel?
+    // The nights to remember, in line: a batch gives up when the next is waiting (#262).
+    let nights = MemoryNights(
+        file: URL(fileURLWithPath: world.stateDirectory, isDirectory: true)
+            .appending(path: "memory-nights.json"),
+        logger: logger)
     // Judges the kind of a bare new name a bird writes, with OpenAI's Decisions API (#239).
     // OpenAI backend only: a local model's names that need judging are left unfiled.
     var kindJudge: (any EntityKindJudging)?
@@ -438,7 +443,8 @@ private func runWorldMode(
                     },
                     answer: { batchID, customID in
                         let output = try await batches.output(
-                            of: batchID, deadline: Date().addingTimeInterval(wait))
+                            of: batchID, deadline: Date().addingTimeInterval(wait),
+                            giveUp: { await nights.isWaitedOn })
                         return try await memoryClient.jsonAnswer(
                             fromBatch: try OpenAIBatchClient.result(for: customID, in: output),
                             batchID: batchID)
@@ -602,7 +608,8 @@ private func runWorldMode(
                     worldURL: world.worldURL, characterID: characterID, persona: persona,
                     model: model, cast: { try await responder.cast($0) }, client: client,
                     logger: logger, capture: config.llmCaptureContent)
-            } : nil
+            } : nil,
+        nights: nights
     )
     // The local model's health is only worth watching when a local model is the mind; on a
     // frontier backend the check would poke a machine that no longer runs one.

@@ -240,6 +240,21 @@ struct MemoryJob: Sendable {
         }
     }
 
+    /// One night from the line (#262): picked up where it stopped if it is the one written
+    /// down as pending, remembered afresh otherwise.
+    func remember(_ night: MemoryNights.Night, now: Date) async throws {
+        if loadPending()?.run == night.run {
+            try await resume(now: now)
+        } else {
+            try await remember(day: night.day, run: try EventID(validating: night.run), now: now)
+        }
+    }
+
+    /// The night in progress when the process last stopped, if any.
+    var inProgress: MemoryNights.Night? {
+        loadPending().map { MemoryNights.Night(day: $0.day, run: $0.run) }
+    }
+
     static func key(day: String, run: EventID) -> String { "memory:\(day):\(run.rawValue)" }
 
     static func isWorthRemembering(_ digest: DayDigest) -> Bool {
@@ -337,13 +352,20 @@ struct MemoryJob: Sendable {
 
     // MARK: - Asking the model
 
-    /// One question to the model, for a stage of the night. With a batch: submitted, written
-    /// down as pending, and waited for; a batch that will not finish falls back to asking now.
+    /// One question to the model, for a stage of the night, written down as pending first so a
+    /// restart asks again rather than losing it. The batch is for what nobody waits on: the
+    /// month's beliefs. The day's episodes are asked now - a bird talks all day, and on
+    /// 2026-10-23 Caroll spoke 29 lines before her memories of the 22nd came back from a
+    /// 13.8-hour batch (#262). A batch: submitted, written down, and waited for; one that will
+    /// not finish falls back to asking now.
     private func answer(_ transcript: [LocalLLMClient.Message], pending: PendingMemory)
         async throws -> Data
     {
         try await asTheBird(pending) { inner in
-            guard let batch = model.batch else { return try await model.ask(transcript) }
+            guard let batch = model.batch, pending.stage.isBatched else {
+                savePending(pending)
+                return try await model.ask(transcript)
+            }
             var pending = pending
             pending.customID =
                 "\(Self.key(day: pending.day, run: try EventID(validating: pending.run))):\(pending.stage.rawValue)"
@@ -892,6 +914,9 @@ struct PendingMemory: Codable, Equatable, Sendable {
     enum Stage: String, Codable, Sendable {
         case episodes
         case beliefs
+
+        /// Through the provider's batch, at half the price: only what nobody waits on (#262).
+        var isBatched: Bool { self == .beliefs }
     }
 
     var day: String

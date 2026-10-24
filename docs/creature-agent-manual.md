@@ -461,7 +461,20 @@ else — persona, facts, the clock, streaming to the room — is identical.
   submitted, and `MemoryJob.resume` picks it up on the next start - a deploy while the
   provider is still thinking loses nothing. A batch that fails, expires, or is still pending
   after `llmMemoryBatchWaitHours` (20) is cancelled and that stage is asked the ordinary way;
-  the night always lands. `creature-agent probe-batch --model gpt-6-astra` proves the road
+  the night always lands.
+- **The night lands by morning, and never costs the next one** (`2.104.0`, #262,
+  `docs/nightly-batch-plan.md`).
+  - **Why:** the chorus moved to gpt-6.1-sol on 2026-10-18 for its price, and its batches grew
+    to 11–14 hours. On 10-23 Caroll spoke all 29 of her lines before her memories of the 22nd
+    came back.
+  - **The episodes are asked directly.** Only the beliefs stage, which nobody waits on, rides
+    the batch. That is about $2 a month more for the chorus, and the memories land at 3:31 AM.
+  - **Every stage is written down before it is asked**, so a restart asks again.
+  - **Nights wait in line** (`MemoryNights`, `<stateDirectory>/memory-nights.json`). A night
+    that arrives while another is out used to be skipped ("Still remembering the last day;
+    skipping") and never remembered. Now it waits behind it, and the night in hand gives up the
+    batch it is waiting on (cancelled) and asks now, the librarian's included.
+  - **A start** resumes the night in progress, then the ones waiting. `creature-agent probe-batch --model gpt-6-astra` proves the road
   end to end with a day key. Found on the way (#203): every night after the first was being
   skipped until a restart - the "still remembering" guard held a finished Task and asked
   `isCancelled`, which a finished task never is. It tracks completion now.

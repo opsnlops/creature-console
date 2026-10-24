@@ -1,3 +1,15 @@
+creature-cli (2.104.0+world0.64.2+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.104.0: the night lands by morning, and never costs
+    the next one (#262). The day's episodes are asked directly and only
+    the month's beliefs ride the batch: the chorus's Sol batches took
+    11-14 hours, and a bird spent the day without yesterday. Each stage
+    is written down before it is asked. Nights wait in line
+    (memory-nights.json) and are never skipped; while one waits, the
+    night in hand gives up its batch and asks now.
+
+ -- April White <april@creature.engineering>  Fri, 23 Oct 2026 20:30:00 -0700
+
 creature-cli (2.103.1+world0.64.2+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.64.2: a whisper stays between April and one bird
