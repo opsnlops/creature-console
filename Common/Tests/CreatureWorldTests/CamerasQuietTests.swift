@@ -5,7 +5,7 @@ import WorldCore
 
 @testable import creature_world
 
-private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI"]
+private let mongoTestURI = TestDatabase.uri
 
 /// A sighting is judged by when it was seen (#266): the scene opener reads the world one event
 /// at a time, and a sighting seen in the cameras' quiet and read just after it ended opened a

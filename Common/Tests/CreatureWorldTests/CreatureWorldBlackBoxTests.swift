@@ -13,7 +13,7 @@ import WorldCore
     import Darwin
 #endif
 
-private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI"]
+private let mongoTestURI = TestDatabase.uri
 
 /// Drives the built `creature-world` executable as a child process over real TCP, the way an
 /// adapter or World Viewer on the LAN would. Everything else in this test target talks to
@@ -27,7 +27,8 @@ private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI
 struct CreatureWorldBlackBoxTests {
     @Test("The Linux service streams, resumes without a gap, and survives a process restart")
     func serviceLifecycle() async throws {
-        let uri = try #require(mongoTestURI)
+        // A database of its own: this World's rules sweep everything they can see (#247).
+        let uri = try #require(TestDatabase.isolated("blackbox"))
         let port = try freeLoopbackPort()
         let client = HTTPClient(eventLoopGroupProvider: .singleton)
         let api = WorldServiceAPI(client: client, port: port)

@@ -6,7 +6,7 @@ import WorldCore
 
 @testable import creature_world
 
-private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI"]
+private let mongoTestURI = TestDatabase.uri
 
 /// About one meter of latitude, in degrees.
 private let meter = 1 / 111_195.0

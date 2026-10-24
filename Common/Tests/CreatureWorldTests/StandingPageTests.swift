@@ -4,7 +4,7 @@ import WorldCore
 
 @testable import creature_world
 
-private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI"]
+private let mongoTestURI = TestDatabase.uri
 
 /// The page with words holds everything the words used to bring, and opens with the standing
 /// page exactly (#245): what the words call up is gathered from what is new in them alone, so

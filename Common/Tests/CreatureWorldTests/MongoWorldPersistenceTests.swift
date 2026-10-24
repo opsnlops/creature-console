@@ -8,7 +8,7 @@ import WorldCore
 
 @testable import creature_world
 
-private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI"]
+private let mongoTestURI = TestDatabase.uri
 
 @Suite(
     "Creature World MongoDB persistence",
@@ -18,7 +18,9 @@ private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI
 struct MongoWorldPersistenceTests {
     @Test("HTTP event acceptance remains queryable after an application restart")
     func httpAcceptanceSurvivesRestart() async throws {
-        let uri = try #require(mongoTestURI)
+        // A database of its own: a live World runs its rules over everything it can see, and
+        // its delivery sweep settled another suite's orders mid-test (#247).
+        let uri = try #require(TestDatabase.isolated("restart"))
         let configuration = try CreatureWorldConfiguration(mongoURI: uri)
         let event = try makeEvent(sourceEventID: UUID().uuidString.lowercased())
         let requestBody = ByteBuffer(bytes: try WorldJSON.makeEncoder().encode(event))

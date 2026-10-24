@@ -5,7 +5,7 @@ import WorldCore
 
 @testable import creature_world
 
-private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI"]
+private let mongoTestURI = TestDatabase.uri
 
 /// Recent events are the newest ones (#265): an entity's page was the week's oldest fifty, and
 /// a story past 96 events in its fifteen minutes would have lost the newest.

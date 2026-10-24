@@ -36,6 +36,17 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
     static let portEnvironmentKey = "SERVER_PORT"
     static let defaultHost = "127.0.0.1"
     static let databaseName = "creature_world"
+    /// A test run's own database begins so (#247): each run starts empty, and never reads what
+    /// earlier runs left in `creature_world`.
+    static let testDatabasePrefix = "creature_world_test_"
+
+    /// Whether the World may use `name`: `creature_world`, or a test run's own. Any other
+    /// database is refused.
+    static func isWorldDatabase(_ name: String?) -> Bool {
+        guard let name else { return false }
+        return name == databaseName
+            || (name.hasPrefix(testDatabasePrefix) && name.count > testDatabasePrefix.count)
+    }
     static let defaultMongoURI =
         "mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-world&directConnection=true&connectTimeoutMS=5000"
     static let defaultPort = 8001
@@ -113,7 +124,7 @@ struct CreatureWorldConfiguration: Codable, Equatable, Sendable {
         } catch {
             throw CreatureWorldConfigurationError.invalidMongoURI
         }
-        guard settings.targetDatabase == Self.databaseName else {
+        guard Self.isWorldDatabase(settings.targetDatabase) else {
             throw CreatureWorldConfigurationError.unexpectedMongoDatabase(
                 expected: Self.databaseName,
                 actual: settings.targetDatabase

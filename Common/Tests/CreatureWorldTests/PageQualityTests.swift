@@ -4,7 +4,7 @@ import WorldCore
 
 @testable import creature_world
 
-private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI"]
+private let mongoTestURI = TestDatabase.uri
 
 /// #231: the thirty facts a mind is handed are what is worth reading; the stage and the state
 /// ride beside them, the state folded.

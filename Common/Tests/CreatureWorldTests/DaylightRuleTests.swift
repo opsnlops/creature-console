@@ -5,7 +5,7 @@ import WorldCore
 
 @testable import creature_world
 
-private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI"]
+private let mongoTestURI = TestDatabase.uri
 
 /// Light readings as the house tells them: on a halving or doubling (`minimum_change_percent`
 /// 50, floor 10 lux), or every fifteen minutes when the value has moved less.

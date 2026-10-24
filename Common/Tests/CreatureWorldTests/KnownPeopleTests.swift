@@ -4,7 +4,7 @@ import WorldCore
 
 @testable import creature_world
 
-private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI"]
+private let mongoTestURI = TestDatabase.uri
 
 /// Who the words can name (#246): anyone the world can describe, not only those it knows a
 /// relationship for.

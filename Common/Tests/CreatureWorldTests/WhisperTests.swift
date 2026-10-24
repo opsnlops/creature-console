@@ -6,7 +6,7 @@ import WorldCore
 
 @testable import creature_world
 
-private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI"]
+private let mongoTestURI = TestDatabase.uri
 
 /// A whisper stays between April and one bird (#261), through the repositories the World runs
 /// on: April's word and the bird's answer are marked where they are kept, every bird is handed

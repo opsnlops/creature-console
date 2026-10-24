@@ -4,7 +4,7 @@ import WorldCore
 
 @testable import creature_world
 
-private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI"]
+private let mongoTestURI = TestDatabase.uri
 
 /// #229: a fact says who kept it, and what the minds kept is found again when it matters.
 @Suite("Learning that lasts: origin and retrieval")

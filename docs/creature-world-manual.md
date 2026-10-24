@@ -1540,8 +1540,21 @@ source checkpoints, durable ordered conversation ingestion, and API persistence 
 application restart. The focused in-process HTTP suite also proves ordered and duplicate event and utterance
 acceptance, retry safety across changing transport traces, bounded inputs, non-loopback access,
 trace validation, overload, deadlines, SSE origin enforcement, and gap-free reconnect behavior.
-The tests write uniquely identified records to the `creature_world` database and do not drop the
-database afterward. Use a disposable development or CI deployment, never production.
+**Each run has a database of its own** (`0.64.6`, #247). `MONGODB_TEST_URI` names the server
+and its options. Its database is replaced with `creature_world_test_<unix seconds>_<random>`
+(`TestDatabase.uri`), which the World accepts beside `creature_world`
+(`CreatureWorldConfiguration.isWorldDatabase`).
+- **Why:** every run used to write into one `creature_world` and leave its rows. Queries that
+  read across a collection (the newest fifty light readings, every order's status, every
+  overwritten keeping) then found other runs' rows in place of their own. Tests flaked, and the
+  scene opener slowed until the black-box test lost a race (#266).
+- **A suite that runs a live World** (the black-box test, the application restart) gets a
+  database of its own within the run (`TestDatabase.isolated(_:)`). Its rules sweep everything
+  they can see, and its delivery sweep settled another suite's orders mid-test.
+- **Cleanup:** a run's databases are dropped by a run more than a day later. The old shared
+  `creature_world` is never touched.
+
+Use a disposable development or CI deployment, never production.
 
 ### Black-box service test
 

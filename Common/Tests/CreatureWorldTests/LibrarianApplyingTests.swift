@@ -4,7 +4,7 @@ import WorldCore
 
 @testable import creature_world
 
-private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI"]
+private let mongoTestURI = TestDatabase.uri
 
 private let now = Date(timeIntervalSince1970: 1_789_600_000)
 

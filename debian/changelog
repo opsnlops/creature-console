@@ -1,3 +1,15 @@
+creature-cli (2.105.0+world0.64.6+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.64.6: the tests stop flaking (#247). The World
+    accepts a test run's own database (creature_world_test_*) beside
+    creature_world, so each run starts empty; a live World in a test gets
+    a database of its own. A connection reset reported as
+    Network.framework's own NWError is a dropped connection, sent again
+    like the others. The dropped-connection tests no longer depend on
+    the machine's speed.
+
+ -- April White <april@creature.engineering>  Fri, 23 Oct 2026 23:00:00 -0700
+
 creature-cli (2.105.0+world0.64.5+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.64.5: a sighting is judged by when it was seen

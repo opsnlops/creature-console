@@ -5,6 +5,10 @@ import NIOCore
 import Tracing
 import WorldCore
 
+#if canImport(Network)
+    import Network
+#endif
+
 /// Where the world turns a scene into voices and motion.
 struct CreatureServerConfiguration: Codable, Equatable, Sendable {
     /// Base URL of Creature Server, e.g. `https://server.prod.chirpchirp.dev`.
@@ -192,9 +196,11 @@ extension CreatureServerConfiguration {
     /// request never reached a handler - and the World gave up on the first (#237). Only a
     /// fast drop is retried, so nothing the server acted on is sent twice; for that reason
     /// this is for a start or a whole dialog, never a turn, which would be spoken twice.
+    /// `fastDrop` is how quick a drop must be to count: `droppedBeforeRead`, but a test whose
+    /// server never reads may allow a slow machine more (#247).
     static func execute(
         _ request: HTTPClientRequest, on client: HTTPClient, timeout: TimeAmount,
-        logger: Logger, span: any Span
+        logger: Logger, span: any Span, fastDrop: Duration = droppedBeforeRead
     ) async throws -> HTTPClientResponse {
         var attempt = 0
         while true {
@@ -203,7 +209,7 @@ extension CreatureServerConfiguration {
                 return try await client.execute(request, timeout: timeout, logger: logger)
             } catch {
                 guard Self.isDroppedConnection(error), attempt < droppedConnectionRetries,
-                    ContinuousClock.now - started < droppedBeforeRead
+                    ContinuousClock.now - started < fastDrop
                 else { throw error }
                 attempt += 1
                 span.attributes["http.request.resend_count"] = attempt
@@ -222,9 +228,14 @@ extension CreatureServerConfiguration {
         if let error = error as? ChannelError { return error == .ioOnClosedChannel }
         if let error = error as? IOError { return error.errnoCode == ECONNRESET }
         #if canImport(Network)
-            // On Apple platforms the client runs on Network.framework, and says it so.
+            // On Apple platforms the client runs on Network.framework, and says it so - wrapped,
+            // or as Network's own error when the reset comes as the connection opens (seen on
+            // the CI runner, #247).
             if let error = error as? HTTPClient.NWPOSIXError {
                 return error.errorCode == .ECONNRESET
+            }
+            if let error = error as? NWError, case .posix(let code) = error {
+                return code == .ECONNRESET
             }
         #endif
         return false

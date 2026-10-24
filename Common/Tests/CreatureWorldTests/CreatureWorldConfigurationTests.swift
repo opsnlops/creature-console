@@ -94,6 +94,20 @@ struct CreatureWorldConfigurationTests {
         }
     }
 
+    @Test("A test run's own database is the World's too; a lookalike is not (#247)")
+    func acceptsATestRunsDatabase() throws {
+        let run = try CreatureWorldConfiguration(
+            mongoURI: "mongodb://127.0.0.1:27017/creature_world_test_1792810000_ab12cd")
+        #expect(run.mongoURI.hasSuffix("creature_world_test_1792810000_ab12cd"))
+        #expect(CreatureWorldConfiguration.isWorldDatabase("creature_world"))
+        #expect(!CreatureWorldConfiguration.isWorldDatabase("creature_world_test_"))
+        #expect(!CreatureWorldConfiguration.isWorldDatabase("creature_worlds"))
+        #expect(!CreatureWorldConfiguration.isWorldDatabase(nil))
+        #expect(throws: CreatureWorldConfigurationError.self) {
+            try CreatureWorldConfiguration(mongoURI: "mongodb://127.0.0.1:27017/creature_world_x")
+        }
+    }
+
     @Test("Invalid server port environment variable fails clearly")
     func invalidEnvironmentPortFailsClearly() {
         #expect(

@@ -84,7 +84,7 @@ struct MongoWorldPersistence: Sendable {
             throw CreatureWorldConfigurationError.invalidMongoURI
         }
         let database = cluster[databaseName]
-        guard database.name == CreatureWorldConfiguration.databaseName else {
+        guard CreatureWorldConfiguration.isWorldDatabase(database.name) else {
             await cluster.disconnect()
             throw CreatureWorldConfigurationError.unexpectedMongoDatabase(
                 expected: CreatureWorldConfiguration.databaseName,

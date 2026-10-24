@@ -5,7 +5,7 @@ import WorldCore
 
 @testable import creature_world
 
-private let mongoTestURI = ProcessInfo.processInfo.environment["MONGODB_TEST_URI"]
+private let mongoTestURI = TestDatabase.uri
 
 /// Made-up points in the middle of Kansas: never April's (the repository is public).
 private let latitude = 40.0
