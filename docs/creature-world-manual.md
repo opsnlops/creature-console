@@ -473,7 +473,12 @@ value is an entity id of a known kind (`person`, `place`, `house`, `character`, 
 `order`) is a link — `calendar.with = person:jesse` — and when the world gathers what a mind is
 handed it brings the linked entity's facts along, once, never a second hop. **`GET
 /v1/entities/{id}`** returns one entity whole: its current facts of every audience, the current
-facts elsewhere whose value is it (`linked_from`), and its events of the last week. **`GET
+facts elsewhere whose value is it (`linked_from`), and the newest 50 of its events of the last
+week, newest first. Before `0.64.4` (#265) they were the week's *oldest* 50: the query took the
+first events after the cutoff, not the last. The same query gives each percept its story, the
+last 12 worth telling of the newest 96 in fifteen minutes. A busier quarter hour would have lost
+its newest happenings, so it is fixed too. The index `subject_ids_occurred_at` serves both from
+the newest end. **`GET
 /v1/facts/{fact_id}/explain`** (`0.30.1`) is Why?: the fact, the events it was derived from,
 the facts behind those (a few levels down), and what superseded it — the walk WorldMCP's
 `explain_fact` makes, for the Viewer's Why? sheet. 404 for a fact the world never held.

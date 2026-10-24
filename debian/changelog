@@ -1,3 +1,14 @@
+creature-cli (2.105.0+world0.64.4+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.64.4: recent events are the newest (#265). An
+    entity's page held the week's oldest fifty events, and a percept's
+    story read the first 96 of its fifteen minutes, so a busier quarter
+    hour would have lost its newest happenings. The query now takes the
+    newest since the cutoff, oldest first as before, by the new index
+    subject_ids_occurred_at.
+
+ -- April White <april@creature.engineering>  Fri, 23 Oct 2026 22:00:00 -0700
+
 creature-cli (2.105.0+world0.64.3+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.105.0: the day's episodes ride the batch again,

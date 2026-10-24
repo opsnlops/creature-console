@@ -432,6 +432,14 @@ struct MongoWorldMigrator: Sendable {
             ]
         )
         let subjects = CreateIndexes.Index(named: "subject_ids", keys: ["subject_ids": 1])
+        // The newest events about an entity, walked from the end of the index (#265).
+        let subjectsByOccurrence = CreateIndexes.Index(
+            named: "subject_ids_occurred_at",
+            keys: [
+                "subject_ids": 1,
+                "occurred_at": 1,
+            ]
+        )
 
         try await database[MongoWorldCollection.events].createIndexes([
             eventID,
@@ -439,6 +447,7 @@ struct MongoWorldMigrator: Sendable {
             sourceEvent,
             typeAndOccurrence,
             subjects,
+            subjectsByOccurrence,
         ])
     }
 

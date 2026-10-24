@@ -74,8 +74,11 @@ struct WorldEventRepository: Sendable {
         return try documents.map(decode)
     }
 
-    /// The events about any of `subjects` since `since`, oldest first — the story a mind is
-    /// told. Callers filter by kind; this is the index-shaped query.
+    /// The newest `limit` events about any of `subjects` since `since`, oldest first — the
+    /// story a mind is told, an entity's recent page. Callers filter by kind; this is the
+    /// index-shaped query (`subject_ids_occurred_at`). It used to take the *first* `limit`
+    /// after `since`: an entity's page was the week's oldest fifty, and a story past 96
+    /// events in its fifteen minutes would have lost the newest (#265).
     func events(about subjects: [EntityID], since: Date, limit: Int) async throws
         -> [WorldEventEnvelope]
     {
@@ -83,13 +86,13 @@ struct WorldEventRepository: Sendable {
         guard !subjects.isEmpty else { return [] }
         let anyOf: Document = ["$in": subjects.map(\.rawValue)]
         let after: Document = ["$gte": since]
-        let documents =
+        let newestFirst =
             try await events
             .find(["subject_ids": anyOf, "occurred_at": after])
-            .sort(["occurred_at": 1])
+            .sort(["occurred_at": -1])
             .limit(limit)
             .drain()
-        return try documents.map(decode)
+        return try newestFirst.reversed().map(decode)
     }
 
     /// The newest events of one type, newest first - the nights' filings (`memory.filed`), by
