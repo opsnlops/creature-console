@@ -469,10 +469,15 @@ else — persona, facts, the clock, streaming to the room — is identical.
 - **The night lands by morning, and never costs the next one** (`2.104.0`, #262,
   `docs/nightly-batch-plan.md`).
   - **Why:** the chorus moved to gpt-6.1-sol on 2026-10-18 for its price, and its batches grew
-    to 11–14 hours. On 10-23 Caroll spoke all 29 of her lines before her memories of the 22nd
+    to 11–14 hours. On 10-23 Caroll spoke all 29 of his lines before his memories of the 22nd
     came back.
-  - **The episodes are asked directly.** Only the beliefs stage, which nobody waits on, rides
-    the batch. That is about $2 a month more for the chorus, and the memories land at 3:31 AM.
+  - **The episodes wait an hour, then ask directly** (`2.105.0`, #264,
+    `llmMemoryEpisodesWaitMinutes`, 60). `2.104.0` asked them directly every night, about $5 a
+    month across the flock. Then the chorus's Sol batches came back in three minutes that
+    evening, against 11–14 hours at 3:30 AM. So the episodes ride the batch again, but wait at
+    most an hour from the night's start, a deadline written down so a restart keeps it. If the
+    batch is quick they cost half; if not, it is cancelled and asked directly, and the memories
+    land by 4:30 AM. The beliefs keep `llmMemoryBatchWaitHours`.
   - **Every stage is written down before it is asked**, so a restart asks again.
   - **Nights wait in line** (`MemoryNights`, `<stateDirectory>/memory-nights.json`). A night
     that arrives while another is out used to be skipped ("Still remembering the last day;

@@ -163,6 +163,13 @@ struct AgentConfigTests {
         #expect(try load("llmMemoryBatch: false").llmMemoryBatch == false)
         #expect(try load("llmMemoryBatchWaitHours: 6").llmMemoryBatchWaitHours == 6)
         #expect(throws: DecodingError.self) { try load("llmMemoryBatchWaitHours: 48") }
+        // The day's episodes wait an hour on the batch, and never longer than a batch may (#264).
+        #expect(try load("").llmMemoryEpisodesWaitMinutes == 60)
+        #expect(try load("llmMemoryEpisodesWaitMinutes: 30").llmMemoryEpisodesWaitMinutes == 30)
+        #expect(throws: DecodingError.self) { try load("llmMemoryEpisodesWaitMinutes: 0") }
+        #expect(throws: DecodingError.self) {
+            try load("llmMemoryBatchWaitHours: 1\nllmMemoryEpisodesWaitMinutes: 90")
+        }
     }
 
     @Test("Uses default values for optional local LLM fields")

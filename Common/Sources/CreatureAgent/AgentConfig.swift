@@ -42,6 +42,10 @@ struct AgentConfig: Decodable {
     let llmMemoryBatch: Bool
     /// How long to wait for a batch before giving up on it and asking the ordinary way.
     let llmMemoryBatchWaitHours: Double
+    /// How long the day's episodes wait on the batch, from the night's start, before they are
+    /// asked the ordinary way (#264): a bird talks all day, so by 4:30 AM at the latest, and at
+    /// half the price when the batch is quick.
+    let llmMemoryEpisodesWaitMinutes: Double
     /// The Decisions API's model, for the small judgements that need a model but not a bird's
     /// prompt - the kind of a new name (#239); in beta it offers only `gpt-6-luna`.
     let llmDecisionsModel: String
@@ -158,6 +162,7 @@ struct AgentConfig: Decodable {
         case llmMemoryModel
         case llmMemoryBatch
         case llmMemoryBatchWaitHours
+        case llmMemoryEpisodesWaitMinutes
         case llmDecisionsModel
         case llmCaptureContent
         case librarian
@@ -220,6 +225,9 @@ struct AgentConfig: Decodable {
         llmMemoryBatch = try container.decodeIfPresent(Bool.self, forKey: .llmMemoryBatch) ?? true
         llmMemoryBatchWaitHours =
             try container.decodeIfPresent(Double.self, forKey: .llmMemoryBatchWaitHours) ?? 20
+        llmMemoryEpisodesWaitMinutes =
+            try container.decodeIfPresent(Double.self, forKey: .llmMemoryEpisodesWaitMinutes)
+            ?? 60
         llmDecisionsModel =
             try container.decodeIfPresent(String.self, forKey: .llmDecisionsModel) ?? "gpt-6-luna"
         llmCaptureContent =
@@ -230,6 +238,15 @@ struct AgentConfig: Decodable {
             throw DecodingError.dataCorruptedError(
                 forKey: .llmMemoryBatchWaitHours, in: container,
                 debugDescription: "llmMemoryBatchWaitHours must be between 0 and 24")
+        }
+        guard llmMemoryEpisodesWaitMinutes > 0,
+            llmMemoryEpisodesWaitMinutes <= llmMemoryBatchWaitHours * 60
+        else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .llmMemoryEpisodesWaitMinutes, in: container,
+                debugDescription:
+                    "llmMemoryEpisodesWaitMinutes must be more than 0 and no longer than llmMemoryBatchWaitHours"
+            )
         }
         if let tier = llmServiceTier,
             !["auto", "default", "fast", "priority", "flex"].contains(tier)

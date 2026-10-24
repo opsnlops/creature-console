@@ -9,7 +9,7 @@ minutes. So the chorus stays on Sol, and the lateness is fixed in code.
 ## What lateness costs
 
 A bird with no memory of yesterday spends the day without it. On 10-23 Caroll spoke 29 lines
-before her memories of the 22nd landed (all of her day), Mango 19 of 31, and Kenny 11 of 15.
+before his memories of the 22nd landed (all of his day), Mango 19 of 31, and Kenny 11 of 15.
 
 And a slow night costs the next one. A night is two stages, the day's episodes and then the
 month's beliefs, and each may wait 20 hours (`llmMemoryBatchWaitHours`). `WorldMindService`
@@ -43,3 +43,16 @@ Whether the beliefs stage needs to run every night (#235, item 3).
 ## Versions
 
 Agent 2.104.0, a feature. World and Viewer are unchanged.
+
+## Then: the episodes ride the batch again, for an hour (#264, agent 2.105.0)
+
+That evening, after #263, the 22nd was remembered again, and the chorus's Sol beliefs batches
+came back in about three minutes. At 3:30 AM the same model's batches had taken 11–14 hours. So
+the slowness depends on when a batch is sent, and a batch is often quick. April asked: "We're
+still batching, right? Batching is half the cost."
+
+Both stages ride the batch again. The episodes wait at most `llmMemoryEpisodesWaitMinutes` (60)
+from the night's start, the deadline written down with the night so a restart keeps it, and are
+then asked directly. They cost half when the batch is quick, and land by 4:30 AM at worst. The
+beliefs keep `llmMemoryBatchWaitHours`. A night waiting behind still cuts any wait short.
+

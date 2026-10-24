@@ -124,7 +124,8 @@ struct Librarian: Sendable {
         guard let batch = model.batch else { return try await model.ask(transcript) }
         do {
             let batchID = try await batch.submit(transcript, customID)
-            return try await batch.answer(batchID, customID)
+            return try await batch.answer(
+                batchID, customID, Date().addingTimeInterval(batch.wait))
         } catch {
             logger.warning(
                 "The librarian's batch did not answer; asking now",

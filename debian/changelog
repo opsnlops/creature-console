@@ -1,3 +1,15 @@
+creature-cli (2.105.0+world0.64.3+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.105.0: the day's episodes ride the batch again,
+    waiting at most an hour from the night's start
+    (llmMemoryEpisodesWaitMinutes, 60) before they are asked the
+    ordinary way (#264). Half the price when the batch is quick - the
+    chorus's Sol batches came back in three minutes in the evening and
+    took 11-14 hours at 3:30 AM - and the memories land by 4:30 AM at
+    worst. The beliefs keep llmMemoryBatchWaitHours.
+
+ -- April White <april@creature.engineering>  Fri, 23 Oct 2026 21:30:00 -0700
+
 creature-cli (2.104.1+world0.64.3+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.64.3: what a bird learns in a whisper is that bird's

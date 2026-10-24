@@ -353,16 +353,14 @@ struct MemoryJob: Sendable {
     // MARK: - Asking the model
 
     /// One question to the model, for a stage of the night, written down as pending first so a
-    /// restart asks again rather than losing it. The batch is for what nobody waits on: the
-    /// month's beliefs. The day's episodes are asked now - a bird talks all day, and on
-    /// 2026-10-23 Caroll spoke 29 lines before her memories of the 22nd came back from a
-    /// 13.8-hour batch (#262). A batch: submitted, written down, and waited for; one that will
-    /// not finish falls back to asking now.
+    /// restart asks again rather than losing it. With a batch: submitted, written down, and
+    /// waited for until its stage's deadline (#264); one that will not finish in time falls
+    /// back to asking now.
     private func answer(_ transcript: [LocalLLMClient.Message], pending: PendingMemory)
         async throws -> Data
     {
         try await asTheBird(pending) { inner in
-            guard let batch = model.batch, pending.stage.isBatched else {
+            guard let batch = model.batch else {
                 savePending(pending)
                 return try await model.ask(transcript)
             }
@@ -394,7 +392,8 @@ struct MemoryJob: Sendable {
         else { return try await inTheBirdsTurn(pending) { try await model.ask(transcript) } }
         return try await inTheBirdsTurn(pending) {
             do {
-                return try await batch.answer(batchID, customID)
+                return try await batch.answer(
+                    batchID, customID, batch.deadline(for: pending, now: Date()))
             } catch let error as OpenAIBatchError {
                 logger.warning(
                     "The batch did not answer; asking now",
@@ -897,9 +896,26 @@ struct MemoryModel: Sendable {
         let submit:
             @Sendable (_ transcript: [LocalLLMClient.Message], _ customID: String)
                 async throws -> String
-        /// Waits for the batch and returns the answer to `customID`; throws an
-        /// `OpenAIBatchError` when it is not coming.
-        let answer: @Sendable (_ batchID: String, _ customID: String) async throws -> Data
+        /// Waits for the batch until `deadline` and returns the answer to `customID`; throws
+        /// an `OpenAIBatchError` when it is not coming.
+        let answer:
+            @Sendable (_ batchID: String, _ customID: String, _ deadline: Date) async throws
+                -> Data
+        /// How long the day's episodes wait on the batch, from the night's start (#264).
+        var episodesWait: TimeInterval = 3_600
+        /// How long anything else waits: the month's beliefs, the librarian's filing.
+        var wait: TimeInterval = 20 * 3_600
+
+        /// When a stage stops waiting on the batch and is asked now (#264). The day's episodes:
+        /// an hour from the night's start - written down, so a restart keeps the hour - because
+        /// a bird talks all day; at 3:30 AM the chorus's batches took 11-14 hours, while in the
+        /// evening the same model's came back in three minutes. The month's beliefs: `wait`.
+        func deadline(for pending: PendingMemory, now: Date) -> Date {
+            switch pending.stage {
+            case .episodes: pending.startedAt.addingTimeInterval(episodesWait)
+            case .beliefs: now.addingTimeInterval(wait)
+            }
+        }
     }
 
     let modelName: String
@@ -914,9 +930,6 @@ struct PendingMemory: Codable, Equatable, Sendable {
     enum Stage: String, Codable, Sendable {
         case episodes
         case beliefs
-
-        /// Through the provider's batch, at half the price: only what nobody waits on (#262).
-        var isBatched: Bool { self == .beliefs }
     }
 
     var day: String

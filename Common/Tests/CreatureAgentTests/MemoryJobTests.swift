@@ -298,7 +298,7 @@ struct MemoryJobTests {
         """
 
     @Test(
-        "The episodes asked now, the beliefs through the batch: each written down first; nothing left pending (#262)"
+        "Through the batch: submitted, written down, waited for until its stage's deadline, cast the same; nothing left pending"
     )
     func remembersThroughABatch() async throws {
         let client = HTTPClient(eventLoopGroupProvider: .singleton)
@@ -318,16 +318,15 @@ struct MemoryJobTests {
                 model: MemoryModel(
                     modelName: "gpt-6-astra",
                     ask: { _ in
-                        // The day's episodes, asked now: written down first, with no batch.
-                        await queue.askedNow(pending: pendingFile)
-                        return Data(Self.recollection.utf8)
+                        Issue.record("asked now, not through the batch")
+                        return Data()
                     },
                     batch: MemoryModel.Batch(
                         submit: { transcript, customID in
                             await queue.submitted(customID, pending: pendingFile)
                         },
-                        answer: { batchID, customID in
-                            await queue.answered(batchID, customID)
+                        answer: { batchID, customID, deadline in
+                            await queue.answered(batchID, customID, until: deadline)
                             return Data(
                                 (customID.hasSuffix(":beliefs")
                                     ? Self.consolidation : Self.recollection).utf8)
@@ -338,14 +337,18 @@ struct MemoryJobTests {
                 day: "2026-09-13",
                 run: try EventID(validating: "5a8b0c8e-0000-4000-8000-000000000002"), now: now)
         }
-        // The episodes asked now and the beliefs through one batch, each written down before it
-        // was asked or waited for.
+        // Two batches, one per stage, each written down before it was waited for.
         let key = "memory:2026-09-13:5a8b0c8e-0000-4000-8000-000000000002"
-        #expect(await queue.submissions == ["\(key):beliefs"])
-        #expect(await queue.answers == ["batch-1/\(key):beliefs"])
+        #expect(await queue.submissions == ["\(key):episodes", "\(key):beliefs"])
+        #expect(await queue.answers == ["batch-1/\(key):episodes", "batch-2/\(key):beliefs"])
         #expect(await queue.pendingSeen.map(\.stage) == [.episodes, .beliefs])
-        #expect(await queue.pendingSeen.map(\.batchID) == [nil, "batch-1"])
+        #expect(await queue.pendingSeen.map(\.batchID) == ["batch-1", "batch-2"])
         #expect(await queue.pendingSeen.last?.episodes == 1)
+        // The day's episodes wait an hour from the night's start, the beliefs most of a day
+        // (#264).
+        let deadlines = await queue.deadlines
+        #expect(deadlines.first == now.addingTimeInterval(3_600))
+        #expect((deadlines.last ?? .distantPast) > Date().addingTimeInterval(19 * 3_600))
         let events = await casts.events
         // The stale memory taken back, two subjects, the reflection, the belief, the summary.
         #expect(events.count == 6)
@@ -385,8 +388,8 @@ struct MemoryJobTests {
                         submit: { _, customID in
                             await queue.submitted(customID, pending: pendingFile)
                         },
-                        answer: { batchID, customID in
-                            await queue.answered(batchID, customID)
+                        answer: { batchID, customID, deadline in
+                            await queue.answered(batchID, customID, until: deadline)
                             return Data(
                                 (customID.hasSuffix(":beliefs")
                                     ? Self.consolidation : Self.recollection).utf8)
@@ -448,15 +451,15 @@ struct MemoryJobTests {
                     },
                     batch: MemoryModel.Batch(
                         submit: { _, customID in await queue.submitted(customID, pending: nil) },
-                        answer: { _, _ in throw OpenAIBatchError.unfinished("expired") })),
+                        answer: { _, _, _ in throw OpenAIBatchError.unfinished("expired") })),
                 cast: { await casts.note($0) }, client: client,
                 logger: Logger(label: "memory-tests"))
             try await job.remember(
                 day: "2026-09-13",
                 run: try EventID(validating: "5a8b0c8e-0000-4000-8000-000000000004"), now: now)
         }
-        // The episodes were asked now; the beliefs were submitted, fell back, and landed.
-        #expect(await queue.submissions.count == 1)
+        // Both stages were submitted, both fell back, both landed.
+        #expect(await queue.submissions.count == 2)
         #expect(await asked.events.count == 2)
         let events = await casts.events
         #expect(events.count == 6)
@@ -553,15 +556,13 @@ private actor BatchQueue {
         return "batch-\(submissions.count)"
     }
 
-    func answered(_ batchID: String, _ customID: String) {
+    private(set) var deadlines: [Date] = []
+
+    func answered(_ batchID: String, _ customID: String, until deadline: Date) {
         answers.append("\(batchID)/\(customID)")
+        deadlines.append(deadline)
         // The pending file, as the job left it once the batch was submitted.
         notePending(pendingFileHint)
-    }
-
-    /// A stage asked now: the pending file, as the job left it before asking.
-    func askedNow(pending: URL) {
-        notePending(pending)
     }
 
     private func notePending(_ file: URL?) {

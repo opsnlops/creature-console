@@ -432,7 +432,6 @@ private func runWorldMode(
             var batch: MemoryModel.Batch?
             if config.llmMemoryBatch {
                 let batches = OpenAIBatchClient(apiKey: memoryKey, logger: logger)
-                let wait = config.llmMemoryBatchWaitHours * 3_600
                 batch = MemoryModel.Batch(
                     submit: { transcript, customID in
                         try await batches.submit(
@@ -441,14 +440,16 @@ private func runWorldMode(
                             ],
                             metadata: ["creature": "memory", "custom_id": customID])
                     },
-                    answer: { batchID, customID in
+                    answer: { batchID, customID, deadline in
                         let output = try await batches.output(
-                            of: batchID, deadline: Date().addingTimeInterval(wait),
+                            of: batchID, deadline: deadline,
                             giveUp: { await nights.isWaitedOn })
                         return try await memoryClient.jsonAnswer(
                             fromBatch: try OpenAIBatchClient.result(for: customID, in: output),
                             batchID: batchID)
-                    })
+                    },
+                    episodesWait: config.llmMemoryEpisodesWaitMinutes * 60,
+                    wait: config.llmMemoryBatchWaitHours * 3_600)
             }
             memoryModel = MemoryModel(
                 modelName: memoryModelName,
