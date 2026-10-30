@@ -383,7 +383,10 @@ struct MemoryJob: Sendable {
         }
     }
 
-    /// The answer to a batch already submitted; asked now if the batch will not finish.
+    /// The answer to a batch already submitted; asked now if the batch will not finish, or
+    /// fails any other way. The batch is a saving, and a night is never lost to it: one 503
+    /// while Mango's batch was looked at ended his night, since only an `OpenAIBatchError` was
+    /// asked now (#268).
     private func collect(_ transcript: [LocalLLMClient.Message], pending: PendingMemory)
         async throws -> Data
     {
@@ -394,7 +397,7 @@ struct MemoryJob: Sendable {
             do {
                 return try await batch.answer(
                     batchID, customID, batch.deadline(for: pending, now: Date()))
-            } catch let error as OpenAIBatchError {
+            } catch let error where !(error is CancellationError) {
                 logger.warning(
                     "The batch did not answer; asking now",
                     metadata: [GenAI.Key.batchID: "\(batchID)", "error": "\(error)"])
@@ -897,7 +900,7 @@ struct MemoryModel: Sendable {
             @Sendable (_ transcript: [LocalLLMClient.Message], _ customID: String)
                 async throws -> String
         /// Waits for the batch until `deadline` and returns the answer to `customID`; throws
-        /// an `OpenAIBatchError` when it is not coming.
+        /// when it is not coming - an `OpenAIBatchError`, or a request refused on the way.
         let answer:
             @Sendable (_ batchID: String, _ customID: String, _ deadline: Date) async throws
                 -> Data

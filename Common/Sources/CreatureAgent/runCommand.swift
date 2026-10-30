@@ -413,7 +413,8 @@ private func runWorldMode(
             traceResponses: traceResponses
         )
         kindJudge = DecisionsKindJudge(
-            client: DecisionsClient(apiKey: apiKey, model: config.llmDecisionsModel))
+            client: DecisionsClient(
+                apiKey: apiKey, model: config.llmDecisionsModel, logger: logger))
         respond = { try await openAI.respond(messages: $0, tools: $1) }
         respondStreaming = { openAI.respondStreaming(messages: $0, tools: $1) }
         if let memoryModelName = config.llmMemoryModel {

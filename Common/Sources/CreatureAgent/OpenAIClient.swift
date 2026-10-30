@@ -96,7 +96,8 @@ struct OpenAIClient: Sendable {
                 genAIRequest(round: round, toolsOffered: offered.count),
                 input: GenAIMessages.input(transcript, extra: extra)
             ) { inference in
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await OpenAIRetry.live.data(
+                    for: request, "responses", logger: logger)
                 guard let httpResponse = response as? HTTPURLResponse else {
                     throw OpenAIClientError.invalidResponse
                 }
@@ -204,8 +205,21 @@ struct OpenAIClient: Sendable {
                                 streamRequest.headers.add(name: name, value: value)
                             }
                             streamRequest.body = .bytes(request.httpBody ?? Data())
-                            let response = try await client.execute(
-                                streamRequest, timeout: .seconds(60))
+                            let sent = streamRequest
+                            // Sent again only before the first word: nothing has been said.
+                            let response = try await OpenAIRetry.live.send(
+                                "responses (streamed)", logger: logger,
+                                answer: { response in
+                                    OpenAIRetry.Answer(
+                                        status: Int(response.status.code),
+                                        retryAfter: OpenAIRetry.retryAfter(
+                                            ms: response.headers.first(name: "retry-after-ms"),
+                                            seconds: response.headers.first(name: "retry-after")))
+                                },
+                                drop: { response in
+                                    _ = try? await response.body.collect(upTo: 65_536)
+                                }
+                            ) { try await client.execute(sent, timeout: .seconds(60)) }
                             guard response.status == .ok else {
                                 let body = try await response.body.collect(upTo: 65_536)
                                 throw OpenAIClientError.httpError(
@@ -290,7 +304,7 @@ struct OpenAIClient: Sendable {
 
     /// One whole answer as a JSON object, for work that is read by code rather than spoken:
     /// the memory job asks for episodes and a reflection. Given the whole night, the request is
-    /// allowed several minutes.
+    /// allowed several minutes, and is sent again the night's way (`OpenAIRetry.night`).
     func respondJSON(messages transcript: [LocalLLMClient.Message]) async throws -> Data {
         logger.debug("Sending OpenAI JSON request (model: \(model))")
         var request = makeRequest(for: transcript, stream: false, json: true)
@@ -299,7 +313,9 @@ struct OpenAIClient: Sendable {
         return try await GenAI.inference(
             genAIRequest(json: true), input: GenAIMessages.input(transcript)
         ) { inference in
-            let (data, response) = try await URLSession.shared.data(for: request)
+            // Nobody is waiting on the night: it is sent again with patience (#268).
+            let (data, response) = try await OpenAIRetry.night.data(
+                for: request, "responses (json)", logger: logger)
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw OpenAIClientError.invalidResponse
             }

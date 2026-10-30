@@ -483,6 +483,12 @@ else — persona, facts, the clock, streaming to the room — is identical.
     that arrives while another is out used to be skipped ("Still remembering the last day;
     skipping") and never remembered. Now it waits behind it, and the night in hand gives up the
     batch it is waiting on (cancelled) and asks now, the librarian's included.
+  - **A 503 is a look missed, not the end of the night** (`2.105.2`, #268). One 503 from
+    OpenAI's front door, after 11 hours of looking at Mango's beliefs batch, ended his night
+    on 10-26. A look at a batch that fails on the way ("Could not look at the batch; looking
+    again") is now a look missed, and the next is a minute later, up to the deadline; a look
+    refused for good (a 401, a 404) still ends the wait. A batch that fails any other way is
+    asked now, so a night is never lost to the batch.
   - **A start** resumes the night in progress, then the ones waiting. `creature-agent probe-batch --model gpt-6-astra` proves the road
   end to end with a day key. Found on the way (#203): every night after the first was being
   skipped until a restart - the "still remembering" guard held a finished Task and asked
@@ -724,6 +730,16 @@ agent.scene_turn
   `creature_agent.call_kind` is the uncached input; the ratio of cache reads to
   input is whether the prompt layout is working. Each round still logs one `LLM usage` line
   with the provider's raw `usage` object, for the prompt-cache experiments.
+- **A request sent again** (`2.105.2`, #268): every OpenAI request goes through
+  `OpenAIRetry`, the policy OpenAI's own SDKs use. A 408, 409, 429 or 5xx, or a connection that
+  failed, is sent again after an exponential backoff with jitter, or after the provider's
+  `retry-after-ms` / `retry-after`. A bird's reply gets two more tries and is never sent again
+  after a timeout; a streamed one only before its first word. The night's work (the direct
+  asks, the batch's upload, submission, looks and output) gets eight more tries over about
+  three minutes, timeouts included. Each try logs "OpenAI could not take the request; sending
+  it again" (or "The request to OpenAI failed on the way; …") with `openai.request`,
+  `http.response.status_code` or `error`, `http.request.resend_count`, and `retry.wait`. The
+  round's `chat` span covers all of its tries.
 - The old `llm.*` attributes and the `creature_agent.llm.tokens` counter are gone (April:
   "Following the standard is better than backwards compatibility"). The spec is still
   Development; every name lives in `GenAITelemetry.swift`, so following a rename is one file.

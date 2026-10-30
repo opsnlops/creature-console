@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 import Tracing
 
 #if canImport(FoundationNetworking)
@@ -70,6 +71,7 @@ struct DecisionsClient: Sendable {
     let model: String
     var baseURL: URL = DecisionsClient.defaultBaseURL
     var timeout: TimeInterval = 10
+    var logger = Logger(label: "io.opsnlops.creature-agent.decisions")
 
     /// Which of `choices` the input is, by `instructions`.
     func choice(name: String, instructions: String, choices: [Choice], input: String)
@@ -84,7 +86,8 @@ struct DecisionsClient: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(body)
         request.timeoutInterval = timeout
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await OpenAIRetry.live.data(
+            for: request, "decisions", logger: logger)
         if let http = response as? HTTPURLResponse, !(200..<300 ~= http.statusCode) {
             throw Failure.http(http.statusCode, String(decoding: data.prefix(300), as: UTF8.self))
         }

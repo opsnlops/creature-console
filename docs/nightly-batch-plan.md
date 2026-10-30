@@ -56,3 +56,40 @@ from the night's start, the deadline written down with the night so a restart ke
 then asked directly. They cost half when the batch is quick, and land by 4:30 AM at worst. The
 beliefs keep `llmMemoryBatchWaitHours`. A night waiting behind still cuts any wait short.
 
+
+## Then: a 503 is a look missed, not the end of the night (#268, agent 2.105.2)
+
+On 10-26 and 10-27 the chorus's Sol batches took about 12 hours again. The one-hour cap worked:
+their episodes were asked directly at 4:30 AM, and their beliefs waited on the batch. Mango's
+beliefs batch was checked once a minute for 11 hours, about 660 looks. One look came back 503
+from OpenAI's front door ("upstream connect error or disconnect/reset before headers"), and that
+one error ended his night. The fallback asks now only for an `OpenAIBatchError`, and a 503 is an
+`OpenAIClientError`, so the beliefs rewrite for the 25th was lost. His episodes and reflection
+had landed already, and the next night's rewrite caught him up.
+
+Nothing that calls OpenAI tried again on anything. In 30 days that cost this night and one live
+streamed reply (a connect timeout, 10-21).
+
+### The change (agent)
+
+1. **One retry policy for every OpenAI request (`OpenAIRetry`)**, the one OpenAI's own SDKs
+   use. A 408, 409, 429 or 5xx, or a connection that failed, is sent again after an
+   exponential backoff with jitter, or after the time the provider names in `retry-after-ms`
+   or `retry-after`.
+   - A bird's reply (`live`): two more tries, about 0.5 s and 1 s apart. A request that ran out
+     of time is not sent again, since its moment has passed. A streamed reply is only sent
+     again before its first word.
+   - The night's work (`night`): eight more tries over about three minutes, timeouts
+     included. This covers the direct asks, and the batch's upload, submission, looks and
+     output.
+   - The Decisions kind judge is a `live` call.
+2. **A look at a batch that fails on the way is a look missed.** The wait goes on, a minute
+   later, up to its deadline. A look refused for good (a 401, a 404) still ends it.
+3. **A batch that fails for any reason is asked now.** The memory job falls back the way the
+   librarian already did, so a night is never lost to the batch.
+
+### Not in this change
+
+- A night whose direct ask also fails, with OpenAI down for longer than the retries, is still
+  logged and not tried again later.
+- The agent's own calls to the World do not retry either.

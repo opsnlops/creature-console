@@ -26,11 +26,20 @@ struct OpenAIBatchClient: Sendable {
     private let baseURL: URL
     private let apiKey: String
     private let logger: Logger
+    /// Nobody waits on a batch: every request is sent again the night's way (#268).
+    private let retry: OpenAIRetry
+    private let transport: OpenAIRetry.Transport
 
-    init(apiKey: String, baseURL: URL = OpenAIBatchClient.defaultBaseURL, logger: Logger) {
+    init(
+        apiKey: String, baseURL: URL = OpenAIBatchClient.defaultBaseURL, logger: Logger,
+        retry: OpenAIRetry = .night,
+        transport: @escaping OpenAIRetry.Transport = OpenAIRetry.urlSession
+    ) {
         self.apiKey = apiKey
         self.baseURL = baseURL
         self.logger = logger
+        self.retry = retry
+        self.transport = transport
     }
 
     /// One request as a line of the batch file: `body` is exactly what the synchronous call
@@ -91,7 +100,7 @@ struct OpenAIBatchClient: Sendable {
         var request = URLRequest(url: baseURL.appending(path: "files/\(fileID)/content"))
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 120
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await send(request, "batch output")
         try Self.check(response, data: data)
         return data
     }
@@ -126,14 +135,24 @@ struct OpenAIBatchClient: Sendable {
     /// and hands back the output file. Past the deadline the batch is cancelled - the night
     /// will be remembered the ordinary way - and a batch the provider gave up on is an error
     /// with its status. `giveUp` cuts the wait short the same way: the next night is waiting
-    /// behind this one (#262).
+    /// behind this one (#262). A look that fails on the way is a look missed, and the next
+    /// one is a minute later (#268); a look refused for good ends the wait.
     func output(
         of batchID: String, every interval: Duration = .seconds(60), deadline: Date,
         giveUp: @Sendable () async -> Bool = { false }
     ) async throws -> Data {
         var looked = 0
+        var stage = "unseen"
         while true {
-            let status = try await status(of: batchID)
+            let status: Status
+            do {
+                status = try await self.status(of: batchID)
+            } catch let error where retry.isTransient(error) {
+                logger.warning(
+                    "Could not look at the batch; looking again",
+                    metadata: ["llm.batch.id": "\(batchID)", "error": "\(error)"])
+                status = .pending(stage)
+            }
             switch status {
             case .completed(let outputFileID, let errorFileID):
                 guard let outputFileID else {
@@ -147,7 +166,8 @@ struct OpenAIBatchClient: Sendable {
                 return try await content(ofFile: outputFileID)
             case .finished(let why):
                 throw OpenAIBatchError.unfinished(why)
-            case .pending(let stage):
+            case .pending(let seen):
+                stage = seen
                 looked += 1
                 if looked == 1 || looked % 10 == 0 {
                     logger.info(
@@ -197,7 +217,7 @@ struct OpenAIBatchClient: Sendable {
         if let contentType { request.setValue(contentType, forHTTPHeaderField: "Content-Type") }
         request.httpBody = body
         request.timeoutInterval = 120
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await send(request, path)
         try Self.check(response, data: data)
         guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw OpenAIBatchError.malformed("json")
@@ -209,12 +229,16 @@ struct OpenAIBatchClient: Sendable {
         var request = URLRequest(url: baseURL.appending(path: path))
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 60
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await send(request, "batch status")
         try Self.check(response, data: data)
         guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw OpenAIBatchError.malformed("json")
         }
         return object
+    }
+
+    private func send(_ request: URLRequest, _ what: String) async throws -> (Data, URLResponse) {
+        try await retry.data(for: request, what, logger: logger, transport: transport)
     }
 
     private static func check(_ response: URLResponse, data: Data) throws {

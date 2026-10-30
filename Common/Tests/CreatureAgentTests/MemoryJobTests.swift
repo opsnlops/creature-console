@@ -418,8 +418,25 @@ struct MemoryJobTests {
         #expect(!FileManager.default.fileExists(atPath: pendingFile.path))
     }
 
-    @Test("A batch that will not finish is asked the ordinary way, and the night still lands")
-    func fallsBackWhenTheBatchFails() async throws {
+    /// How a batch fails: the provider gives up on it, or the output is refused on the way.
+    enum BatchFailure: String, CaseIterable, Sendable {
+        case expired
+        case unavailable
+
+        var error: any Error {
+            switch self {
+            case .expired: OpenAIBatchError.unfinished("expired")
+            case .unavailable:
+                OpenAIClientError.httpError(
+                    code: 503, body: "upstream connect error or disconnect/reset before headers")
+            }
+        }
+    }
+
+    @Test(
+        "A batch that will not finish, or fails on the way (#268), is asked the ordinary way, and the night still lands",
+        arguments: BatchFailure.allCases)
+    func fallsBackWhenTheBatchFails(_ failure: BatchFailure) async throws {
         let client = HTTPClient(eventLoopGroupProvider: .singleton)
         defer { Task { try? await client.shutdown() } }
         let casts = Casts()
@@ -451,7 +468,7 @@ struct MemoryJobTests {
                     },
                     batch: MemoryModel.Batch(
                         submit: { _, customID in await queue.submitted(customID, pending: nil) },
-                        answer: { _, _, _ in throw OpenAIBatchError.unfinished("expired") })),
+                        answer: { _, _, _ in throw failure.error })),
                 cast: { await casts.note($0) }, client: client,
                 logger: Logger(label: "memory-tests"))
             try await job.remember(

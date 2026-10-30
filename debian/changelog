@@ -1,3 +1,20 @@
+creature-cli (2.105.2+world0.64.7+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.105.2: a 503 is not the end of the night (#268).
+    On 10-26 Mango's beliefs batch was looked at once a minute for 11
+    hours, and one 503 from OpenAI's front door ended his night: only an
+    OpenAIBatchError fell back to asking now, and nothing that called
+    OpenAI ever sent a request again. Every OpenAI request now goes
+    through OpenAIRetry, the policy OpenAI's own SDKs use: 408, 409, 429,
+    5xx and failed connections are sent again after an exponential
+    backoff with jitter, or after the provider's retry-after. A bird's
+    reply gets two more tries, never after a timeout, and a streamed one
+    only before its first word; the night's work gets eight over about
+    three minutes. A look at a batch that fails on the way is a look
+    missed, and a batch that fails any other way is asked now.
+
+ -- April White <april@creature.engineering>  Thu, 29 Oct 2026 00:00:00 -0700
+
 creature-cli (2.105.1+world0.64.7+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-mqtt 2.105.1: a bird's spoken line has its name, not
