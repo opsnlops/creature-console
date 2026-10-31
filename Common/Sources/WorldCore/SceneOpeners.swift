@@ -238,6 +238,14 @@ public actor SceneOpeningPolicy {
             let value: String
             if case .string(let text)? = event.payload["value"] { value = text } else { value = "" }
             return "A reminder of April's is due: \(value). April is home."
+        case HouseEvents.gameScored, HouseEvents.gameScoreCorrected:
+            let home: String =
+                switch household.aprilHome {
+                case true?: " April is home."
+                case false?: " April is away."
+                case nil: ""
+                }
+            return scoreText(event) + home
         case HouseEvents.dusk, HouseEvents.dawn:
             var light = ""
             if case .number(let lux)? = event.payload["lux"] {
@@ -271,6 +279,40 @@ public actor SceneOpeningPolicy {
         default:
             return "Something happened at \(name): \(event.type.rawValue)."
         }
+    }
+
+    /// "The Chicago Bears just scored against the Seattle Seahawks, the team April follows:
+    /// Seattle Seahawks 7, Chicago Bears 14 (7:12 - 2nd). The play: ..." - or points coming off
+    /// the board, a score taken back on review (#269).
+    static func scoreText(_ event: WorldEventEnvelope) -> String {
+        func text(_ key: String) -> String? {
+            switch event.payload[key] {
+            case .string(let value)? where !value.isEmpty: value
+            case .number(let value)?: String(Int(value))
+            default: nil
+            }
+        }
+        let team = text("team") ?? "April's team"
+        let opponent = text("opponent") ?? "their opponent"
+        let scorer = text("scored_by")
+        var line =
+            if event.type == HouseEvents.gameScoreCorrected {
+                "Points just came off the board in the game between \(team), the team April follows, and \(opponent) - a score taken back. It now stands"
+            } else if scorer == team {
+                "\(team), the team April follows, just scored against \(opponent)"
+            } else if let scorer {
+                "\(scorer) just scored against \(team), the team April follows"
+            } else {
+                "Both sides scored in the game between \(team), the team April follows, and \(opponent)"
+            }
+        line +=
+            ": \(team) \(text("team_score") ?? "0"), \(opponent) \(text("opponent_score") ?? "0")"
+        if let clock = text("clock") { line += " (\(clock))" }
+        line += "."
+        if let play = text("last_play") {
+            line += " The play: \(play)" + (play.hasSuffix(".") ? "" : ".")
+        }
+        return line
     }
 
     /// `place:front-door` → "the front door"; `person:april` → "April".

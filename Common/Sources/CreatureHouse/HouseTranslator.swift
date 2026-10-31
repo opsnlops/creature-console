@@ -29,6 +29,9 @@ struct HouseTranslator: Sendable {
     /// when every mapped entity's current state is announced once.
     func events(from old: EntityState?, to new: EntityState) throws -> [WorldEventEnvelope] {
         guard let mapping = mappings[new.entityID] else { return [] }
+        if mapping.kind == .game {
+            return try gameEvent(mapping: mapping, old: old, new: new).map { [$0] } ?? []
+        }
         var events: [WorldEventEnvelope] = []
         if let type = eventType(for: mapping, old: old, new: new) {
             events.append(try event(type, mapping: mapping, old: old, new: new))
@@ -108,6 +111,85 @@ struct HouseTranslator: Sendable {
             subjectIDs: [mapping.subjectID],
             epistemic: EpistemicState(
                 type: .observed, confidence: 1),
+            payload: payload)
+    }
+
+    // MARK: - A team's game (#269)
+
+    /// What a Team Tracker sensor's change is: a game at a stage the World has not heard, a
+    /// score while it is under way, or nothing. Odds, the clock and records moving under the
+    /// same state are not news, and nor is a sensor gone and back - `old` is what the World was
+    /// last told.
+    private func gameEvent(mapping: EntityMapping, old: EntityState?, new: EntityState) throws
+        -> WorldEventEnvelope?
+    {
+        guard let game = TeamTrackerGame(new) else { return nil }
+        let before = old.flatMap { TeamTrackerGame($0) }
+        let sameGame = before?.kickoff == game.kickoff
+        let type: WorldEventType
+        let key: String
+        var scored: TeamTrackerGame.Scored?
+        if sameGame, let before, before.stage == game.stage {
+            // Under way, a score is news: April wants the birds asked about each one. A
+            // correction that only takes points away keeps the World's score right and asks
+            // nobody. Keyed by the change itself, not the score: a touchdown overturned on
+            // review and scored again is two scores of the same number.
+            guard game.stage == .playing,
+                game.teamScore != before.teamScore || game.opponentScore != before.opponentScore
+            else { return nil }
+            scored = game.scored(since: before)
+            type = scored == nil ? HouseEvents.gameScoreCorrected : HouseEvents.gameScored
+            key =
+                new.contextID.map { "context:\($0)" }
+                ?? "game:\(WorldJSON.timestamp(game.kickoff)):score:\(WorldJSON.timestamp(new.lastChanged))"
+        } else {
+            let stage: String
+            (type, stage) =
+                switch game.stage {
+                case .scheduled: (HouseEvents.gameScheduled, "scheduled")
+                case .playing: (HouseEvents.gameStarted, "started")
+                case .final: (HouseEvents.gameFinal, "final")
+                }
+            // One event per game and stage, whoever tells it first: a restart's snapshot of a
+            // final the World heard live is the same event, and changes nothing.
+            key = "game:\(WorldJSON.timestamp(game.kickoff)):\(stage)"
+        }
+        var payload: [String: WorldJSONValue] = [
+            "entity_id": .string(new.entityID), "state": .string(new.state),
+            "kickoff": .string(WorldJSON.timestamp(game.kickoff)),
+        ]
+        payload["team"] = game.team.map { .string($0) }
+        payload["opponent"] = game.opponent.map { .string($0) }
+        payload["home_away"] = game.homeAway.map { .string($0) }
+        payload["result"] = game.result.map { .string($0) }
+        payload["clock"] = game.clock.map { .string($0) }
+        payload["last_play"] = game.lastPlay.map { .string($0) }
+        switch scored {
+        case .team?: payload["scored_by"] = game.team.map { .string($0) }
+        case .opponent?: payload["scored_by"] = game.opponent.map { .string($0) }
+        case .both?, nil: break
+        }
+        // A score is a number, but for a shootout's "2(4)".
+        func score(_ key: String, _ value: String?) {
+            guard let value else { return }
+            payload[key] = Int(value).map { .number(Double($0)) } ?? .string(value)
+        }
+        score("team_score", game.teamScore)
+        score("opponent_score", game.opponentScore)
+        // The final whistle, when the house saw it: this game turned from under way to final,
+        // and Team Tracker looks every five seconds while a game is on. A final seen any other
+        // way - at startup, or with the game missed - has no time it ended.
+        if game.stage == .final, sameGame, before?.stage == .playing {
+            payload["ended_at"] = .string(WorldJSON.timestamp(new.lastChanged))
+        }
+        return try WorldEventEnvelope(
+            type: type,
+            occurredAt: new.lastChanged,
+            source: EventSource(
+                id: try SourceID(validating: "home-assistant:\(Self.sourceName(new.entityID))"),
+                kind: HouseEvents.sourceKind, sourceEventID: key),
+            subjectIDs: [mapping.subjectID],
+            epistemic: EpistemicState(type: .observed, confidence: 1),
             payload: payload)
     }
 
@@ -198,7 +280,7 @@ struct HouseTranslator: Sendable {
                 guard value != previous, age >= mapping.maximumAgeSeconds else { return nil }
             }
             return HouseEvents.measurementChanged
-        case .media:
+        case .media, .game:
             return nil  // decided above
         case .detection:
             // A detection is a moment; only the moment it happens is news, and at startup a

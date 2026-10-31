@@ -1,3 +1,27 @@
+creature-cli (2.105.2+world0.65.0+house0.6.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-house 0.6.0 / creature-world 0.65.0: the birds can find out
+    how the Seahawks did (#269). On 10-29 they could not say whether the
+    Seahawks had lost that week. A new `game` mapping kind reads Home
+    Assistant's Team Tracker sensor (sensor.seattle_seahawks ->
+    team:seahawks) and tells the World each game once: published,
+    under way, final. The final has both scores, won/lost/tied, and when
+    the house saw the final whistle (Team Tracker looks every five
+    seconds during a game). Each is keyed by its game, so a restart's
+    snapshot never replaces a live final. GameReducer keeps game.next,
+    game.playing and game.last on the team, with times in words in the
+    World's time zone. They are on no bird's page: a bird looks them up
+    with the World tools it already has. The World still never touches
+    the internet; Home Assistant polls ESPN.
+  * While a game is on, each score is game.scored (who scored, both
+    scores, the clock, the play) and points taken back on review are
+    game.score_corrected. Both keep game.playing's score, and the
+    packaged world.json asks the lead about each (consider_on, three
+    minutes apart, so a touchdown and its extra point are one remark).
+    Take either line out of world.json to stop it.
+
+ -- April White <april@creature.engineering>  Fri, 30 Oct 2026 00:00:00 -0700
+
 creature-cli (2.105.2+world0.64.7+house0.5.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.105.2: a 503 is not the end of the night (#268).

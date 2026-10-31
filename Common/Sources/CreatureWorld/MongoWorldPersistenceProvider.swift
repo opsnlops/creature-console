@@ -87,6 +87,7 @@ struct MongoWorldPersistenceConnection: Sendable {
             reducers: [
                 CharacterPresenceReducer(), AssumedPersonPresenceReducer(), SceneMemoryReducer(),
                 GivenFactReducer(), FilingReducer(), HouseReducer(), OrderReducer(),
+                GameReducer(zone: memory.zone),
             ],
             clock: clock
         )

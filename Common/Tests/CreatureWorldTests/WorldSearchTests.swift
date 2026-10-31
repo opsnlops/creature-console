@@ -235,7 +235,7 @@ struct SearchRankingTests {
 /// A word no other run's facts carry: twelve letters from a fresh UUID, digits mapped to letters
 /// (the hex letters alone were often three or four from a-f, and old runs' facts in a shared
 /// database answered).
-private func runUniqueWord() -> String {
+func runUniqueWord() -> String {
     let letters = Array("ghijklmnop")
     return "zq"
         + String(

@@ -170,3 +170,48 @@ measurement also has `maximum_age_seconds` (default 900): once the world's value
 the next change is told whatever its size. Big swings still go at once; an unchanging sensor is
 not re-told (its value is still right).
 
+
+## A team's games (`0.6.0`)
+
+A mapping of kind `game` reads a Home Assistant **Team Tracker** sensor
+([vasqued2/ha-teamtracker](https://github.com/vasqued2/ha-teamtracker), from HACS; League `NFL`,
+Team `SEA`) into a team's games (#269). The World stays offline; Home Assistant polls ESPN.
+
+```json
+{ "entity_id": "sensor.seattle_seahawks", "subject_id": "team:seahawks", "kind": "game" }
+```
+
+Team Tracker shows one game at a time: the last one, `POST`, until the next is within twelve
+hours, then that one, `PRE`, then `IN` while it is played. It looks every 10 minutes, and every
+5 seconds during a game. The house reads it as its source writes it: the kickoff (`date`) has no
+seconds (`2026-11-03T01:15Z`), the scores are strings (`"20"`, `"2(4)"` after a shootout), and
+`team_winner` is a bool once the game is final.
+
+The house tells the World each game once at each stage:
+- `game.scheduled`: published.
+- `game.started`: under way.
+- `game.final`: both scores and `won` / `lost` / `tied`. It also has `ended_at` when the house
+  saw it turn from under way to final, which is the whistle to within seconds.
+
+Each event is keyed by its game (`game:<kickoff>:final`), not by Home Assistant's context. A
+restart's snapshot of a final the World already heard live is the same event and changes
+nothing, so its `ended_at` survives. A final first seen at startup fills the blank, with no
+`ended_at`.
+
+While a game is under way, each score is news:
+- `game.scored`: a score went up. It has `scored_by` (the team's or the opponent's name, or
+  none when both moved between two looks), both scores, the `clock` ("7:12 - 2nd") and the
+  `last_play`.
+- `game.score_corrected`: points were taken away and none scored, such as a touchdown
+  overturned on review.
+
+A score is keyed by Home Assistant's context, not by the score, so a touchdown overturned and
+scored again is two scores. A restart mid-game tells the game under way with its score, and
+no score event.
+
+These are not news:
+- the odds or the clock moving under the same state
+- a bye or `NOT_FOUND`
+- the sensor going unavailable and coming back as the same final
+
+A game moved to another kickoff is told again, as that game.

@@ -188,6 +188,17 @@ public enum WorldFacts {
     /// mind is told the house is already doing it.
     public static let houseSceneRequested = "house.scene_requested"
 
+    // A team April follows, from the house's Team Tracker sensor, on `team:<name>` (#269).
+    /// The team's next game, once it is published - Team Tracker shows it twelve hours ahead:
+    /// `{team, opponent, home_away, kickoff, when}`.
+    public static let gameNext = "game.next"
+    /// A game the team is playing right now, as `game.next`, with the score as of the last
+    /// time anyone scored and the game's clock then.
+    public static let gamePlaying = "game.playing"
+    /// The team's last game, final: as `game.next`, with `team_score`, `opponent_score` and
+    /// `result`, and `ended_at` / `ended` when the house saw the final whistle itself.
+    public static let gameLast = "game.last"
+
     /// What each predicate means, in a sentence a mind can use — the seed for the world's
     /// `fact_kinds`, which a Wizard may edit. Code that produces a predicate is the right place
     /// to say what it means; the world renders facts generically and hands the mind this
@@ -269,6 +280,12 @@ public enum WorldFacts {
         "environment.light_trend":
             "which way the daylight outside has gone over the last half hour - brightening, steady, or dimming; dimming in the evening is nightfall, at midday a cloud; absent when there is nothing to compare, as all night",
         "environment.power_w": "the whole house's electricity draw right now, watts",
+        gameNext:
+            "the team's next game: who they play, home or away, and when; it is published on game day, about twelve hours before kickoff, so no next game here says nothing about later ones",
+        gamePlaying:
+            "a game the team is playing right now: who against, home or away, when it kicked off, and the score as of the last time anyone scored, with the game's clock then",
+        gameLast:
+            "the team's most recent finished game: who they played, both scores, whether they won, lost or tied, when it kicked off, and when it ended if the house saw the final whistle (a game runs about three hours)",
     ]
 }
 
@@ -325,4 +342,20 @@ public enum HouseEvents {
     public static let sceneRequested = WorldEventType(rawValue: "house.scene_requested")!
     /// The house set the scene.
     public static let sceneActivated = WorldEventType(rawValue: "house.scene_activated")!
+    /// A team's game, from a Team Tracker sensor (#269), once each: published (`PRE`), under way
+    /// (`IN`), final (`POST`). The payload is the game - `team`, `opponent`, `home_away`,
+    /// `kickoff` - with the scores once there are any, and a final's `result` and `ended_at`
+    /// when the house saw the final whistle. Never a happening; a scene only by a rule.
+    public static let gameScheduled = WorldEventType(rawValue: "game.scheduled")!
+    public static let gameStarted = WorldEventType(rawValue: "game.started")!
+    public static let gameFinal = WorldEventType(rawValue: "game.final")!
+    /// Someone scored in a game under way: the game, both scores, `scored_by` (the team's or
+    /// the opponent's name; absent when both moved between two looks), the game's `clock`
+    /// ("7:12 - 2nd") and its `last_play`. April: "let's send a scene consider on when one of
+    /// the teams in the game scores" - a `consider_on` line, so she can take it out again.
+    public static let gameScored = WorldEventType(rawValue: "game.scored")!
+    /// A score under way taken back with none scored - a play overturned on review: the score
+    /// as it now stands, so the World's is right. Its own `consider_on` line: April looks
+    /// forward to Mango's commentary on it.
+    public static let gameScoreCorrected = WorldEventType(rawValue: "game.score_corrected")!
 }

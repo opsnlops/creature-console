@@ -300,6 +300,70 @@ struct SceneOpeningTests {
                 == nil)
     }
 
+    @Test(
+        "A score is the house asking, once in three minutes: the touchdown, not its extra point (#269)"
+    )
+    func scoresAreConsidered() async throws {
+        let seahawks = try EntityID(validating: "team:seahawks")
+        let policy = SceneOpeningPolicy(
+            rules: [],
+            considerRules: [
+                SceneOpeningRule(event: HouseEvents.gameScored, cooldownSeconds: 180),
+                SceneOpeningRule(event: HouseEvents.gameScoreCorrected, cooldownSeconds: 180),
+            ])
+        let touchdown = try event(HouseEvents.gameScored, seahawks)
+        #expect(
+            await policy.occasion(for: touchdown, at: now)
+                == .init(place: seahawks, kind: .houseConsideration))
+        // The extra point a minute later is the same remark.
+        #expect(await policy.occasion(for: touchdown, at: now + 60) == nil)
+        // Taken back on review: a question of its own.
+        #expect(
+            await policy.occasion(
+                for: try event(HouseEvents.gameScoreCorrected, seahawks), at: now + 90) != nil)
+        #expect(await policy.occasion(for: touchdown, at: now + 240) != nil)
+        // The rest of a game asks nobody.
+        for type in [HouseEvents.gameStarted, HouseEvents.gameFinal, HouseEvents.gameScheduled] {
+            #expect(await policy.occasion(for: try event(type, seahawks), at: now + 600) == nil)
+        }
+    }
+
+    @Test("A score in words the birds can use: who scored on whom, the score, the clock, the play")
+    func scoreTriggerText() throws {
+        let seahawks = try EntityID(validating: "team:seahawks")
+        let home = HouseholdSituation(aprilHome: true)
+        var payload: [String: WorldJSONValue] = [
+            "team": .string("Seattle Seahawks"), "opponent": .string("Chicago Bears"),
+            "team_score": .number(14), "opponent_score": .number(7),
+            "clock": .string("7:12 - 2nd"), "scored_by": .string("Seattle Seahawks"),
+            "last_play": .string("J. Smith 12 Yd Run (K. Jones Kick)"),
+        ]
+        func said(_ type: WorldEventType) throws -> String {
+            SceneOpeningPolicy.triggerText(
+                for: try event(type, seahawks, payload: payload), place: seahawks, household: home)
+        }
+        let score =
+            "Seattle Seahawks 14, Chicago Bears 7 (7:12 - 2nd). The play: J. Smith 12 Yd Run (K. Jones Kick). April is home."
+        #expect(
+            try said(HouseEvents.gameScored)
+                == "Seattle Seahawks, the team April follows, just scored against Chicago Bears: "
+                + score)
+        payload["scored_by"] = .string("Chicago Bears")
+        #expect(
+            try said(HouseEvents.gameScored)
+                == "Chicago Bears just scored against Seattle Seahawks, the team April follows: "
+                + score)
+        payload["scored_by"] = nil
+        #expect(
+            try said(HouseEvents.gameScored)
+                == "Both sides scored in the game between Seattle Seahawks, the team April follows, and Chicago Bears: "
+                + score)
+        #expect(
+            try said(HouseEvents.gameScoreCorrected)
+                == "Points just came off the board in the game between Seattle Seahawks, the team April follows, and Chicago Bears - a score taken back. It now stands: "
+                + score)
+    }
+
     private func event(
         _ type: WorldEventType, _ subject: EntityID, payload: [String: WorldJSONValue] = [:]
     ) throws -> WorldEventEnvelope {

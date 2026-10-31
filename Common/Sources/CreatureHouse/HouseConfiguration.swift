@@ -91,6 +91,9 @@ struct EntityMapping: Equatable, Sendable {
         /// (`tv`, `source`, `playing`) - "on", "Apple TV, volume 40%", "YouTube: <title>" - and
         /// `null` when it goes off. The TV, for the birds and, later, for the microphones.
         case media
+        /// `sensor.*` from Team Tracker (HACS): a team's games, on `team:<name>` - published,
+        /// under way, final - as `game.scheduled` / `game.started` / `game.final` (#269).
+        case game
     }
 
     enum Detects: String, Decodable, Sendable {
