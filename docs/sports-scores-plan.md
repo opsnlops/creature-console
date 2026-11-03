@@ -106,6 +106,12 @@ Then: "Let's give me a kill switch like we do for the cameras. 'Beaky, ignore th
 next hour'". A bird keeps `house.games_quiet` on the house, with an expiry, and ends it with
 `none`. While it holds, no game event opens a scene, and the game is still recorded.
 
+Live, the same night (house 0.7.1, World 0.67.1): after the Seahawks' field goal the birds
+heard "Seattle Seahawks now has the ball". ESPN names nobody on a scoring play, and the house
+remembered that blank, so the scorers' own kickoff read as a change of hands. The last known
+side now outlives a blank. The trigger also reads "The ball just went to …", which says it is
+a change.
+
 ## Not in this slice
 
 - **The birds bringing up a final unprompted.** A `game.final` opens no scene: no scene rule

@@ -276,7 +276,7 @@ actor HouseAnnouncer {
         let events = try translator.events(from: since, to: new)
         // Remember what the world heard: the snapshot always, and any change that was news.
         if since == nil || !events.isEmpty {
-            announced[new.entityID] = new
+            announced[new.entityID] = translator.remembered(new, after: since)
         }
         return events
     }

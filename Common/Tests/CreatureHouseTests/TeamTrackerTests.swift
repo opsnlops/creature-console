@@ -282,6 +282,18 @@ struct TeamTrackerTests {
         let score = try #require(try await live(400, ball: "12", 7, 0).only)
         #expect(score.type == HouseEvents.gameScored)
         #expect(score.payload["possession"] == .string("Kansas City Chiefs"))
+
+        // 11-02, the Seahawks' field goal: ESPN names nobody on the scoring play, then the
+        // scorers again for their kickoff. That is not the ball changing hands.
+        let drive = try #require(try await live(600, ball: "26", 7, 0).only)
+        #expect(drive.type == HouseEvents.gamePossession)
+        let kick = try #require(try await live(700, ball: nil, 10, 0).only)
+        #expect(kick.type == HouseEvents.gameScored)
+        #expect(try await live(720, ball: "26", 10, 0).isEmpty)
+        // The return: now it has.
+        let returned = try #require(try await live(760, ball: "12", 10, 0).only)
+        #expect(returned.type == HouseEvents.gamePossession)
+        #expect(returned.payload["possession"] == .string("Kansas City Chiefs"))
     }
 
     @Test("Restarted mid-game, the house tells the game under way with its score, and no score")

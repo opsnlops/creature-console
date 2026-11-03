@@ -220,6 +220,12 @@ opponent's name. The event carries both scores, the clock, the `last_play` and
 A score and a change of hands in one update is reported as the score, carrying the new
 `possession`. Every game event under way carries `possession` and `down_distance`.
 
+The side last known to have the ball outlives an update that names nobody (`0.7.1`). ESPN
+names nobody on a scoring play. In 0.7.0 the house remembered that blank, so the kickoff that
+followed, with the scorers still on the ball, read as a change of hands: "Seattle Seahawks now
+has the ball" after their own field goal. `HouseTranslator.remembered` keeps the last known
+`possession` in what the announcer remembers.
+
 A score happens at Home Assistant's `last_updated` (`0.6.1`, #271). A score changes only the
 sensor's attributes, and `last_changed` moves only when the state does, so in 0.6.0 every score
 of the Bears game carried the kickoff's time. The stage events are state changes and keep

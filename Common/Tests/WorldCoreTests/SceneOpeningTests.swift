@@ -388,7 +388,7 @@ struct SceneOpeningTests {
         payload["last_play"] = .string("D. Moore punts 44 yards.")
         #expect(
             try said(HouseEvents.gamePossession)
-                == "Chicago Bears now has the ball in the game between Seattle Seahawks, the team April follows, and Chicago Bears: Seattle Seahawks 14, Chicago Bears 7 (7:12 - 2nd; 1st & 10 at CHI 25). The play: D. Moore punts 44 yards. April is home."
+                == "The ball just went to Chicago Bears in the game between Seattle Seahawks, the team April follows, and Chicago Bears: Seattle Seahawks 14, Chicago Bears 7 (7:12 - 2nd; 1st & 10 at CHI 25). The play: D. Moore punts 44 yards. April is home."
         )
     }
 

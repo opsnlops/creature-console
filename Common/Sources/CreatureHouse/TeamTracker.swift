@@ -59,7 +59,7 @@ struct TeamTrackerGame: Equatable, Sendable {
             clock = text("clock")
             lastPlay = text("last_play")
             // ESPN names the side with the ball by its team id.
-            if let side = text("possession") {
+            if let side = Self.side(in: state) {
                 possession =
                     side == text("team_id") ? team : side == text("opponent_id") ? opponent : nil
             }
@@ -70,6 +70,15 @@ struct TeamTrackerGame: Equatable, Sendable {
             team: Self.flag(state.attributes["team_winner"]),
             opponent: Self.flag(state.attributes["opponent_winner"]),
             scores: (teamScore.flatMap { Int($0) }, opponentScore.flatMap { Int($0) }))
+    }
+
+    /// ESPN's id for the side with the ball, as the sensor says it; nil when it says nothing.
+    static func side(in state: EntityState) -> String? {
+        switch state.attributes["possession"] {
+        case .string(let id)? where !id.isEmpty: id
+        case .number(let id)?: String(Int(id))
+        default: nil
+        }
     }
 
     /// Who scored since `before`, the same game under way: the team, the opponent, or - both

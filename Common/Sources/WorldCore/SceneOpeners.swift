@@ -316,7 +316,7 @@ public actor SceneOpeningPolicy {
         let scorer = text("scored_by")
         var line =
             if event.type == HouseEvents.gamePossession {
-                "\(text("possession") ?? "The other side") now has the ball in the game between \(team), the team April follows, and \(opponent)"
+                "The ball just went to \(text("possession") ?? "the other side") in the game between \(team), the team April follows, and \(opponent)"
             } else if event.type == HouseEvents.gameScoreCorrected {
                 "Points just came off the board in the game between \(team), the team April follows, and \(opponent) - a score taken back. It now stands"
             } else if scorer == team {

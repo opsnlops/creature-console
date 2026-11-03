@@ -44,6 +44,20 @@ struct HouseTranslator: Sendable {
         return events
     }
 
+    /// What to remember of a state the World was just told about. For a game, the side last
+    /// known to have the ball outlives an update that names nobody: ESPN says nothing of
+    /// possession on a scoring play, and remembering that blank made the kickoff that followed
+    /// - the scorers still on the ball - read as the ball changing hands ("Seattle Seahawks now
+    /// has the ball" after their own field goal, #272).
+    func remembered(_ new: EntityState, after old: EntityState?) -> EntityState {
+        guard mappings[new.entityID]?.kind == .game, let old,
+            TeamTrackerGame.side(in: new) == nil, TeamTrackerGame.side(in: old) != nil
+        else { return new }
+        var kept = new
+        kept.attributes["possession"] = old.attributes["possession"]
+        return kept
+    }
+
     // MARK: - Where a person is (#248)
 
     /// A phone's fix, from a person's attributes. Only a GPS source gives `gps_accuracy`: a

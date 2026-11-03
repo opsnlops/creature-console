@@ -1,3 +1,15 @@
+creature-cli (2.107.0+world0.67.1+house0.7.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-house 0.7.1: a scoring play is not the ball changing hands
+    (#272). Live: the birds heard "Seattle Seahawks now has the ball"
+    twenty seconds after the Seahawks' own field goal. ESPN names nobody
+    on a scoring play, and the house remembered that blank, so the
+    scorers' kickoff read as a change of hands. The side last known to
+    have the ball now outlives an update that names nobody.
+  * creature-world 0.67.1: the trigger reads "The ball just went to ...".
+
+ -- April White <april@creature.engineering>  Mon, 02 Nov 2026 17:58:06 -0800
+
 creature-cli (2.107.0+world0.67.0+house0.7.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-house 0.7.0 / creature-world 0.67.0: the ball changing hands
