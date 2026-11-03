@@ -1,3 +1,15 @@
+creature-cli (2.106.2+world0.66.0+house0.6.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.106.2: as many voice cues as a line wants (#270).
+    2.106.0 kept only a line's first cue. April told the birds "It should
+    be [curious] [sleepy]", then: "they should be able to be curious and
+    sleepy if they want." Code no longer limits cues: the contract asks for
+    them where there is real feeling, one feeling per pair of brackets. A
+    sentence that is only cues still waits for the next sentence's words
+    (WaitingCues), and cues at the end of a line are still dropped.
+
+ -- April White <april@creature.engineering>  Mon, 02 Nov 2026 17:21:16 -0800
+
 creature-cli (2.106.1+world0.66.0+house0.6.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.106.1: a voice cue is one feeling (#270). On the

@@ -722,13 +722,13 @@ struct CharacterMindTests {
         // Only a voice can perform a cue; the Communicator is text (#270).
         #expect(room.first?.content.contains(CharacterMind.voiceCues) == true)
         #expect(app.first?.content.contains("square brackets") == false)
-        // One feeling a cue: "[curious and sleepy]" did not come through (11-02); and it goes
-        // where the feeling arrives, not only at the start.
-        #expect(CharacterMind.voiceCues.contains("A cue is one feeling"))
+        // One feeling a cue, as many cues as a line wants, each where the feeling arrives (11-02).
+        #expect(CharacterMind.voiceCues.contains("A cue holds one feeling"))
+        #expect(CharacterMind.voiceCues.contains("give each its own brackets"))
         #expect(CharacterMind.voiceCues.contains("between two sentences, or partway through one"))
     }
 
-    @Test("In the room the voice performs one cue; the record keeps her words (#270)")
+    @Test("In the room the voice performs every cue; the record keeps her words (#270)")
     func roomPerformsOneCue() async throws {
         let decision = try await performInTheRoom([
             "[sighs] I don't believe it.", "*flaps wings* [laughs] Fine, we'll try again.",
@@ -737,18 +737,21 @@ struct CharacterMindTests {
             Issue.record("expected a performed turn, got \(decision.decision)")
             return
         }
-        // The narration is gone, the second cue dropped: one cue a line.
+        // The narration is gone; both cues are the voice's.
         #expect(
-            await decision.room.spoken == ["[sighs] I don't believe it.", "Fine, we'll try again."])
+            await decision.room.spoken == [
+                "[sighs] I don't believe it.", "[laughs] Fine, we'll try again.",
+            ])
         #expect(performance.intent.text == "I don't believe it. Fine, we'll try again.")
         #expect(
-            performance.intent.performed == "[sighs] I don't believe it. Fine, we'll try again.")
+            performance.intent.performed
+                == "[sighs] I don't believe it. [laughs] Fine, we'll try again.")
     }
 
     @Test("A cue alone waits for the words it colours, and one left at the end is never said")
     func cueOnlySentences() async throws {
-        let leading = try await performInTheRoom(["[gasps]", "A parcel!", "For me?"])
-        #expect(await leading.room.spoken == ["[gasps] A parcel!", "For me?"])
+        let leading = try await performInTheRoom(["[curious] [sleepy]", "Bedtime?", "For me?"])
+        #expect(await leading.room.spoken == ["[curious] [sleepy] Bedtime?", "For me?"])
 
         let trailing = try await performInTheRoom(["That settles it.", "[sighs]"])
         #expect(await trailing.room.spoken == ["That settles it."])

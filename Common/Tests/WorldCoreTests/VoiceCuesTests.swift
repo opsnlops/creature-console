@@ -37,17 +37,12 @@ struct VoiceCuesTests {
                 == "I don't believe it. Fine, we'll try again.")
         #expect(VoiceCues.words("Fine [sighs].") == "Fine.")
         #expect(VoiceCues.words("[gasps]") == "")
+        #expect(
+            VoiceCues.words("[curious] [sleepy] Is it bedtime? [yawns] Maybe.")
+                == "Is it bedtime? Maybe.")
         // A line with no cue is its own words, exactly.
         #expect(VoiceCues.words("The servos look great .") == "The servos look great .")
         #expect(VoiceCues.words("[house: Movie Time] Popcorn!") == "[house: Movie Time] Popcorn!")
-    }
-
-    @Test("A line keeps its first cue, or none")
-    func keepingFirst() {
-        let line = "[sighs] Fine. [laughs] Okay, okay."
-        #expect(VoiceCues.keepingFirst(line) == "[sighs] Fine. Okay, okay.")
-        #expect(VoiceCues.keepingFirst(line, allowed: false) == "Fine. Okay, okay.")
-        #expect(VoiceCues.keepingFirst("No cue here.") == "No cue here.")
     }
 
     @Test("A cue is paced as its performance, not as its letters")

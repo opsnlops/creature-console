@@ -244,34 +244,40 @@ else — persona, facts, the clock, streaming to the room — is identical.
   are removed from every reply before it is stored or spoken; a reply that was nothing but a
   direction is a pass. The persona's `never` rules make narration rare; this makes it impossible.
   The one exception is a voice cue on a line spoken aloud.
-- **The voice performs one cue a line** (`2.106.0`, #270, `docs/voice-cues-plan.md`).
+- **The voice performs cues** (`2.106.0`, #270, `docs/voice-cues-plan.md`).
   - **What the server does.** Creature Server's voice (`eleven_v4_turbo`, server 3.51.7) performs
     a sound or a feeling in square brackets instead of saying it: `[sighs]` is a real sigh, not
     the word.
-  - **Where the minds are offered it.** The room contract, the scene contract and the
+  - **Where the minds are offered them.** The room contract, the scene contract and the
     house-remark contract carry `CharacterMind.voiceCues`. It names a few sounds (`[laughs]`,
     `[sighs]`, `[gasps]`, `[clears throat]`), invites a feeling in the bird's own words
-    (`[nervous]`, `[choked up with happiness]`), and calls it the one exception to describing
-    actions. Most lines need none. Two refinements came in `2.106.1`, after the first live night:
-    - **One feeling per cue.** Caroll's `[curious and sleepy]`, two feelings joined with "and",
-      did not come through.
-    - **A cue goes where the feeling arrives:** at the start, between two sentences, or partway
-      through one. Every bird had opened its line with one. The Communicator contract says nothing of cues, and its
+    (`[nervous]`, `[choked up with happiness]`), and calls cues the one exception to describing
+    actions. Most lines need none. The Communicator contract says nothing of cues, and its
     replies lose every bracket.
+  - **What the first live night taught** (11-02):
+    - **One feeling per cue** (`2.106.1`). Caroll's `[curious and sleepy]` did not come
+      through, but `[curious] [sleepy]` does, so the contract says to give each feeling its own
+      brackets.
+    - **A cue goes where the feeling arrives** (`2.106.1`): at the start, between two
+      sentences, or partway through one. Every bird had opened its line with one.
+    - **As many as a line wants** (`2.106.2`). `2.106.0` kept only a line's first cue. April:
+      "they should be able to be curious and sleepy if they want." Each cue costs the room up to
+      1.5 s, so the contract asks for them where there is real feeling; code no longer limits
+      them.
   - **What counts as a cue.** `WorldCore.VoiceCues` decides: 1–40 characters with a letter, no
     colon, and not `[silence]`. So `[learned: …]`, `[house: …]` and `[quiet: …]` are never
     cues.
-  - **The rules on the two spoken paths.** These are the room reply and a streamed scene line,
-    and `CueAllowance` enforces them:
-    - The line's first cue is spoken; any later one is dropped. Each costs the room up to
-      1.5 s.
-    - A sentence that is only a cue waits for the next one's words, because the server refuses a
-      sentence with nothing to say. A cue at the very end of the line is dropped.
+  - **The rules on the two spoken paths.** These are the room reply and a streamed scene line:
+    - A sentence that is only cues waits for the next one's words (`WaitingCues`), because the
+      server refuses a sentence with nothing to say. Cues at the very end of the line are
+      dropped.
     - Narration is still stripped. On the room path that is new: `*giggles*` used to reach the
       voice there.
   - **What is recorded.** The turn records the *words*. The line as performed travels beside
     them as `performed` (on the intent, the conversation item and the scene turn), so no bird
-    reads a cue back and learns to copy it. The Viewer shows `performed`.
+    reads a cue back and learns to copy it. The Viewer shows `performed`. One side effect: a
+    bird talking *about* a cue ("I'll use [curious] next time") has the word performed, not
+    said, and the record loses it.
 - **It knows what it runs on** (`2.62.0`). "Your mind runs on the openai/gpt-6-astra model.
   Say so if April asks; otherwise it is not worth mentioning." is the second line of "What
   you know" — April decided a familiar should be able to answer "what model are you using?"

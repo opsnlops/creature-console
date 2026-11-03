@@ -93,20 +93,20 @@ struct CharacterMind: Sendable {
     static let silenceToken = "[silence]"
     /// Creature Server's voice performs a cue in square brackets instead of saying it (#270):
     /// a real sigh, measured, not the word. Offered only where the words are spoken aloud; a
-    /// Communicator reply is text. One a line, and the model judges when — each costs the room
-    /// up to a second and a half before the line is done. One feeling a cue: Caroll's
-    /// `[curious and sleepy]` on 11-02 did not come through. And it goes where the feeling
-    /// arrives: on the first night every bird opened its line with one, and April: "They can mix
-    /// in cues even in the middle of a line."
+    /// Communicator reply is text. The model judges when, and how many — each costs the room up
+    /// to a second and a half. Learned on the first night (11-02): Caroll's
+    /// `[curious and sleepy]` did not come through, but `[curious] [sleepy]` does ("they should
+    /// be able to be curious and sleepy if they want"); and every bird opened its line with a
+    /// cue, when "they can mix in cues even in the middle of a line."
     static let voiceCues = """
-        Your voice can perform one cue in a line: a sound or a feeling in square brackets - \
-        [laughs], [sighs], [gasps], [clears throat], or a feeling in your own words, like \
-        [nervous] or [choked up with happiness]; the more precise, the more it does. Put it where \
-        the feeling arrives, just before the words it colours: at the start, between two \
-        sentences, or partway through one. A cue is one feeling: two joined with "and" do not \
-        come through, so choose the one that matters most. It is the one exception to never \
-        describing actions. Most lines need none; save it for a moment with real feeling in it, \
-        because your voice takes a moment to perform it.
+        Your voice can perform cues: a sound or a feeling in square brackets - [laughs], \
+        [sighs], [gasps], [clears throat], or a feeling in your own words, like [nervous] or \
+        [choked up with happiness]; the more precise, the more it does. Put each where the \
+        feeling arrives, just before the words it colours: at the start, between two sentences, \
+        or partway through one. A cue holds one feeling, because two joined with "and" do not \
+        come through; for two feelings at once, give each its own brackets. Cues are the one \
+        exception to never describing actions. Most lines need none; save them for moments with \
+        real feeling, because your voice takes a moment to perform each one.
         """
 
     struct Configuration: Sendable {
@@ -431,11 +431,11 @@ struct CharacterMind: Sendable {
 
     /// The sentences offered to the room so far, validated one at a time as the model produces
     /// them: the first decides silence and loses any speaker label, every one is speech-clean
-    /// with at most one voice cue in the line, and the turn stops at the world's length limit.
+    /// with its voice cues kept, and the turn stops at the world's length limit.
     private actor SpokenSentences {
         private(set) var sentences: [String] = []
         private(set) var declined = false
-        private var cues = CueAllowance()
+        private var cues = WaitingCues()
         private let room: AsyncStream<String>.Continuation
 
         init(room: AsyncStream<String>.Continuation) {
@@ -683,7 +683,7 @@ struct CharacterMind: Sendable {
         private let startedAt: Date
         /// Inside a `[learned:` tag the sentence splitter cut in two.
         private var inTag = false
-        private var cues = CueAllowance()
+        private var cues = WaitingCues()
 
         init(characterName: String, speaker: String?, startedAt: Date) {
             self.characterName = characterName

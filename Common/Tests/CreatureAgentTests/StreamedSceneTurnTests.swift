@@ -39,7 +39,7 @@ struct StreamedSceneTurnTests {
         #expect(done.responseID == (try makeOffer()).offer.responseID)
     }
 
-    @Test("A scene line performs one cue; one that trails the line is never sent (#270)")
+    @Test("A scene line performs its cues; ones that trail the line are never sent (#270)")
     func voiceCues() async throws {
         let mind = makeMind(sentences: [
             "[nervous] Was the door locked?", "(chuckles) [laughs] I hope so.", "[sighs]",
@@ -50,7 +50,8 @@ struct StreamedSceneTurnTests {
             await spoken.record(index, text)
         }
 
-        #expect(await spoken.pieces == ["0:[nervous] Was the door locked?", "1:I hope so."])
+        #expect(
+            await spoken.pieces == ["0:[nervous] Was the door locked?", "1:[laughs] I hope so."])
         #expect(CharacterMind.sceneContractCore.contains(CharacterMind.voiceCues))
         #expect(CharacterMind.houseRemarkCore.contains(CharacterMind.voiceCues))
     }

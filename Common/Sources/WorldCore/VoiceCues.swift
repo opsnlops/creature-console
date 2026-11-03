@@ -15,18 +15,12 @@ public enum VoiceCues {
     }
 
     /// The words of `text`: its cues removed, whitespace collapsed, no space left before
-    /// punctuation ("Fine [sighs]." is "Fine."). A line with no cue is its own words.
+    /// punctuation ("Fine [sighs]." is "Fine."). A line with no cue is its own words, exactly.
     public static func words(_ text: String) -> String {
-        keepingFirst(text, allowed: false)
-    }
-
-    /// `text` with at most its first cue, or none when `allowed` is false. A line with nothing
-    /// to remove comes back exactly as it was.
-    public static func keepingFirst(_ text: String, allowed: Bool = true) -> String {
-        let removed = ranges(in: text).dropFirst(allowed ? 1 : 0)
-        guard !removed.isEmpty else { return text }
+        let cues = ranges(in: text)
+        guard !cues.isEmpty else { return text }
         var kept = text
-        for range in removed.reversed() {
+        for range in cues.reversed() {
             kept.replaceSubrange(range, with: " ")
         }
         return kept.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)

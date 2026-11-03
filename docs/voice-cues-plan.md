@@ -36,6 +36,9 @@ Recommended on #270, and taken as recommended; each one is easy to change.
 3. **At most one cue per line, enforced in code.** Each cue costs 0.1–1.5 s of voice before the
    bird finishes speaking, on the latency the birds are judged by. The model chooses whether a line
    gets one; code only keeps the second from being performed.
+   **Lifted in agent 2.106.2.** On the first night April told the birds "It should be [curious]
+   [sleepy]", then: "they should be able to be curious and sleepy if they want." Code no longer
+   limits cues; the contract asks for them where there is real feeling.
 
 The Communicator route is text, not voice. Its contract says nothing about cues, and its replies
 are still stripped of every bracket.
@@ -63,6 +66,7 @@ are still stripped of every bracket.
   (`SpokenSentences`) and a streamed scene line (`StreamedLine`).
   - Narration in `*…*`, `(…)` and long brackets is stripped; a cue survives.
   - A `CueAllowance` in each actor admits the line's first cue, and drops any later ones.
+    (2.106.2: replaced by `WaitingCues`, which only holds a cue-only sentence; no limit.)
   - A sentence that is only a cue waits and goes out at the head of the next sentence: the server
     refuses a cue-only chunk. A cue at the very end of a line is dropped.
   - The room path did not strip `*giggles*` or `(chuckles)` before; it does now, as the scene path
