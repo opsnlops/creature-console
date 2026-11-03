@@ -43,9 +43,15 @@ struct ProbeCache: AsyncParsableCommand {
             "Build the request exactly as a mind does - OpenAIClient.makeRequest with the tool catalogue from this WorldMCP URL - and send it three times"
     )
     var likeMind: String?
-    @Option(help: "With --like-mind: the moment item's role, developer (as a mind sends it) or user")
+    @Option(
+        help: "With --like-mind: the moment item's role, developer (as a mind sends it) or user")
     var momentRole = "developer"
     @Option(help: "The endpoint") var endpoint = OpenAIClient.defaultEndpoint.absoluteString
+    @Flag(
+        help:
+            "Compare each call after the first with the one before it (prompt_cache_options.comparison_response_id) and print the provider's prompt_cache_diagnostics"
+    )
+    var compare = false
 
     func run() async throws {
         guard let apiKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"], !apiKey.isEmpty
@@ -72,8 +78,9 @@ struct ProbeCache: AsyncParsableCommand {
             extra = object
         }
         print(
-            "prefix ≈ \(prefixTokens) tokens; model \(model); tier \(tier ?? "default"); key \(key ?? "none"); store \(store); retention \(retention ?? "none"); breakpoint \(breakpoint ?? "none"); tools \(tools); reasoning \(reasoning ?? "none"); text format \(textFormat); stream \(stream)"
+            "prefix ≈ \(prefixTokens) tokens; model \(model); tier \(tier ?? "default"); key \(key ?? "none"); store \(store); retention \(retention ?? "none"); breakpoint \(breakpoint ?? "none"); tools \(tools); reasoning \(reasoning ?? "none"); text format \(textFormat); stream \(stream); compare \(compare)"
         )
+        var previous: String?
         for round in 1...3 {
             let moment = "It is now \(Date()). Answer in five words: what does the house keep?"
             var stableItem: [String: Any] = [
@@ -95,6 +102,9 @@ struct ProbeCache: AsyncParsableCommand {
             if let retention { body["prompt_cache_retention"] = retention }
             if let reasoning { body["reasoning"] = ["effort": reasoning] }
             if textFormat { body["text"] = ["format": ["type": "text"]] }
+            if compare, let previous {
+                body["prompt_cache_options"] = ["comparison_response_id": previous]
+            }
             if tools > 0 {
                 body["tools"] = (0..<tools).map { index -> [String: Any] in
                     [
@@ -153,13 +163,24 @@ struct ProbeCache: AsyncParsableCommand {
                 )
                 continue
             }
-            let usageObject = object["usage"] ?? (object["response"] as? [String: Any])?["usage"]
-            let usage =
-                usageObject.flatMap { try? JSONSerialization.data(withJSONObject: $0) }
-                .map { String(decoding: $0, as: UTF8.self) } ?? "no usage"
-            print("round \(round): \(usage)")
+            let answer = (object["response"] as? [String: Any]) ?? object
+            print("round \(round): \(Self.compact(answer["usage"]) ?? "no usage")")
+            if compare {
+                print(
+                    "round \(round): diagnostics \(Self.compact(answer["prompt_cache_diagnostics"]) ?? "none")"
+                )
+            }
+            previous = answer["id"] as? String
             if round < 3 { try await Task.sleep(for: .seconds(pause)) }
         }
+    }
+
+    /// A JSON value on one line, sorted; nil when there is none.
+    private static func compact(_ value: Any?) -> String? {
+        guard let value,
+            let data = try? JSONSerialization.data(withJSONObject: value, options: [.sortedKeys])
+        else { return nil }
+        return String(decoding: data, as: UTF8.self)
     }
 
     /// The production path: the client's own request, the world's own tools, three times.
@@ -184,6 +205,7 @@ struct ProbeCache: AsyncParsableCommand {
         let stable =
             "You are a helpful assistant in a test. Remember the following.\n\n"
             + String(repeating: sentence, count: max(1, prefixTokens / 20))
+        var previous: String?
         for round in 1...3 {
             let transcript = [
                 LocalLLMClient.Message(role: .system, content: stable),
@@ -193,7 +215,9 @@ struct ProbeCache: AsyncParsableCommand {
                 LocalLLMClient.Message(
                     role: .user, content: "Answer in five words: what does the house keep?"),
             ]
-            var request = client.makeRequest(for: transcript, stream: false, tools: catalogue)
+            var request = client.makeRequest(
+                for: transcript, stream: false, tools: catalogue,
+                compareWith: compare ? previous : nil)
             request.timeoutInterval = 60
             let body = request.httpBody ?? Data()
             // The body before the moment item: the prefix the provider should recognise.
@@ -216,6 +240,12 @@ struct ProbeCache: AsyncParsableCommand {
                 continue
             }
             print("round \(round): \(String(decoding: bytes, as: UTF8.self))")
+            if compare {
+                print(
+                    "round \(round): diagnostics \(Self.compact(object["prompt_cache_diagnostics"]) ?? "none")"
+                )
+            }
+            previous = object["id"] as? String
             if round < 3 { try await Task.sleep(for: .seconds(pause)) }
         }
     }

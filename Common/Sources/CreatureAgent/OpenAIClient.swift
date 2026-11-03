@@ -31,6 +31,8 @@ struct OpenAIClient: Sendable {
     /// Routes every request of this mind to the same cache: one bird, one prefix.
     private let cacheKey: String?
     private let cache: LLMCacheSettings
+    /// The last response of each kind, for the provider's cache diagnosis (#275).
+    private let comparisons: CacheComparisons
     /// Streaming goes through AsyncHTTPClient: on Linux, a per-request `URLSession` torn down
     /// as an HTTPS stream completes trips swift-corelibs-foundation's `_MultiHandle` retain
     /// check and aborts the process — Beaky died mid-sentence four times on 2026-09-12.
@@ -46,6 +48,7 @@ struct OpenAIClient: Sendable {
         minSentenceChars: Int = 0,
         cacheKey: String? = nil,
         cache: LLMCacheSettings = LLMCacheSettings(),
+        comparisons: CacheComparisons = CacheComparisons(),
         endpoint: URL = OpenAIClient.defaultEndpoint,
         streamingClient: HTTPClient? = nil,
         logger: Logger,
@@ -53,6 +56,7 @@ struct OpenAIClient: Sendable {
     ) {
         self.cacheKey = cacheKey
         self.cache = cache
+        self.comparisons = comparisons
         self.endpoint = endpoint
         self.streamingClient = streamingClient
         self.apiKey = apiKey
@@ -84,16 +88,20 @@ struct OpenAIClient: Sendable {
         async throws -> String
     {
         var extra: [ResponseRequest.Item] = []
+        let kind = GenAI.turn?.kind
         for round in 0...ModelTools.maximumRounds {
             logger.debug("Sending OpenAI response request (model: \(model), round: \(round))")
             // The last round offers no tools: the model must answer with what it has.
             let offered = round < ModelTools.maximumRounds ? await tools?.catalogue() ?? [] : []
-            var request = makeRequest(for: transcript, stream: false, tools: offered, extra: extra)
+            let baseline = await comparisons.last(kind)
+            var request = makeRequest(
+                for: transcript, stream: false, tools: offered, extra: extra,
+                compareWith: baseline)
             request.timeoutInterval = tools == nil ? 60 : 90
 
             // One span per round: what it cost is on it.
             let data = try await GenAI.inference(
-                genAIRequest(round: round, toolsOffered: offered.count),
+                genAIRequest(round: round, toolsOffered: offered.count, comparison: baseline),
                 input: GenAIMessages.input(transcript, extra: extra)
             ) { inference in
                 let (data, response) = try await OpenAIRetry.live.data(
@@ -107,10 +115,12 @@ struct OpenAIClient: Sendable {
                     throw OpenAIClientError.httpError(
                         code: httpResponse.statusCode, body: message)
                 }
+                let summary = OpenAIResponseParser.summary(from: data)
                 finish(
-                    inference, OpenAIResponseParser.summary(from: data),
+                    inference, summary,
                     text: (try? OpenAIResponseParser.outputText(from: data)) ?? "",
                     calls: OpenAIResponseParser.functionCalls(from: data), round: round)
+                await comparisons.remember(summary?.id, kind)
                 return data
             }
             if traceResponses, let bodyString = String(data: data, encoding: .utf8) {
@@ -188,15 +198,20 @@ struct OpenAIClient: Sendable {
                     // A round that asks for tools is run and answered, and the next round
                     // streams; the words, when they come, flow as before.
                     var extra: [ResponseRequest.Item] = []
+                    let kind = GenAI.turn?.kind
                     for round in 0...ModelTools.maximumRounds {
                         let offered =
                             round < ModelTools.maximumRounds ? await tools?.catalogue() ?? [] : []
+                        let baseline = await comparisons.last(kind)
                         let request = makeRequest(
-                            for: transcript, stream: true, tools: offered, extra: extra)
+                            for: transcript, stream: true, tools: offered, extra: extra,
+                            compareWith: baseline)
                         // One span per round: what it cost is on it, from the stream's
                         // closing event.
                         let calls = try await GenAI.inference(
-                            genAIRequest(stream: true, round: round, toolsOffered: offered.count),
+                            genAIRequest(
+                                stream: true, round: round, toolsOffered: offered.count,
+                                comparison: baseline),
                             input: GenAIMessages.input(transcript, extra: extra)
                         ) { inference in
                             var streamRequest = HTTPClientRequest(url: request.url!.absoluteString)
@@ -257,6 +272,7 @@ struct OpenAIClient: Sendable {
                             // A stream that ended without its closing event broke: the
                             // round's finish reason says `error`.
                             finish(inference, summary, text: text, calls: calls, round: round)
+                            await comparisons.remember(summary?.id, kind)
                             return calls
                         }
                         guard let tools, !calls.isEmpty else { break }
@@ -280,7 +296,8 @@ struct OpenAIClient: Sendable {
 
     func makeRequest(
         for transcript: [LocalLLMClient.Message], stream: Bool, json: Bool = false,
-        tools: [WorldMCPClient.ToolDefinition] = [], extra: [ResponseRequest.Item] = []
+        tools: [WorldMCPClient.ToolDefinition] = [], extra: [ResponseRequest.Item] = [],
+        compareWith: String? = nil
     ) -> URLRequest {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
@@ -296,7 +313,8 @@ struct OpenAIClient: Sendable {
             ResponseRequest(
                 model: model, transcript: transcript, temperature: temperature,
                 reasoningEffort: reasoningEffort, serviceTier: serviceTier, stream: stream,
-                json: json, tools: tools, extra: extra, cacheKey: cacheKey, cache: cache))
+                json: json, tools: tools, extra: extra, cacheKey: cacheKey, cache: cache,
+                compareWith: compareWith))
         return request
     }
 
@@ -357,13 +375,14 @@ struct OpenAIClient: Sendable {
     /// This client's request, as the GenAI conventions describe one: the knobs it sends.
     private func genAIRequest(
         stream: Bool = false, json: Bool = false, round: Int = 0, toolsOffered: Int = 0,
-        batchID: String? = nil
+        batchID: String? = nil, comparison: String? = nil
     ) -> GenAI.Request {
         GenAI.Request(
             model: model, stream: stream, json: json,
             temperature: reasoningEffort == nil ? temperature : nil,
             reasoningEffort: reasoningEffort, serviceTier: serviceTier, endpoint: endpoint,
-            round: round, toolsOffered: toolsOffered, batchID: batchID)
+            round: round, toolsOffered: toolsOffered, batchID: batchID,
+            cacheComparison: comparison)
     }
 
     /// A round's answer onto its span, and its cost into the log - the raw `usage` object is
@@ -386,6 +405,8 @@ struct OpenAIClient: Sendable {
                 "llm.usage.cache_write_tokens": "\(usage.cacheWriteTokens)",
                 "llm.usage.output_tokens": "\(usage.outputTokens)",
                 "llm.usage.reasoning_tokens": "\(usage.reasoningTokens)",
+                "llm.usage.cache_diagnosis": "\(summary?.cacheDiagnosis?.type ?? "none")",
+                "llm.usage.cache_miss_reason": "\(summary?.cacheDiagnosis?.reason ?? "none")",
                 "llm.round": "\(round)", "creature_agent.usage.raw": "\(usage.raw)",
             ])
     }
@@ -506,10 +527,19 @@ struct ResponseRequest: Encodable {
     let promptCacheKey: String?
     /// How long the provider keeps the cached prefix (`prompt_cache_retention`), when set.
     let promptCacheRetention: String?
-    /// `{"mode": "explicit"}`: only the marked cache points are written (#235).
+    /// `{"mode": "explicit"}`: only the marked cache points are written (#235); and the
+    /// earlier response this one is compared with, for the provider's diagnosis (#275).
     let promptCacheOptions: CacheOptions?
 
-    struct CacheOptions: Encodable, Equatable { let mode: String }
+    struct CacheOptions: Encodable, Equatable {
+        var mode: String?
+        var comparisonResponseID: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case mode
+            case comparisonResponseID = "comparison_response_id"
+        }
+    }
 
     private enum CodingKeys: String, CodingKey {
         case model, input, temperature, reasoning, text, stream, store, tools
@@ -523,7 +553,7 @@ struct ResponseRequest: Encodable {
         model: String, transcript: [LocalLLMClient.Message], temperature: Double,
         reasoningEffort: String?, serviceTier: String? = nil, stream: Bool, json: Bool = false,
         tools: [WorldMCPClient.ToolDefinition] = [], extra: [Item] = [], cacheKey: String? = nil,
-        cache: LLMCacheSettings = LLMCacheSettings()
+        cache: LLMCacheSettings = LLMCacheSettings(), compareWith: String? = nil
     ) {
         self.model = model
         self.input = transcript.map(Item.init) + extra
@@ -537,7 +567,9 @@ struct ResponseRequest: Encodable {
         self.store = cache.store
         self.promptCacheKey = cache.key ? cacheKey : nil
         self.promptCacheRetention = cache.retention
-        self.promptCacheOptions = cache.explicit ? CacheOptions(mode: "explicit") : nil
+        let options = CacheOptions(
+            mode: cache.explicit ? "explicit" : nil, comparisonResponseID: compareWith)
+        self.promptCacheOptions = options == CacheOptions() ? nil : options
     }
 }
 
@@ -552,6 +584,24 @@ struct LLMCacheSettings: Sendable, Equatable {
     /// provider writes the whole prompt on every call - the moment, the conversation, a whole
     /// night of memory - and 43% of the input was written and never read (#235).
     var explicit = true
+}
+
+/// One mind's last response of each kind of call, which the next call of that kind is compared
+/// with for the provider's cache diagnosis (#275). Each kind has its own contract and so its own
+/// cached prefix: a scene turn is compared with the last scene turn, a tool round with the round
+/// before it. The night is not compared: each of its calls is a different prompt.
+actor CacheComparisons {
+    private var last: [LLMCallKind: String] = [:]
+
+    func last(_ kind: LLMCallKind?) -> String? {
+        guard let kind, kind != .memory else { return nil }
+        return last[kind]
+    }
+
+    func remember(_ responseID: String?, _ kind: LLMCallKind?) {
+        guard let responseID, let kind, kind != .memory else { return }
+        last[kind] = responseID
+    }
 }
 
 enum OpenAIClientError: Error, LocalizedError {

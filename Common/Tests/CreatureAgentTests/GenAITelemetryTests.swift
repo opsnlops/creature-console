@@ -49,8 +49,13 @@ struct GenAITelemetryTests {
                         "event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"\(delta)\"}\n\n"
                 }
             }
+            // The answering round was compared with the asking one and lost a little (#275).
+            let diagnosis =
+                round == 0
+                ? ""
+                : ",\"prompt_cache_diagnostics\":{\"type\":\"cache_miss\",\"reason\":\"tools_changed\",\"cache_missed_tokens\":20,\"comparison_reusable_tokens\":80}"
             events +=
-                "event: response.completed\ndata: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp_\(round)\",\"model\":\"gpt-6-astra-2026-10-01\",\"status\":\"completed\",\"service_tier\":\"default\",\"usage\":{\"input_tokens\":100,\"output_tokens\":20,\"input_tokens_details\":{\"cached_tokens\":80},\"output_tokens_details\":{\"reasoning_tokens\":5}}}}\n\n"
+                "event: response.completed\ndata: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp_\(round)\",\"model\":\"gpt-6-astra-2026-10-01\",\"status\":\"completed\",\"service_tier\":\"default\",\"usage\":{\"input_tokens\":100,\"output_tokens\":20,\"input_tokens_details\":{\"cached_tokens\":80},\"output_tokens_details\":{\"reasoning_tokens\":5}}\(diagnosis)}}\n\n"
             return Response(
                 status: .ok, headers: [.contentType: "text/event-stream"],
                 body: .init(byteBuffer: ByteBuffer(string: events)))
@@ -171,6 +176,22 @@ struct GenAITelemetryTests {
         let answering = try #require(
             chats.first { $0.attributes.get(GenAI.Key.round) == .int64(1) })
         #expect(asking.attributes.get(GenAI.Key.responseID) == .string("resp_0"))
+        // The cache diagnosis (#275), by the provider's own field names: the asking round had
+        // nothing to compare with; the answering one names it, and what the provider said.
+        #expect(asking.attributes.get(GenAI.Key.openAIRequestCacheComparison) == nil)
+        #expect(asking.attributes.get(GenAI.Key.openAIResponseCacheDiagnosis) == nil)
+        #expect(
+            answering.attributes.get(GenAI.Key.openAIRequestCacheComparison) == .string("resp_0"))
+        #expect(
+            answering.attributes.get(GenAI.Key.openAIResponseCacheDiagnosis)
+                == .string("cache_miss"))
+        #expect(
+            answering.attributes.get(GenAI.Key.openAIResponseCacheMissReason)
+                == .string("tools_changed"))
+        #expect(
+            answering.attributes.get(GenAI.Key.openAIResponseCacheMissedTokens) == .int64(20))
+        #expect(
+            answering.attributes.get(GenAI.Key.openAIResponseCacheReusableTokens) == .int64(80))
         #expect(asking.attributes.get(GenAI.Key.finishReasons) == .stringArray(["tool_calls"]))
         #expect(answering.attributes.get(GenAI.Key.finishReasons) == .stringArray(["stop"]))
         guard case .string(let said)? = answering.attributes.get(GenAI.Key.outputMessages) else {

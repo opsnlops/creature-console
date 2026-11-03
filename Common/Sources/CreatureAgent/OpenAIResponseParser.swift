@@ -106,6 +106,9 @@ struct OpenAIResponseSummary: Sendable, Equatable {
     var incompleteReason: String?
     var serviceTier: String?
     var usage: LLMUsage?
+    /// Why this call did or did not reuse the cache, against the response it was compared with
+    /// (#275); nil when it was compared with none.
+    var cacheDiagnosis: PromptCacheDiagnosis?
 
     /// The conventions' finish reason: `stop`, `tool_calls` when the round asked for
     /// look-ups, the provider's reason when it was cut short, `error` when it failed.
@@ -129,11 +132,13 @@ private struct ResponseEnvelope: Decodable {
     let incompleteDetails: IncompleteDetails?
     let output: [ResponseOutputItem]?
     let usage: ResponseUsage?
+    let promptCacheDiagnostics: PromptCacheDiagnosis?
 
     private enum CodingKeys: String, CodingKey {
         case id, model, status, output, usage
         case serviceTier = "service_tier"
         case incompleteDetails = "incomplete_details"
+        case promptCacheDiagnostics = "prompt_cache_diagnostics"
     }
 
     var outputTextValue: String? {
@@ -145,7 +150,25 @@ private struct ResponseEnvelope: Decodable {
         usage?.raw = raw
         return OpenAIResponseSummary(
             id: id, model: model, status: status, incompleteReason: incompleteDetails?.reason,
-            serviceTier: serviceTier, usage: usage)
+            serviceTier: serviceTier, usage: usage, cacheDiagnosis: promptCacheDiagnostics)
+    }
+}
+
+/// The provider's word on a call's cache use against an earlier response (#275), as
+/// `prompt_cache_diagnostics` says it: `cache_hit`, `cache_miss` (with the first `reason` -
+/// `tools_changed`, `service_tier_changed`, `input_changed`...), `comparison_response_not_found`
+/// when the earlier record has expired, or `unavailable`. The token counts are its estimates;
+/// what was really read is `cached_tokens`.
+struct PromptCacheDiagnosis: Decodable, Sendable, Equatable {
+    var type: String
+    var reason: String?
+    var cacheMissedTokens: Int?
+    var comparisonReusableTokens: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case type, reason
+        case cacheMissedTokens = "cache_missed_tokens"
+        case comparisonReusableTokens = "comparison_reusable_tokens"
     }
 }
 

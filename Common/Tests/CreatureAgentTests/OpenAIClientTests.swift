@@ -250,6 +250,114 @@ struct OpenAIClientTests {
     }
 
     @Test(
+        "The provider's cache diagnosis is read from a whole response and a stream's close (#275)")
+    func cacheDiagnosisIsParsed() throws {
+        let whole =
+            #"{"id":"resp_2","output":[],"usage":{"input_tokens":6000,"input_tokens_details":{"cached_tokens":0},"output_tokens":9},"prompt_cache_diagnostics":{"type":"cache_miss","reason":"tools_changed","comparison_reusable_tokens":5629,"cache_missed_tokens":5629}}"#
+        let summary = try #require(OpenAIResponseParser.summary(from: Data(whole.utf8)))
+        #expect(
+            summary.cacheDiagnosis
+                == PromptCacheDiagnosis(
+                    type: "cache_miss", reason: "tools_changed", cacheMissedTokens: 5629,
+                    comparisonReusableTokens: 5629))
+        let completed =
+            #"{"type":"response.completed","response":{"id":"resp_3","usage":{"input_tokens":900,"output_tokens":12},"prompt_cache_diagnostics":{"type":"cache_hit"}}}"#
+        let streamed = try #require(OpenAIResponseParser.streamedSummary(fromData: completed))
+        #expect(streamed.cacheDiagnosis?.type == "cache_hit")
+        #expect(streamed.cacheDiagnosis?.reason == nil)
+        // Compared with nothing, nothing to say.
+        #expect(
+            OpenAIResponseParser.summary(from: Data(#"{"id":"resp_1","output":[]}"#.utf8))?
+                .cacheDiagnosis == nil)
+    }
+
+    @Test("A comparison rides beside explicit mode, and only when there is one (#275)")
+    func comparisonIsSent() throws {
+        func options(_ cache: LLMCacheSettings, _ compareWith: String?) throws -> [String: Any]? {
+            let request = ResponseRequest(
+                model: "gpt-6-luna", transcript: transcript, temperature: 1,
+                reasoningEffort: nil, stream: true, cache: cache, compareWith: compareWith)
+            let json =
+                try JSONSerialization.jsonObject(with: JSONEncoder().encode(request))
+                as? [String: Any]
+            return json?["prompt_cache_options"] as? [String: Any]
+        }
+        let both = try #require(try options(LLMCacheSettings(), "resp_1"))
+        #expect(both["mode"] as? String == "explicit")
+        #expect(both["comparison_response_id"] as? String == "resp_1")
+        let explicitOnly = try #require(try options(LLMCacheSettings(), nil))
+        #expect(explicitOnly["comparison_response_id"] == nil)
+        var automatic = LLMCacheSettings()
+        automatic.explicit = false
+        #expect(try options(automatic, nil) == nil)
+        #expect(try options(automatic, "resp_1")?["mode"] == nil)
+    }
+
+    @Test("A call is compared with the last of its kind; the night with nothing (#275)")
+    func comparisonsByKind() async {
+        let comparisons = CacheComparisons()
+        await comparisons.remember("resp_scene", .scene)
+        await comparisons.remember("resp_house", .house)
+        await comparisons.remember("resp_night", .memory)
+        await comparisons.remember(nil, .scene)
+        #expect(await comparisons.last(.scene) == "resp_scene")
+        #expect(await comparisons.last(.house) == "resp_house")
+        #expect(await comparisons.last(.question) == nil)
+        #expect(await comparisons.last(.memory) == nil)
+        #expect(await comparisons.last(nil) == nil)
+    }
+
+    @Test("A mind's second scene turn asks the provider about the first's cache (#275)")
+    func streamedCallsAreCompared() async throws {
+        let bodies = Bodies()
+        let router = Router(context: BasicRequestContext.self)
+        router.post("v1/responses") { request, _ in
+            let body = try await request.body.collect(upTo: 65_536)
+            let call = await bodies.note(String(buffer: body))
+            let events =
+                "event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"Go Seahawks.\"}\n\n"
+                + "event: response.completed\ndata: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp_\(call)\",\"usage\":{\"input_tokens\":10,\"output_tokens\":2},\"prompt_cache_diagnostics\":{\"type\":\"cache_hit\"}}}\n\n"
+            return Response(
+                status: .ok, headers: [.contentType: "text/event-stream"],
+                body: .init(byteBuffer: ByteBuffer(string: events)))
+        }
+        let application = Application(
+            router: router, configuration: .init(address: .hostname("127.0.0.1", port: 0)))
+        try await application.test(.live) { liveClient in
+            let port = try #require(liveClient.port)
+            let httpClient = HTTPClient(eventLoopGroupProvider: .singleton)
+            defer { Task { try? await httpClient.shutdown() } }
+            let client = OpenAIClient(
+                apiKey: "sk-test", model: "gpt-6-luna", systemPrompt: "You are Mango.",
+                temperature: 1,
+                endpoint: URL(string: "http://localhost:\(port)/v1/responses")!,
+                streamingClient: httpClient,
+                logger: Logger(label: "openai-tests"), traceResponses: false)
+            for kind in [LLMCallKind.scene, .scene, .house] {
+                try await GenAI.invokeAgent(
+                    "Mango", conversationID: "scene:test", kind: kind, capture: .off,
+                    model: "gpt-6-luna"
+                ) { _ in
+                    for await _ in client.respondStreaming(messages: transcript) {}
+                }
+            }
+        }
+        func compared(_ call: Int) async throws -> String? {
+            let json =
+                try JSONSerialization.jsonObject(with: Data(await bodies.all[call].utf8))
+                as? [String: Any]
+            return (json?["prompt_cache_options"] as? [String: Any])?["comparison_response_id"]
+                as? String
+        }
+        #expect(await bodies.all.count == 3)
+        // The first scene turn has nothing to compare with; the second, the first; the house's
+        // first remark, nothing of its own kind.
+        #expect(try await compared(0) == nil)
+        #expect(try await compared(1) == "resp_0")
+        #expect(try await compared(2) == nil)
+    }
+
+    @Test(
         "Explicit cache points: the stable parts and the conversation so far, nothing else (#235)")
     func explicitCachePoints() throws {
         let request = ResponseRequest(
@@ -436,6 +544,15 @@ private actor Rounds {
         return inputs.count - 1
     }
     func json(ofRound round: Int) -> String { inputs[round] }
+}
+
+/// Each request's body, in the order they came.
+private actor Bodies {
+    var all: [String] = []
+    func note(_ body: String) -> Int {
+        all.append(body)
+        return all.count - 1
+    }
 }
 
 private actor Records {

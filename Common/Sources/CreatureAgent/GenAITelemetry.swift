@@ -53,6 +53,19 @@ enum GenAI {
         static let openAIAPIType = "openai.api.type"
         static let openAIRequestServiceTier = "openai.request.service_tier"
         static let openAIResponseServiceTier = "openai.response.service_tier"
+        /// The provider's prompt cache diagnosis against the last call of the same kind (#275).
+        /// The conventions have no name for it; these follow their way with the provider's
+        /// own fields - `openai.request.service_tier` is the request's `service_tier` - so each
+        /// is the API's field under `openai.request.` / `openai.response.`.
+        static let openAIRequestCacheComparison =
+            "openai.request.prompt_cache_options.comparison_response_id"
+        static let openAIResponseCacheDiagnosis = "openai.response.prompt_cache_diagnostics.type"
+        static let openAIResponseCacheMissReason =
+            "openai.response.prompt_cache_diagnostics.reason"
+        static let openAIResponseCacheMissedTokens =
+            "openai.response.prompt_cache_diagnostics.cache_missed_tokens"
+        static let openAIResponseCacheReusableTokens =
+            "openai.response.prompt_cache_diagnostics.comparison_reusable_tokens"
         static let serverAddress = "server.address"
         static let serverPort = "server.port"
         static let errorType = "error.type"
@@ -199,6 +212,8 @@ enum GenAI {
         var round = 0
         var toolsOffered = 0
         var batchID: String? = nil
+        /// The earlier response the provider compares this one's cache use with (#275).
+        var cacheComparison: String? = nil
     }
 
     /// The span of one round, handed to the client while it reads the answer.
@@ -239,6 +254,14 @@ enum GenAI {
                 span.attributes[Key.responseID] = summary.id
                 span.attributes[Key.responseModel] = summary.model
                 span.attributes[Key.openAIResponseServiceTier] = summary.serviceTier
+                if let diagnosis = summary.cacheDiagnosis {
+                    span.attributes[Key.openAIResponseCacheDiagnosis] = diagnosis.type
+                    span.attributes[Key.openAIResponseCacheMissReason] = diagnosis.reason
+                    span.attributes[Key.openAIResponseCacheMissedTokens] =
+                        diagnosis.cacheMissedTokens
+                    span.attributes[Key.openAIResponseCacheReusableTokens] =
+                        diagnosis.comparisonReusableTokens
+                }
                 if let usage = summary.usage {
                     GenAI.record(usage, on: span)
                     reported.withLock { $0 = usage }
@@ -280,6 +303,7 @@ enum GenAI {
             span.attributes[Key.callKind] = turn?.kind.rawValue
             span.attributes[Key.round] = request.round
             span.attributes[Key.toolsOffered] = request.toolsOffered
+            span.attributes[Key.openAIRequestCacheComparison] = request.cacheComparison
             if let batchID = request.batchID {
                 span.attributes[Key.batch] = true
                 span.attributes[Key.batchID] = batchID

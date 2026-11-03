@@ -1,3 +1,21 @@
+creature-cli (2.108.0+world0.68.0+house0.7.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.108.0: why a call missed the cache, in Honeycomb
+    (#275). April: "Let's light up those diagnostics in Honeycomb so we
+    can make better decisions." Each live call asks OpenAI to compare its
+    prompt cache use with the mind's previous call of the same kind
+    (question, scene, house; a tool round with the round before), and the
+    answer - cache_hit, cache_miss with its first reason, the tokens it
+    cost, or that the earlier record has expired - lands on the chat span
+    as openai.response.prompt_cache_diagnostics.*, beside
+    openai.request.prompt_cache_options.comparison_response_id. The GenAI
+    conventions name only the cache's token counts; these follow their way
+    with a provider's own fields. Free, and it never changes an answer.
+  * probe-cache --compare prints the diagnosis for each round after the
+    first. creature-mqtt and creature-cli: no functional change.
+
+ -- April White <april@creature.engineering>  Mon, 02 Nov 2026 18:32:43 -0800
+
 creature-cli (2.107.0+world0.68.0+house0.7.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.68.0: a scene the house opens gives the floor in a

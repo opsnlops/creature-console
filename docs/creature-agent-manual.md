@@ -766,6 +766,25 @@ agent.scene_turn
   `creature_agent.call_kind` is the uncached input; the ratio of cache reads to
   input is whether the prompt layout is working. Each round still logs one `LLM usage` line
   with the provider's raw `usage` object, for the prompt-cache experiments.
+- **Why a call missed the cache** (`2.108.0`, #275, `docs/cache-diagnostics-plan.md`).
+  - **How it's asked.** Each live call asks the provider to compare its cache use with the
+    mind's previous call of the same kind (question, scene, house), and a tool round with the
+    round before it. The night isn't compared.
+  - **On the `chat` span:**
+    - `openai.request.prompt_cache_options.comparison_response_id`: the earlier call's
+      `gen_ai.response.id`
+    - `openai.response.prompt_cache_diagnostics.type`: `cache_hit`, `cache_miss`,
+      `comparison_response_not_found` (expired) or `unavailable`
+    - `.reason` on a miss: `tools_changed`, `service_tier_changed`, `input_changed`...
+    - `.cache_missed_tokens` and `.comparison_reusable_tokens`
+  - **Why those names.** The GenAI conventions name only the cache's token counts. These follow
+    their way with a provider's own fields (`openai.response.service_tier`).
+  - **In the log.** The `LLM usage` line has `llm.usage.cache_diagnosis` and
+    `llm.usage.cache_miss_reason`.
+  - **The useful query.** `SUM(openai.response.prompt_cache_diagnostics.cache_missed_tokens)` by
+    `.reason` and `creature_agent.call_kind`: tokens lost, by cause.
+  - **To try a change without the birds:** `creature-agent probe-cache --compare` prints the
+    diagnosis for each round after the first.
 - **A request sent again** (`2.105.2`, #268): every OpenAI request goes through
   `OpenAIRetry`, the policy OpenAI's own SDKs use. A 408, 409, 429 or 5xx, or a connection that
   failed, is sent again after an exponential backoff with jitter, or after the provider's
