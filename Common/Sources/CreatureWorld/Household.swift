@@ -125,18 +125,25 @@ enum Household {
         return calendar
     }
 
-    /// Whether April had asked the birds to let the cameras be (#220) when `moment` happened: a
-    /// `house.cameras_quiet` in force on the house then, ended by its own expiry or early by a
-    /// bird's `none`. A sighting is judged by when it was seen, not when the scene opener
-    /// reaches it. The opener reads the world one event at a time; a sighting seen in the quiet
-    /// and read just after it ended opened a scene April had asked to skip, and that scene's
-    /// cooldown swallowed the next sighting (#266).
-    static func camerasQuiet(house: EntityID, facts: FactRepository, at moment: Date) async throws
-        -> Bool
-    {
-        guard let quiet = try await facts.fact(of: house, WorldFacts.camerasQuiet, at: moment)
-        else { return false }
-        return quiet.value != .null
+    /// The quiet April can ask for over this kind of event: the cameras' (#220), or the game's
+    /// (#272). Nil for anything she cannot silence.
+    static func quiet(over type: WorldEventType) -> String? {
+        if HouseEvents.cameraSightings.contains(type) { return WorldFacts.camerasQuiet }
+        if HouseEvents.games.contains(type) { return WorldFacts.gamesQuiet }
+        return nil
+    }
+
+    /// Whether April had asked the birds for that quiet when `moment` happened: the fact in
+    /// force on the house then, ended by its own expiry or early by a bird's `none`. An event
+    /// is judged by when it happened, not when the scene opener reaches it. The opener reads
+    /// the world one event at a time; a sighting seen in the quiet and read just after it ended
+    /// opened a scene April had asked to skip, and that scene's cooldown swallowed the next
+    /// sighting (#266).
+    static func isQuiet(
+        _ quiet: String, house: EntityID, facts: FactRepository, at moment: Date
+    ) async throws -> Bool {
+        guard let fact = try await facts.fact(of: house, quiet, at: moment) else { return false }
+        return fact.value != .null
     }
 
     static let sourceID = try! SourceID(validating: "world:household")

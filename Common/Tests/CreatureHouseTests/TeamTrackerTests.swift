@@ -247,6 +247,43 @@ struct TeamTrackerTests {
         #expect(both.payload["scored_by"] == nil)
     }
 
+    @Test("Under way, the ball changing hands is news; ESPN saying nothing between plays is not")
+    func possession() async throws {
+        let announcer = HouseAnnouncer(translator: translator)
+        func live(
+            _ offset: TimeInterval, ball: String?, _ ours: Int = 0, _ theirs: Int = 0,
+            down: String? = nil
+        ) async throws -> [WorldEventEnvelope] {
+            var attributes: [String: WorldJSONValue] = [
+                "team_score": .string("\(ours)"), "opponent_score": .string("\(theirs)"),
+                "clock": .string("9:41 - 1st"), "last_play": .string("play at \(Int(offset))"),
+                "possession": ball.map { .string($0) } ?? .string(""),
+            ]
+            attributes["down_distance_text"] = down.map { .string($0) }
+            return try await announcer.events(
+                from: nil, to: sensor("IN", at: offset, changed: 0, attributes))
+        }
+        // Under way with nobody on the ball yet, then the Chiefs receive.
+        #expect(try await live(0, ball: nil).only?.type == HouseEvents.gameStarted)
+        let first = try #require(try await live(30, ball: "12", down: "1st & 10 at KC 25").only)
+        #expect(first.type == HouseEvents.gamePossession)
+        #expect(first.payload["possession"] == .string("Kansas City Chiefs"))
+        #expect(first.payload["down_distance"] == .string("1st & 10 at KC 25"))
+        #expect(first.occurredAt == kickedOff.addingTimeInterval(30))
+        // Their downs go by: not news. ESPN says nothing between plays: not news either.
+        #expect(try await live(60, ball: "12", down: "2nd & 4 at KC 31").isEmpty)
+        #expect(try await live(70, ball: nil).isEmpty)
+        #expect(try await live(80, ball: "12", down: "3rd & 4 at KC 31").isEmpty)
+        // A punt: the Seahawks have it.
+        let punt = try #require(try await live(120, ball: "26", down: "1st & 10 at SEA 30").only)
+        #expect(punt.type == HouseEvents.gamePossession)
+        #expect(punt.payload["possession"] == .string("Seattle Seahawks"))
+        // A touchdown and the kickoff in one look: the score is the news, with the ball in it.
+        let score = try #require(try await live(400, ball: "12", 7, 0).only)
+        #expect(score.type == HouseEvents.gameScored)
+        #expect(score.payload["possession"] == .string("Kansas City Chiefs"))
+    }
+
     @Test("Restarted mid-game, the house tells the game under way with its score, and no score")
     func restartedMidGame() throws {
         let started = try #require(
@@ -283,6 +320,7 @@ struct TeamTrackerTests {
             "opponent_long_name": .string("Kansas City Chiefs"),
             "team_homeaway": .string("home"), "team_record": .string("5-2"),
             "team_winner": .null, "opponent_winner": .null,
+            "team_id": .string("26"), "opponent_id": .string("12"),
         ]
         all.merge(attributes) { $1 }
         return EntityState(

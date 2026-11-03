@@ -13,8 +13,8 @@ public enum LibrarianFiling {
     /// and a rewrite would step around them. A visit ending ends what was reported about it
     /// (#228); presence and sightings are the house's; pronouns are a person's own word.
     public static let protectedPrefixes = [
-        "visitor.", "presence.", WorldFacts.sightingIdentified, "house.cameras_quiet",
-        WorldFacts.pronouns,
+        "visitor.", "presence.", WorldFacts.sightingIdentified, WorldFacts.camerasQuiet,
+        WorldFacts.gamesQuiet, WorldFacts.pronouns,
     ]
 
     public static func isProtected(_ predicate: String) -> Bool {

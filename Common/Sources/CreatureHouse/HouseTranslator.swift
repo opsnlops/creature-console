@@ -117,9 +117,9 @@ struct HouseTranslator: Sendable {
     // MARK: - A team's game (#269)
 
     /// What a Team Tracker sensor's change is: a game at a stage the World has not heard, a
-    /// score while it is under way, or nothing. Odds, the clock and records moving under the
-    /// same state are not news, and nor is a sensor gone and back - `old` is what the World was
-    /// last told.
+    /// score or the ball changing hands while it is under way, or nothing. Odds, the clock, the
+    /// downs and records moving under the same state are not news, and nor is a sensor gone and
+    /// back - `old` is what the World was last told.
     private func gameEvent(mapping: EntityMapping, old: EntityState?, new: EntityState) throws
         -> WorldEventEnvelope?
     {
@@ -135,18 +135,28 @@ struct HouseTranslator: Sendable {
         var happened = new.lastChanged
         if sameGame, let before, before.stage == game.stage {
             // Under way, a score is news: April wants the birds asked about each one. A
-            // correction that only takes points away keeps the World's score right and asks
-            // nobody. Keyed by the change itself, not the score: a touchdown overturned on
-            // review and scored again is two scores of the same number.
-            guard game.stage == .playing,
+            // correction that only takes points away is news of its own. Keyed by the change
+            // itself, not the score: a touchdown overturned on review and scored again is two
+            // scores of the same number.
+            guard game.stage == .playing else { return nil }
+            let scoreMoved =
                 game.teamScore != before.teamScore || game.opponentScore != before.opponentScore
-            else { return nil }
-            scored = game.scored(since: before)
-            type = scored == nil ? HouseEvents.gameScoreCorrected : HouseEvents.gameScored
+            // The ball changing hands, which April wants the birds asked about too. ESPN saying
+            // nothing between plays is not a change; the side known again after it is, if it
+            // is the other one. A score is the bigger news when both move in one look.
+            let ballMoved = game.possession != nil && game.possession != before.possession
+            if scoreMoved {
+                scored = game.scored(since: before)
+                type = scored == nil ? HouseEvents.gameScoreCorrected : HouseEvents.gameScored
+            } else if ballMoved {
+                type = HouseEvents.gamePossession
+            } else {
+                return nil
+            }
             happened = new.updatedAt
             key =
                 new.contextID.map { "context:\($0)" }
-                ?? "game:\(WorldJSON.timestamp(game.kickoff)):score:\(WorldJSON.timestamp(happened))"
+                ?? "game:\(WorldJSON.timestamp(game.kickoff)):\(scoreMoved ? "score" : "possession"):\(WorldJSON.timestamp(happened))"
         } else {
             let stage: String
             (type, stage) =
@@ -169,6 +179,8 @@ struct HouseTranslator: Sendable {
         payload["result"] = game.result.map { .string($0) }
         payload["clock"] = game.clock.map { .string($0) }
         payload["last_play"] = game.lastPlay.map { .string($0) }
+        payload["possession"] = game.possession.map { .string($0) }
+        payload["down_distance"] = game.downDistance.map { .string($0) }
         switch scored {
         case .team?: payload["scored_by"] = game.team.map { .string($0) }
         case .opponent?: payload["scored_by"] = game.opponent.map { .string($0) }

@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import WorldCore
 
 @testable import creature_world
 
@@ -35,6 +36,12 @@ struct CreatureWorldConfigurationTests {
             .appendingPathComponent("debian/creature-world.json")
         let loaded = try CreatureWorldConfiguration.load(from: packaged, environment: [:])
         #expect(loaded.houseAsks == .mind)
+        // A game asks the lead about each score, each correction, and each change of hands.
+        let asked = Dictionary(
+            uniqueKeysWithValues: loaded.scenes.considerOn.map { ($0.event, $0.cooldownSeconds) })
+        #expect(asked[HouseEvents.gameScored] == 180)
+        #expect(asked[HouseEvents.gameScoreCorrected] == 180)
+        #expect(asked[HouseEvents.gamePossession] == 60)
     }
 
     @Test("JSON configuration loads and command values override it")

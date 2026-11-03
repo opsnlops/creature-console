@@ -43,8 +43,9 @@ struct CamerasQuietMongoTests {
                     ]))
         }
         func quiet(_ offset: TimeInterval) async throws -> Bool {
-            try await Household.camerasQuiet(
-                house: house, facts: persistence.facts, at: now.addingTimeInterval(offset))
+            try await Household.isQuiet(
+                WorldFacts.camerasQuiet, house: house, facts: persistence.facts,
+                at: now.addingTimeInterval(offset))
         }
         // "The yard guy is working" for an hour from -10 s, and a bird ends it early at 0.
         try await given(.string("the yard guy is working"), at: now - 10, for: 3_600)
@@ -72,10 +73,35 @@ struct CamerasQuietMongoTests {
                     "valid_for_seconds": .number(30),
                 ]))
         #expect(
-            try await Household.camerasQuiet(
-                house: shed, facts: persistence.facts, at: now.addingTimeInterval(-45)))
+            try await Household.isQuiet(
+                WorldFacts.camerasQuiet, house: shed, facts: persistence.facts,
+                at: now.addingTimeInterval(-45)))
         #expect(
-            try await Household.camerasQuiet(
-                house: shed, facts: persistence.facts, at: now.addingTimeInterval(-29)) == false)
+            try await Household.isQuiet(
+                WorldFacts.camerasQuiet, house: shed, facts: persistence.facts,
+                at: now.addingTimeInterval(-29)) == false)
+        // The cameras' quiet is not the game's.
+        #expect(
+            try await Household.isQuiet(
+                WorldFacts.gamesQuiet, house: shed, facts: persistence.facts,
+                at: now.addingTimeInterval(-45)) == false)
+    }
+}
+
+@Suite("What April can quiet (#220, #272)")
+struct QuietKindsTests {
+    @Test("A sighting is the cameras' to quiet, a game's every word the game's, a door nobody's")
+    func quietOver() {
+        #expect(Household.quiet(over: HouseEvents.personSeen) == WorldFacts.camerasQuiet)
+        #expect(Household.quiet(over: HouseEvents.vehicleGone) == WorldFacts.camerasQuiet)
+        for type in [
+            HouseEvents.gameScored, HouseEvents.gameScoreCorrected, HouseEvents.gamePossession,
+            HouseEvents.gameStarted, HouseEvents.gameFinal,
+        ] {
+            #expect(Household.quiet(over: type) == WorldFacts.gamesQuiet)
+        }
+        #expect(Household.quiet(over: HouseEvents.doorUnlocked) == nil)
+        #expect(WorldFacts.meanings[WorldFacts.gamesQuiet]?.isEmpty == false)
+        #expect(LibrarianFiling.isProtected(WorldFacts.gamesQuiet))
     }
 }

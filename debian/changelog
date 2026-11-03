@@ -1,3 +1,23 @@
+creature-cli (2.107.0+world0.67.0+house0.7.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-house 0.7.0 / creature-world 0.67.0: the ball changing hands
+    (#272). April: "Are we getting possession changes, too?" While a game
+    is under way the house reports game.possession, naming the side with
+    the ball from Team Tracker's possession id, with down and distance.
+    ESPN saying nothing between plays is no change; a score and a change
+    of hands in one update is reported as the score. game.playing keeps
+    who has the ball and where, and the packaged world.json asks the lead
+    about each change of hands (consider_on, 60 s apart; the lead may let
+    a punt go by). "I'll change it if it's too much."
+  * creature-world 0.67.0 / creature-agent 2.107.0: a quiet hour for the
+    game. April: "Beaky, ignore the game for the next hour." A bird keeps
+    house.games_quiet on the house, with an expiry, just as for the
+    cameras, and ends it with none. While it holds no game event opens a
+    scene; the game is still recorded. One opener check now covers both
+    quiet hours (Household.quiet(over:) and isQuiet).
+
+ -- April White <april@creature.engineering>  Mon, 02 Nov 2026 17:46:07 -0800
+
 creature-cli (2.106.2+world0.66.1+house0.6.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.66.1: a house cooldown starts only when its scene

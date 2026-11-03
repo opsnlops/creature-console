@@ -242,6 +242,19 @@ struct LearningTests {
         #expect(LearnedFact.contract.contains("house.cameras_quiet"))
     }
 
+    @Test("\"Beaky, ignore the game for the next hour\" keeps the game's quiet on the house (#272)")
+    func gamesQuietForAnHour() throws {
+        let quiet = try #require(
+            LearnedFact.all(
+                in: "Of course. [learned: the house | house.games_quiet | watching a movie | 1h]",
+                names: names
+            ).first)
+        #expect(quiet.subjectID == house)
+        #expect(quiet.predicate == WorldFacts.gamesQuiet)
+        #expect(quiet.expiry == .span(3_600))
+        #expect(LearnedFact.contract.contains("house.games_quiet"))
+    }
+
     @Test("\"I'm at the dentist\" keeps her place as a link; a value named like a subject is one")
     func placesAreLinks() throws {
         var names = self.names

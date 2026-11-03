@@ -382,6 +382,14 @@ struct SceneOpeningTests {
             try said(HouseEvents.gameScoreCorrected)
                 == "Points just came off the board in the game between Seattle Seahawks, the team April follows, and Chicago Bears - a score taken back. It now stands: "
                 + score)
+        // The ball changing hands, with where it is now.
+        payload["possession"] = .string("Chicago Bears")
+        payload["down_distance"] = .string("1st & 10 at CHI 25")
+        payload["last_play"] = .string("D. Moore punts 44 yards.")
+        #expect(
+            try said(HouseEvents.gamePossession)
+                == "Chicago Bears now has the ball in the game between Seattle Seahawks, the team April follows, and Chicago Bears: Seattle Seahawks 14, Chicago Bears 7 (7:12 - 2nd; 1st & 10 at CHI 25). The play: D. Moore punts 44 yards. April is home."
+        )
     }
 
     private func event(

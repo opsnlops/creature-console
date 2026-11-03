@@ -71,7 +71,8 @@
       { "event": "house.scene_activated", "cooldown_seconds": 120 },
       { "event": "daylight.dusk", "cooldown_seconds": 3600 },
       { "event": "game.scored", "cooldown_seconds": 180 },
-      { "event": "game.score_corrected", "cooldown_seconds": 180 }
+      { "event": "game.score_corrected", "cooldown_seconds": 180 },
+      { "event": "game.possession", "cooldown_seconds": 60 }
     ]
   },
   "calendar": { "at_home": ["home", "house", "april's nest"] },

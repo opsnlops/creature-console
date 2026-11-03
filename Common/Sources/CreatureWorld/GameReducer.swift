@@ -2,14 +2,14 @@ import Foundation
 import WorldCore
 
 /// A team's games, from the house's Team Tracker sensor, as facts on the team (#269): the next
-/// one, the one under way with its score, the last one final. Each time is said in words too, in the World's
+/// one, the one under way with its score and who has the ball, the last one final. Each time is said in words too, in the World's
 /// own time zone - "Monday, November 2 at 5:15 PM" - so no mind has to make an evening out of
 /// a UTC timestamp. A game moving on ends what came before it: under way, it is no longer next;
 /// final, it is neither.
 struct GameReducer: WorldReducer {
     let eventTypes: Set<WorldEventType> = [
         HouseEvents.gameScheduled, HouseEvents.gameStarted, HouseEvents.gameScored,
-        HouseEvents.gameScoreCorrected, HouseEvents.gameFinal,
+        HouseEvents.gameScoreCorrected, HouseEvents.gamePossession, HouseEvents.gameFinal,
     ]
     let zone: TimeZone
 
@@ -31,10 +31,12 @@ struct GameReducer: WorldReducer {
         case HouseEvents.gameScheduled:
             predicate = WorldFacts.gameNext
             ends = nil
-        case HouseEvents.gameStarted, HouseEvents.gameScored, HouseEvents.gameScoreCorrected:
-            // Under way: the score as of the last time anyone scored, and the clock then.
+        case HouseEvents.gameStarted, HouseEvents.gameScored, HouseEvents.gameScoreCorrected,
+            HouseEvents.gamePossession:
+            // Under way: the score and who has the ball, as of the last score or change of
+            // possession, and the clock then.
             predicate = WorldFacts.gamePlaying
-            for key in ["team_score", "opponent_score", "clock"] {
+            for key in ["team_score", "opponent_score", "clock", "possession", "down_distance"] {
                 game[key] = event.payload[key]
             }
             ends = ending(WorldFacts.gameNext, on: team)

@@ -25,6 +25,11 @@ struct TeamTrackerGame: Equatable, Sendable {
     /// While it is under way: the game's clock ("7:12 - 2nd") and the last play, in ESPN's words.
     var clock: String?
     var lastPlay: String?
+    /// While it is under way, who has the ball - the team's name or the opponent's - and where:
+    /// ESPN's down and distance ("1st & 10 at SEA 25"). Nil between plays when ESPN says
+    /// nothing, which is not the ball changing hands.
+    var possession: String?
+    var downDistance: String?
     /// `won`, `lost` or `tied`, once it is final.
     var result: String?
 
@@ -53,6 +58,12 @@ struct TeamTrackerGame: Equatable, Sendable {
         guard stage == .final else {
             clock = text("clock")
             lastPlay = text("last_play")
+            // ESPN names the side with the ball by its team id.
+            if let side = text("possession") {
+                possession =
+                    side == text("team_id") ? team : side == text("opponent_id") ? opponent : nil
+            }
+            downDistance = text("down_distance_text")
             return
         }
         result = Self.result(

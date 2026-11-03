@@ -91,6 +91,21 @@ score now happens at `last_updated`.
 Still open: a score held back by a conversation is not asked about once it ends; the next
 score is.
 
+## Possession, and a quiet hour (house 0.7.0, World 0.67.0, agent 2.107.0, #272)
+
+During the same game April asked "Are we getting possession changes, too?", then "Let's do
+both 1 and 2. I'll change it if it's too much." The pieces:
+
+- **The house** reports `game.possession` whenever the ball changes hands. It reads Team
+  Tracker's `possession` and names the side by `team_id` / `opponent_id`, with `down_distance`.
+- **`GameReducer`** keeps `possession` and `down_distance` in `game.playing`.
+- **The packaged `world.json`** asks the lead about each change of hands, 60 s apart. The lead
+  may stay quiet for a punt.
+
+Then: "Let's give me a kill switch like we do for the cameras. 'Beaky, ignore the game for the
+next hour'". A bird keeps `house.games_quiet` on the house, with an expiry, and ends it with
+`none`. While it holds, no game event opens a scene, and the game is still recorded.
+
 ## Not in this slice
 
 - **The birds bringing up a final unprompted.** A `game.final` opens no scene: no scene rule

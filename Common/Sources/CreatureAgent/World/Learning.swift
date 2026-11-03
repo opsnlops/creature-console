@@ -221,8 +221,9 @@ struct LearnedFact: Equatable, Sendable {
         person, place, or thing, keep nothing for it: the librarian hears her and files it \
         that night. When April asks you to let the cameras \
         be for a while, keep that too, so the house stops offering them: [learned: the house | \
-        house.cameras_quiet | the yard guy is working | 1h] - and end it with none when she says \
-        you may talk about them again. When April tells you where she is while she is out, keep \
+        house.cameras_quiet | the yard guy is working | 1h] - and the same for a game, with \
+        house.games_quiet: [learned: the house | house.games_quiet | watching a movie | 1h]. End \
+        either with none when she says you may talk about it again. When April tells you where she is while she is out, keep \
         it on her, naming the place with its kind: [learned: person: April | presence.place | \
         place: the dentist | 2h]. Expires: today, tomorrow, week, never, or a span such as \
         1h or 30m (at most 12h). \

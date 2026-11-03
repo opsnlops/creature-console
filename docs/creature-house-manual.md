@@ -209,6 +209,17 @@ A score is keyed by Home Assistant's context, not by the score, so a touchdown o
 scored again is two scores. A restart mid-game tells the game under way with its score, and
 no score event.
 
+**Possession** (`0.7.0`, #272). While the game is under way the house also reports the ball
+changing hands as `game.possession`. Team Tracker's `possession` is ESPN's id for the side
+with the ball; matched against `team_id` / `opponent_id`, it becomes the team's or the
+opponent's name. The event carries both scores, the clock, the `last_play` and
+`down_distance` ("1st & 10 at SEA 25"). Neither of these is news:
+- ESPN saying nothing between plays
+- the downs moving while the same side has the ball
+
+A score and a change of hands in one update is reported as the score, carrying the new
+`possession`. Every game event under way carries `possession` and `down_distance`.
+
 A score happens at Home Assistant's `last_updated` (`0.6.1`, #271). A score changes only the
 sensor's attributes, and `last_changed` moves only when the state does, so in 0.6.0 every score
 of the Bears game carried the kickoff's time. The stage events are state changes and keep

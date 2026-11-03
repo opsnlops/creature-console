@@ -143,6 +143,29 @@ struct GameReducerTests {
         }
     }
 
+    @Test("The ball changing hands keeps the game under way, with who has it and where")
+    func possession() throws {
+        let reduction = try reducer.reduce(
+            try gameEvent(
+                HouseEvents.gamePossession, team, key: "context:y",
+                [
+                    "team_score": .number(0), "opponent_score": .number(7),
+                    "clock": .string("2:40 - 1st"), "possession": .string("Seattle Seahawks"),
+                    "down_distance": .string("1st & 10 at SEA 25"),
+                    "last_play": .string("C. Santos kicks 65 yards, touchback."),
+                ]))
+        let playing = try #require(reduction.changedFacts.only)
+        #expect(playing.predicate == WorldFacts.gamePlaying)
+        guard case .object(let game) = playing.value else {
+            Issue.record("not a game: \(playing.value)")
+            return
+        }
+        #expect(game["possession"] == .string("Seattle Seahawks"))
+        #expect(game["down_distance"] == .string("1st & 10 at SEA 25"))
+        #expect(game["opponent_score"] == .number(7))
+        #expect(game["last_play"] == nil)
+    }
+
     @Test("A game with no kickoff is no game")
     func noKickoff() throws {
         var event = try gameEvent(HouseEvents.gameFinal, team, key: "game:x:final", finalScore)

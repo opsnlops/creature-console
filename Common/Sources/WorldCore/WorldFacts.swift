@@ -33,6 +33,10 @@ public enum WorldFacts {
     /// `none` when she says they may talk about the cameras again. (#220: on 2026-10-06 she
     /// said "ignore the cameras for the next hour" and the world opened 33 camera scenes.)
     public static let camerasQuiet = "house.cameras_quiet"
+    /// `house · house.games_quiet` "watching a movie", valid an hour: the same for a team's game
+    /// (#272). April: "Beaky, ignore the game for the next hour." The game is still recorded -
+    /// `game.playing` keeps the score and the ball - and no scene opens for it.
+    public static let gamesQuiet = "house.games_quiet"
     /// `order:*` `order.status`: placed, shipped, out_for_delivery, or delivered (the Bridge).
     public static let orderStatus = "order.status"
     /// `order:*` `order.expected`: the day the mail says it arrives, "September 25, 2026";
@@ -192,8 +196,9 @@ public enum WorldFacts {
     /// The team's next game, once it is published - Team Tracker shows it twelve hours ahead:
     /// `{team, opponent, home_away, kickoff, when}`.
     public static let gameNext = "game.next"
-    /// A game the team is playing right now, as `game.next`, with the score as of the last
-    /// time anyone scored and the game's clock then.
+    /// A game the team is playing right now, as `game.next`, with the score, who has the ball
+    /// and where (`possession`, `down_distance`), and the game's clock, as of the last score or
+    /// change of possession.
     public static let gamePlaying = "game.playing"
     /// The team's last game, final: as `game.next`, with `team_score`, `opponent_score` and
     /// `result`, and `ended_at` / `ended` when the house saw the final whistle itself.
@@ -227,6 +232,8 @@ public enum WorldFacts {
         personDescription: "who a person is, in April's words",
         camerasQuiet:
             "April asked the birds to let the cameras be until this ends, and why; the house opens no scene for a camera sighting while it holds, and the sightings are still recorded",
+        gamesQuiet:
+            "April asked the birds to let the game be until this ends, and why; the house opens no scene for a score or a change of possession while it holds, and the game is still recorded - the score and who has the ball are still known",
         visitorExpected:
             "someone April is expecting, and when; a person turning up then is almost certainly them",
         "departure.due":
@@ -283,7 +290,7 @@ public enum WorldFacts {
         gameNext:
             "the team's next game: who they play, home or away, and when; it is published on game day, about twelve hours before kickoff, so no next game here says nothing about later ones",
         gamePlaying:
-            "a game the team is playing right now: who against, home or away, when it kicked off, and the score as of the last time anyone scored, with the game's clock then",
+            "a game the team is playing right now: who against, home or away, when it kicked off, the score, and who has the ball and where, as of the last score or change of possession, with the game's clock then",
         gameLast:
             "the team's most recent finished game: who they played, both scores, whether they won, lost or tied, when it kicked off, and when it ended if the house saw the final whistle (a game runs about three hours)",
     ]
@@ -358,4 +365,14 @@ public enum HouseEvents {
     /// as it now stands, so the World's is right. Its own `consider_on` line: April looks
     /// forward to Mango's commentary on it.
     public static let gameScoreCorrected = WorldEventType(rawValue: "game.score_corrected")!
+    /// The ball changed hands in a game under way: the game, both scores, `possession` (the
+    /// name of the side that has it now), `down_distance` ("1st & 10 at CHI 25"), the `clock`
+    /// and the `last_play` - a punt, a turnover, a kickoff after a score. April: "Let's do
+    /// both" - kept in `game.playing`, and a `consider_on` line so the lead may remark on it,
+    /// or let a punt go by.
+    public static let gamePossession = WorldEventType(rawValue: "game.possession")!
+    /// Everything a game tells the World - what the game's quiet hour silences.
+    public static let games: Set<WorldEventType> = [
+        gameScheduled, gameStarted, gameFinal, gameScored, gameScoreCorrected, gamePossession,
+    ]
 }

@@ -257,6 +257,15 @@ was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody log
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 
+**A quiet hour for the game** (`0.67.0`, #272). April: "Beaky, ignore the game for the next
+hour." It works like the cameras' quiet: a bird keeps `house · house.games_quiet` with an expiry
+from her words, and ends it with `none`. While it holds, no game event opens a scene. The game
+is still recorded: `game.playing` keeps the score and the ball. `Household.quiet(over:)` maps an
+event kind to the quiet that silences it (camera sightings → `house.cameras_quiet`, every
+`game.*` → `house.games_quiet`), and `Household.isQuiet` judges it at the moment the event
+happened. The packaged `world.json` asks the lead about each change of possession
+(`game.possession`, 60 s apart); the lead may let a punt go by.
+
 A cooldown starts only when its scene opens (`0.66.1`, #271). `SceneOpeningPolicy.occasion`
 only looks; the opener calls `opened` once the scene is open. An occasion held back costs
 nothing: a house question that would have interrupted a conversation, or a room with nobody
