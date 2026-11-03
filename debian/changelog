@@ -1,3 +1,16 @@
+creature-cli (2.106.1+world0.66.0+house0.6.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.106.1: a voice cue is one feeling (#270). On the
+    first live night every bird cued, and Caroll tried [curious and
+    sleepy]; two feelings joined with "and" did not come through. The
+    contract now says a cue is one feeling, the one that matters most.
+  * A cue goes where the feeling arrives: at the start, between two
+    sentences, or partway through one. That night every bird opened its
+    line with one; April: "They can mix in cues even in the middle of a
+    line."
+
+ -- April White <april@creature.engineering>  Mon, 02 Nov 2026 17:07:26 -0800
+
 creature-cli (2.106.0+world0.66.0+house0.6.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.106.0 / creature-world 0.66.0: the birds perform

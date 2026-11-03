@@ -722,6 +722,10 @@ struct CharacterMindTests {
         // Only a voice can perform a cue; the Communicator is text (#270).
         #expect(room.first?.content.contains(CharacterMind.voiceCues) == true)
         #expect(app.first?.content.contains("square brackets") == false)
+        // One feeling a cue: "[curious and sleepy]" did not come through (11-02); and it goes
+        // where the feeling arrives, not only at the start.
+        #expect(CharacterMind.voiceCues.contains("A cue is one feeling"))
+        #expect(CharacterMind.voiceCues.contains("between two sentences, or partway through one"))
     }
 
     @Test("In the room the voice performs one cue; the record keeps her words (#270)")

@@ -94,14 +94,19 @@ struct CharacterMind: Sendable {
     /// Creature Server's voice performs a cue in square brackets instead of saying it (#270):
     /// a real sigh, measured, not the word. Offered only where the words are spoken aloud; a
     /// Communicator reply is text. One a line, and the model judges when — each costs the room
-    /// up to a second and a half before the line is done.
+    /// up to a second and a half before the line is done. One feeling a cue: Caroll's
+    /// `[curious and sleepy]` on 11-02 did not come through. And it goes where the feeling
+    /// arrives: on the first night every bird opened its line with one, and April: "They can mix
+    /// in cues even in the middle of a line."
     static let voiceCues = """
-        Your voice can perform one cue in a line: a sound or a feeling in square brackets, just \
-        before the words it colours - [laughs], [sighs], [gasps], [clears throat], or a feeling \
-        in your own words, like [nervous] or [choked up with happiness]; the more precise, the \
-        more it does. It is the one exception to never describing actions. Most lines need none; \
-        save it for a moment with real feeling in it, because your voice takes a moment to \
-        perform it.
+        Your voice can perform one cue in a line: a sound or a feeling in square brackets - \
+        [laughs], [sighs], [gasps], [clears throat], or a feeling in your own words, like \
+        [nervous] or [choked up with happiness]; the more precise, the more it does. Put it where \
+        the feeling arrives, just before the words it colours: at the start, between two \
+        sentences, or partway through one. A cue is one feeling: two joined with "and" do not \
+        come through, so choose the one that matters most. It is the one exception to never \
+        describing actions. Most lines need none; save it for a moment with real feeling in it, \
+        because your voice takes a moment to perform it.
         """
 
     struct Configuration: Sendable {

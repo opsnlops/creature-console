@@ -252,7 +252,11 @@ else — persona, facts, the clock, streaming to the room — is identical.
     house-remark contract carry `CharacterMind.voiceCues`. It names a few sounds (`[laughs]`,
     `[sighs]`, `[gasps]`, `[clears throat]`), invites a feeling in the bird's own words
     (`[nervous]`, `[choked up with happiness]`), and calls it the one exception to describing
-    actions. Most lines need none. The Communicator contract says nothing of cues, and its
+    actions. Most lines need none. Two refinements came in `2.106.1`, after the first live night:
+    - **One feeling per cue.** Caroll's `[curious and sleepy]`, two feelings joined with "and",
+      did not come through.
+    - **A cue goes where the feeling arrives:** at the start, between two sentences, or partway
+      through one. Every bird had opened its line with one. The Communicator contract says nothing of cues, and its
     replies lose every bracket.
   - **What counts as a cue.** `WorldCore.VoiceCues` decides: 1–40 characters with a letter, no
     colon, and not `[silence]`. So `[learned: …]`, `[house: …]` and `[quiet: …]` are never

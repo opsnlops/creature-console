@@ -28,7 +28,11 @@ Recommended on #270, and taken as recommended; each one is easy to change.
 2. **What a bird may say.** Name a few performed sounds (`[laughs]`, `[sighs]`, `[gasps]`,
    `[clears throat]`). Otherwise let the bird describe a feeling in its own words; Beaky's
    `[choked up with happiness]` measurably did more than `[cheerful]`. The model judges when; no
-   code decides which feeling a line has.
+   code decides which feeling a line has. **One feeling per cue** (agent 2.106.1): on the first
+   live night Caroll tried `[curious and sleepy]`, and two feelings joined with "and" didn't come
+   through. The contract now says so. It also says a cue goes where the feeling arrives (start,
+   between sentences, or partway through one): that night every bird opened its line with one, and
+   April: "They can mix in cues even in the middle of a line."
 3. **At most one cue per line, enforced in code.** Each cue costs 0.1–1.5 s of voice before the
    bird finishes speaking, on the latency the birds are judged by. The model chooses whether a line
    gets one; code only keeps the second from being performed.
