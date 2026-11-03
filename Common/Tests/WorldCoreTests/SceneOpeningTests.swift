@@ -408,6 +408,24 @@ struct SceneOpeningTests {
             try said(HouseEvents.gamePossession)
                 == "The ball just went to Chicago Bears in the game between Seattle Seahawks, the team April follows, and Chicago Bears: Seattle Seahawks 14, Chicago Bears 7 (7:12 - 2nd; 1st & 10 at CHI 25). The play: D. Moore punts 44 yards. April is home."
         )
+        // The final whistle (#276): who won and by how much, nothing of the last play.
+        let final: [String: WorldJSONValue] = [
+            "team": .string("Seattle Seahawks"), "opponent": .string("Chicago Bears"),
+            "team_score": .number(17), "opponent_score": .number(34), "result": .string("lost"),
+        ]
+        func ended(_ result: String?) throws -> String {
+            var payload = final
+            payload["result"] = result.map { .string($0) }
+            return SceneOpeningPolicy.triggerText(
+                for: try event(HouseEvents.gameFinal, seahawks, payload: payload),
+                place: seahawks, household: home)
+        }
+        let over =
+            "The game between Seattle Seahawks, the team April follows, and Chicago Bears is over: "
+        #expect(try ended("lost") == over + "Seattle Seahawks lost, 17 to 34. April is home.")
+        #expect(try ended("won") == over + "Seattle Seahawks won, 17 to 34. April is home.")
+        #expect(try ended("tied") == over + "it ended in a tie, 17 to 34. April is home.")
+        #expect(try ended(nil) == over + "it ended 17 to 34. April is home.")
     }
 
     private func event(

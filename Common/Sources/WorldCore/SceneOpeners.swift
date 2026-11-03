@@ -268,7 +268,8 @@ public actor SceneOpeningPolicy {
             let value: String
             if case .string(let text)? = event.payload["value"] { value = text } else { value = "" }
             return "A reminder of April's is due: \(value). April is home."
-        case HouseEvents.gameScored, HouseEvents.gameScoreCorrected, HouseEvents.gamePossession:
+        case HouseEvents.gameScored, HouseEvents.gameScoreCorrected, HouseEvents.gamePossession,
+            HouseEvents.gameFinal:
             let home: String =
                 switch household.aprilHome {
                 case true?: " April is home."
@@ -313,8 +314,8 @@ public actor SceneOpeningPolicy {
 
     /// "The Chicago Bears just scored against the Seattle Seahawks, the team April follows:
     /// Seattle Seahawks 7, Chicago Bears 14 (7:12 - 2nd). The play: ..." - or points coming off
-    /// the board, a score taken back on review (#269), or the ball changing hands, with where
-    /// it is now.
+    /// the board, a score taken back on review (#269), the ball changing hands, with where it is
+    /// now, or the game over and who won.
     static func gameText(_ event: WorldEventEnvelope) -> String {
         func text(_ key: String) -> String? {
             switch event.payload[key] {
@@ -325,6 +326,19 @@ public actor SceneOpeningPolicy {
         }
         let team = text("team") ?? "April's team"
         let opponent = text("opponent") ?? "their opponent"
+        // The final whistle (#276): who won, by how much, and nothing of the last play.
+        if event.type == HouseEvents.gameFinal {
+            let score = "\(text("team_score") ?? "0") to \(text("opponent_score") ?? "0")"
+            let outcome =
+                switch text("result") {
+                case "won"?: "\(team) won, \(score)"
+                case "lost"?: "\(team) lost, \(score)"
+                case "tied"?: "it ended in a tie, \(score)"
+                default: "it ended \(score)"
+                }
+            return
+                "The game between \(team), the team April follows, and \(opponent) is over: \(outcome)."
+        }
         let scorer = text("scored_by")
         var line =
             if event.type == HouseEvents.gamePossession {

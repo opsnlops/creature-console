@@ -36,12 +36,15 @@ struct CreatureWorldConfigurationTests {
             .appendingPathComponent("debian/creature-world.json")
         let loaded = try CreatureWorldConfiguration.load(from: packaged, environment: [:])
         #expect(loaded.houseAsks == .mind)
-        // A game asks the lead about each score, each correction, and each change of hands.
+        // A game asks the lead about each score, each correction, each change of hands, and
+        // how it ended.
         let asked = Dictionary(
             uniqueKeysWithValues: loaded.scenes.considerOn.map { ($0.event, $0.cooldownSeconds) })
         #expect(asked[HouseEvents.gameScored] == 180)
         #expect(asked[HouseEvents.gameScoreCorrected] == 180)
         #expect(asked[HouseEvents.gamePossession] == 60)
+        // And the final whistle (#276).
+        #expect(asked[HouseEvents.gameFinal] == 600)
     }
 
     @Test("JSON configuration loads and command values override it")

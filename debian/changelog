@@ -1,3 +1,16 @@
+creature-cli (2.108.0+world0.69.0+house0.7.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.69.0: the house tells the birds when the game ends
+    (#276). After the Bears game April asked "No notice that the game
+    ended?" The final was recorded and announced to nobody, by #269's
+    design. A game.final now has its own stage note - "The game between
+    Seattle Seahawks, the team April follows, and Chicago Bears is over:
+    Seattle Seahawks lost, 17 to 34." - and the packaged world.json asks
+    the lead about it (consider_on). Quiet hours hold: a late final is
+    recorded and never announced.
+
+ -- April White <april@creature.engineering>  Mon, 02 Nov 2026 20:28:17 -0800
+
 creature-cli (2.108.0+world0.68.0+house0.7.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.108.0: why a call missed the cache, in Honeycomb

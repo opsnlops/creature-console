@@ -268,7 +268,10 @@ is still recorded: `game.playing` keeps the score and the ball. `Household.quiet
 event kind to the quiet that silences it (camera sightings → `house.cameras_quiet`, every
 `game.*` → `house.games_quiet`), and `Household.isQuiet` judges it at the moment the event
 happened. The packaged `world.json` asks the lead about each change of possession
-(`game.possession`, 60 s apart); the lead may let a punt go by.
+(`game.possession`, 60 s apart); the lead may let a punt go by. And it asks about the final
+whistle (`game.final`, `0.69.0`, #276). The stage note says who won and by how much: "The game
+between Seattle Seahawks, the team April follows, and Chicago Bears is over: Seattle Seahawks
+lost, 17 to 34."
 
 A cooldown starts only when its scene opens (`0.66.1`, #271). `SceneOpeningPolicy.occasion`
 only looks; the opener calls `opened` once the scene is open. An occasion held back costs

@@ -72,7 +72,8 @@
       { "event": "daylight.dusk", "cooldown_seconds": 3600 },
       { "event": "game.scored", "cooldown_seconds": 180 },
       { "event": "game.score_corrected", "cooldown_seconds": 180 },
-      { "event": "game.possession", "cooldown_seconds": 60 }
+      { "event": "game.possession", "cooldown_seconds": 60 },
+      { "event": "game.final", "cooldown_seconds": 600 }
     ]
   },
   "calendar": { "at_home": ["home", "house", "april's nest"] },

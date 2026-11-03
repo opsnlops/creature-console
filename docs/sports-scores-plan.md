@@ -114,9 +114,11 @@ a change.
 
 ## Not in this slice
 
-- **The birds bringing up a final unprompted.** A `game.final` opens no scene: no scene rule
-  names it, and it is not storyworthy. When that comes, a final after 23:00 is recorded and
-  never announced.
+- ~~**The birds bringing up a final unprompted.**~~ Built in World 0.69.0 (#276). After the
+  Bears game April asked "No notice that the game ended?" A final now has its own stage note:
+  "The game between Seattle Seahawks, the team April follows, and Chicago Bears is over:
+  Seattle Seahawks lost, 17 to 34." It also has a `consider_on` line in the packaged
+  `world.json`. Quiet hours hold, so a final after 23:00 is recorded and never announced.
 - **The next game before game day.** Team Tracker publishes it 12 hours ahead.
 
 ## Tests
