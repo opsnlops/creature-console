@@ -251,9 +251,13 @@ start a scene on their own, where, and how often —
 — the MQTT agent's areas and cooldowns, as world rules. When a matching event is accepted
 (and its place has not opened one within the cooldown), the world opens a scene in the
 region whose `places` include it (a person's event uses the lead's region), in
-`house_conversation` (default `conversation:april-house`), with the lead first and everyone
-else logged into the region after; the trigger is a stage note the birds read — "A person
-was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody logged in means
+`house_conversation` (default `conversation:april-house`), with everyone logged into the
+region in a shuffled order (`0.68.0`, #274); the trigger is a stage note the birds read — "A
+person was just seen at the driveway." — and whoever is offered the floor first takes the
+lead's part. House scenes stop at three turns. Until 0.68.0 the lead went first and the rest
+followed in the order their minds had logged in, so after a restart Kenny was fourth through
+the whole Bears game and never spoke. April: "let's shake it up". Every bird present stays in
+the cast, because the minds read who is in the room from it. Nobody logged in means
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 

@@ -296,6 +296,24 @@ struct SceneOpeningTests {
         #expect(await policy.occasion(for: touchdown, at: now + 212) != nil)
     }
 
+    @Test("The house's cast is everyone in the room, shuffled: nobody is always fourth (#274)")
+    func castIsShuffled() throws {
+        let birds = try ["beaky", "mango", "caroll", "kenny"].map {
+            try EntityID(validating: "character:\($0)")
+        }
+        var dice = Dice(seed: 274)
+        var spoke: [EntityID: Int] = [:]
+        for _ in 0..<200 {
+            let cast = SceneOpeningPolicy.cast(birds, using: &dice)
+            #expect(Set(cast) == Set(birds))
+            #expect(cast.count == birds.count)
+            // The three a house scene's turns reach.
+            for bird in cast.prefix(3) { spoke[bird, default: 0] += 1 }
+        }
+        // Kenny, last to log in, speaks about as often as anyone.
+        for bird in birds { #expect(spoke[bird, default: 0] > 100) }
+    }
+
     @Test("An ending is an occasion wherever its beginning is, and reads as a stay")
     func endingsFollowBeginnings() async throws {
         let policy = SceneOpeningPolicy(
@@ -401,5 +419,20 @@ struct SceneOpeningTests {
                 id: SourceID(validating: "home-assistant:test"), kind: "home-assistant"),
             subjectIDs: [subject], epistemic: EpistemicState(type: .observed, confidence: 1),
             payload: payload)
+    }
+}
+
+/// A seeded generator, so a shuffle in a test is the same every run (SplitMix64).
+private struct Dice: RandomNumberGenerator {
+    private var state: UInt64
+
+    init(seed: UInt64) { state = seed }
+
+    mutating func next() -> UInt64 {
+        state &+= 0x9E37_79B9_7F4A_7C15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+        return z ^ (z >> 31)
     }
 }

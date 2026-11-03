@@ -1,3 +1,16 @@
+creature-cli (2.107.0+world0.68.0+house0.7.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.68.0: a scene the house opens gives the floor in a
+    shuffled order (#274). House scenes stop at three turns, and the cast
+    was the lead then the order the minds had logged in, so after a
+    restart Kenny was fourth through the whole Bears game and never spoke.
+    April: "let's shake it up". Everyone present stays in the cast, since
+    the minds read who is in the room from it, and whoever is offered the
+    floor first takes the lead's part. Scenes April opens keep her
+    addressing rules.
+
+ -- April White <april@creature.engineering>  Mon, 02 Nov 2026 18:24:25 -0800
+
 creature-cli (2.107.0+world0.67.1+house0.7.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-house 0.7.1: a scoring play is not the ball changing hands

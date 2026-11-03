@@ -133,6 +133,18 @@ public actor SceneOpeningPolicy {
         self.quietHours = quietHours
     }
 
+    /// Who speaks when the house opens a scene, in order: everyone in the room, shuffled each
+    /// time (#274). House scenes stop at three turns, and the order the minds had logged in in
+    /// decided who was cut: after a restart Kenny was fourth all through the Bears game and
+    /// never spoke ("I wonder why Kenny is being so quiet"). April: "let's shake it up". Every
+    /// bird present stays in the cast - the minds read who is in the room from it - and the
+    /// first to be offered the floor takes the lead's part.
+    public static func cast(
+        _ present: [EntityID], using generator: inout some RandomNumberGenerator
+    ) -> [EntityID] {
+        present.shuffled(using: &generator)
+    }
+
     /// The place the scene is about, when this event should open one now; the scene is taken to
     /// open, and the cooldown is spent.
     public func shouldOpen(for event: WorldEventEnvelope, at now: Date) -> EntityID? {

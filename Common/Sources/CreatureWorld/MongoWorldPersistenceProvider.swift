@@ -367,9 +367,8 @@ struct MongoWorldPersistenceConnection: Sendable {
                     {
                         continue
                     }
-                    let participants =
-                        present.contains(leadCharacter)
-                        ? [leadCharacter] + present.filter { $0 != leadCharacter } : present
+                    var dice = SystemRandomNumberGenerator()
+                    let participants = SceneOpeningPolicy.cast(present, using: &dice)
                     let scene = try await sceneService.open(
                         regionID: regionID,
                         conversationID: houseConversation,
