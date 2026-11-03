@@ -719,6 +719,59 @@ struct CharacterMindTests {
 
         #expect(room.first?.content.contains("in the room with you") == true)
         #expect(app.first?.content.contains("Flock Communicator app") == true)
+        // Only a voice can perform a cue; the Communicator is text (#270).
+        #expect(room.first?.content.contains(CharacterMind.voiceCues) == true)
+        #expect(app.first?.content.contains("square brackets") == false)
+    }
+
+    @Test("In the room the voice performs one cue; the record keeps her words (#270)")
+    func roomPerformsOneCue() async throws {
+        let decision = try await performInTheRoom([
+            "[sighs] I don't believe it.", "*flaps wings* [laughs] Fine, we'll try again.",
+        ])
+        guard case .performed(let performance) = decision.decision else {
+            Issue.record("expected a performed turn, got \(decision.decision)")
+            return
+        }
+        // The narration is gone, the second cue dropped: one cue a line.
+        #expect(
+            await decision.room.spoken == ["[sighs] I don't believe it.", "Fine, we'll try again."])
+        #expect(performance.intent.text == "I don't believe it. Fine, we'll try again.")
+        #expect(
+            performance.intent.performed == "[sighs] I don't believe it. Fine, we'll try again.")
+    }
+
+    @Test("A cue alone waits for the words it colours, and one left at the end is never said")
+    func cueOnlySentences() async throws {
+        let leading = try await performInTheRoom(["[gasps]", "A parcel!", "For me?"])
+        #expect(await leading.room.spoken == ["[gasps] A parcel!", "For me?"])
+
+        let trailing = try await performInTheRoom(["That settles it.", "[sighs]"])
+        #expect(await trailing.room.spoken == ["That settles it."])
+        guard case .performed(let performance) = trailing.decision else {
+            Issue.record("expected a performed turn, got \(trailing.decision)")
+            return
+        }
+        #expect(performance.intent.text == "That settles it.")
+        #expect(performance.intent.performed == nil)
+    }
+
+    private func performInTheRoom(_ sentences: [String]) async throws -> (
+        decision: CharacterDecision, room: FakeRoom
+    ) {
+        let room = FakeRoom(animationID: "animation:8")
+        let mind = makeMind(
+            stage: CharacterMind.Stage(
+                stager: FakeStager(route: .physicalSpeech), room: room,
+                respondStreaming: { _, _ in
+                    AsyncStream { continuation in
+                        for sentence in sentences { continuation.yield(sentence) }
+                        continuation.finish()
+                    }
+                })
+        ) { _, _ in "unused" }
+        let decision = try await mind.consider(try makeConsideration(text: "Well?"), now: now)
+        return (decision, room)
     }
 
     // MARK: - Helpers

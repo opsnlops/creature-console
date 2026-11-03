@@ -777,7 +777,8 @@ public actor CharacterDeliveryRouter {
             createdAt: intent.createdAt,
             responseID: intent.responseID,
             trace: intent.trace,
-            aloneWith: whisperedTo
+            aloneWith: whisperedTo,
+            performed: intent.performed
         )
     }
 

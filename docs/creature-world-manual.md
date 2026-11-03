@@ -94,7 +94,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | Memory | `memory.hour`, `minute`, `time_zone`, `episode_days`, `episodes_in_prompt`, `reflections_in_prompt` | — | — | `3`, `30`, `America/Los_Angeles`, `30`, `10`, `2` |
 | Retention | `retention.event_days`, `cheap_event_days`, `processing_days`, `timer_days`, `ingress_days`, `retired_fact_days`, `delivery_days`, `scene_days` | — | — | `90`, `7`, `7`, `7`, `30`, `90`, `90`, `180` |
 | House questions | `scenes.consider_on` (same shape as `open_on`) | — | — | `[]` |
-| Scene pacing | `scenes.characters_per_second`, `scenes.sentence_seconds`, `scenes.turn_lead_seconds`, `scenes.voices` | — | — | `20`, `0.35`, `2`, `{}` |
+| Scene pacing | `scenes.characters_per_second`, `scenes.sentence_seconds`, `scenes.cue_seconds`, `scenes.turn_lead_seconds`, `scenes.voices` | — | — | `20`, `0.35`, `0.75`, `2`, `{}` |
 
 Example:
 
@@ -656,6 +656,24 @@ fit seconds = `sentence_seconds` + characters ÷ `characters_per_second`. Err on
 April would rather the birds run a touch ahead than leave air between lines, and the 2 s lead
 keeps about a second queued either way. Creature
 Server reporting real play times (creature-server#192) will replace the estimate.
+
+A voice cue (`[sighs]`, `[choked up with happiness]`; `0.66.0`, #270) is performed, not read,
+so its letters are no measure of its length:
+
+- **How a cue is counted.** The estimate counts a line's *words* and adds `scenes.cue_seconds`
+  (default `0.75`) for each cue.
+- **Why a flat figure.** Measured on Beaky's voice, a cue adds 0.04–1.5 s, about 0.6 s on
+  average, with the performed sounds (`[yawns]`, `[clears throat]`) the longest.
+- **How the World records a cued line.** A piece or line may carry its cue, and the World splits
+  it:
+  - The room hears it as written: the performer and the `scene.turn_piece` event get it as is.
+  - The turn's `text` and its conversation item hold the words only.
+  - The line as performed is kept beside them as `performed`, on `SceneTurn` and on
+    `ConversationItem`.
+
+  A room reply's intent carries `performed` the same way. The Communicator, the minds, the
+  memory job and search all read the words; the Viewer shows `performed`. A line that was only
+  a cue said nothing, and is a pass.
 
 **A line may arrive sentence by sentence** (`0.9.0`, #175): a mind with a streaming model
 submits `{ "text": "Not quite, Kenny.", "piece": 0 }`, `{ …, "piece": 1 }`, … and finally

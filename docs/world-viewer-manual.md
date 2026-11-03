@@ -64,8 +64,10 @@ pre-dates the router. A whisper ("@beaky …") and the bird's answer to it carry
 **🔒 whispered with Beaky** (`0.23.1`, World `0.64.2`, #261): it is between April and that bird,
 and no other bird hears it, live or at night. A fact a bird learned in a whisper carries the same
 mark in the Facts and Entities panels (`0.23.2`, World `0.64.3`, #263): only that bird is handed
-it. This panel refreshes whenever the conversation
-stream announces a new item.
+it. A line the voice performed with a cue shows the cue in grey italics where it was heard:
+*[sighs]* Fine, we'll try again. The Scenes panel shows lines the same way (`0.24.0`, World
+`0.66.0`, #270). Only the Viewer shows the cue; the Communicator and the minds get the words.
+This panel refreshes whenever the conversation stream announces a new item.
 
 ### Characters
 

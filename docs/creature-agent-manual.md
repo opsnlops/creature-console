@@ -243,6 +243,31 @@ else — persona, facts, the clock, streaming to the room — is identical.
 - **Stage directions are never spoken** (`2.60.0`). `*giggles*`, `(chuckles)`, `[flaps wings]`
   are removed from every reply before it is stored or spoken; a reply that was nothing but a
   direction is a pass. The persona's `never` rules make narration rare; this makes it impossible.
+  The one exception is a voice cue on a line spoken aloud.
+- **The voice performs one cue a line** (`2.106.0`, #270, `docs/voice-cues-plan.md`).
+  - **What the server does.** Creature Server's voice (`eleven_v4_turbo`, server 3.51.7) performs
+    a sound or a feeling in square brackets instead of saying it: `[sighs]` is a real sigh, not
+    the word.
+  - **Where the minds are offered it.** The room contract, the scene contract and the
+    house-remark contract carry `CharacterMind.voiceCues`. It names a few sounds (`[laughs]`,
+    `[sighs]`, `[gasps]`, `[clears throat]`), invites a feeling in the bird's own words
+    (`[nervous]`, `[choked up with happiness]`), and calls it the one exception to describing
+    actions. Most lines need none. The Communicator contract says nothing of cues, and its
+    replies lose every bracket.
+  - **What counts as a cue.** `WorldCore.VoiceCues` decides: 1–40 characters with a letter, no
+    colon, and not `[silence]`. So `[learned: …]`, `[house: …]` and `[quiet: …]` are never
+    cues.
+  - **The rules on the two spoken paths.** These are the room reply and a streamed scene line,
+    and `CueAllowance` enforces them:
+    - The line's first cue is spoken; any later one is dropped. Each costs the room up to
+      1.5 s.
+    - A sentence that is only a cue waits for the next one's words, because the server refuses a
+      sentence with nothing to say. A cue at the very end of the line is dropped.
+    - Narration is still stripped. On the room path that is new: `*giggles*` used to reach the
+      voice there.
+  - **What is recorded.** The turn records the *words*. The line as performed travels beside
+    them as `performed` (on the intent, the conversation item and the scene turn), so no bird
+    reads a cue back and learns to copy it. The Viewer shows `performed`.
 - **It knows what it runs on** (`2.62.0`). "Your mind runs on the openai/gpt-6-astra model.
   Say so if April asks; otherwise it is not worth mentioning." is the second line of "What
   you know" — April decided a familiar should be able to answer "what model are you using?"

@@ -1,3 +1,28 @@
+creature-cli (2.106.0+world0.66.0+house0.6.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-agent 2.106.0 / creature-world 0.66.0: the birds perform
+    emotion (#270). Creature Server's voice (eleven_v4_turbo, server
+    3.51.7) performs a cue in square brackets instead of saying it:
+    [sighs] is a real sigh. The room, scene and house-remark contracts
+    offer one: a few named sounds, or a feeling in the bird's own words
+    ([choked up with happiness]). One a line, most lines none; the
+    Communicator contract does not offer it and its replies lose every
+    bracket. WorldCore.VoiceCues defines a cue (no colon, so the minds'
+    protocol tags are never cues, nor [silence]). On the spoken paths the
+    first cue in a line is performed and later ones dropped; a sentence
+    that is only a cue waits for the next sentence's words, and one at the
+    end of the line is dropped. The room path now strips *giggles* and
+    (chuckles), as scenes always did.
+  * The record keeps the words: a bird never reads a cue back and learns
+    to copy it. The line as performed rides beside them as `performed` on
+    the intent, the conversation item and the scene turn; the Communicator,
+    the minds and search read the words. Scene pacing counts a cue as
+    scenes.cue_seconds (default 0.75), not as its letters.
+  * World Viewer 0.24.0 shows a performed line with its cue in grey
+    italics, in Conversation and Scenes.
+
+ -- April White <april@creature.engineering>  Mon, 02 Nov 2026 16:52:29 -0800
+
 creature-cli (2.105.2+world0.65.0+house0.6.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-house 0.6.0 / creature-world 0.65.0: the birds can find out

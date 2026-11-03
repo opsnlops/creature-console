@@ -171,6 +171,44 @@ struct SceneServiceTests {
         #expect(types.contains(SceneService.turnEventType))
     }
 
+    @Test("A voice cue reaches the room; the record keeps the words (#270)")
+    func voiceCueIsPerformedNotRecorded() async throws {
+        let world = makeWorld()
+        let scene = try await world.service.open(
+            regionID: home, conversationID: conversation,
+            trigger: makeTrigger(addressee: beaky), participants: [beaky, mango])
+        let beakyFloor = try #require(scene.floor?.responseID)
+
+        // Streamed: each piece goes to the room as performed.
+        _ = try await world.service.submit(
+            SceneTurnSubmission(
+                characterID: beaky, responseID: beakyFloor, text: "[sighs] Not quite, Kenny.",
+                piece: 0),
+            to: scene.sceneID)
+        #expect(await world.performer.pieces.map(\.1) == ["[sighs] Not quite, Kenny."])
+        let streamed = try await world.service.submit(
+            SceneTurnSubmission(characterID: beaky, responseID: beakyFloor, text: nil),
+            to: scene.sceneID)
+        let beakyTurn = try #require(streamed.scene.turns.first)
+        #expect(beakyTurn.text == "Not quite, Kenny.")
+        #expect(beakyTurn.performed == "[sighs] Not quite, Kenny.")
+
+        // Whole: the room hears the cue, the record the words, and a replay is a replay.
+        let mangoFloor = try #require(streamed.scene.floor?.responseID)
+        let whole = try SceneTurnSubmission(
+            characterID: mango, responseID: mangoFloor, text: "[laughs] Of course it was.")
+        let answered = try await world.service.submit(whole, to: scene.sceneID)
+        #expect(answered.scene.turns.last?.text == "Of course it was.")
+        #expect(await world.performer.spoken.map(\.spoken) == ["[laughs] Of course it was."])
+        #expect(try await world.service.submit(whole, to: scene.sceneID).disposition == .duplicate)
+
+        #expect(
+            await world.recorded.turns.map(\.text) == ["Not quite, Kenny.", "Of course it was."])
+        #expect(
+            await world.recorded.turns.map(\.performed)
+                == ["[sighs] Not quite, Kenny.", "[laughs] Of course it was."])
+    }
+
     @Test("The next floor waits until the room has nearly finished the last line")
     func floorIsPacedToPlayback() async throws {
         // Ten characters a second and no per-sentence cost: an eighty-character line is

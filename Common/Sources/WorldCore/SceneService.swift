@@ -162,7 +162,7 @@ public actor SceneService {
                 // The same answer again is a replay; a different answer to a floor that has
                 // already been resolved (say, a late reply after the deadline passed) is not.
                 let disposition: SceneTurnDisposition =
-                    recorded.text == submission.text ? .duplicate : .notYourTurn
+                    recorded.spoken == submission.text ? .duplicate : .notYourTurn
                 span.attributes["scene.turn.disposition"] = disposition.rawValue
                 return SceneTurnResult(disposition: disposition, scene: scene)
             }
@@ -261,14 +261,18 @@ public actor SceneService {
         // silent mind), the room gets the plain event instead. The MQTT agent's
         // fallbackSpeech, moved to where the floor is. A house *consideration* is the
         // opposite: the lead's silence is the answer, and the reason is kept.
-        let fallback = submitted == nil && scene.trigger.kind == .worldEvent && scene.turns.isEmpty
+        // The record keeps the words; the line as performed, with its voice cue, rides beside
+        // them (#270). A line that was only a cue said nothing.
+        let words = submitted.map(VoiceCues.words).flatMap { $0.isEmpty ? nil : $0 }
+        let fallback = words == nil && scene.trigger.kind == .worldEvent && scene.turns.isEmpty
         let declined =
-            submitted == nil && scene.trigger.kind == .houseConsideration && scene.turns.isEmpty
-        let text = fallback ? scene.trigger.text : submitted
+            words == nil && scene.trigger.kind == .houseConsideration && scene.turns.isEmpty
+        let text = fallback ? scene.trigger.text : words
         var turn = SceneTurn(
             characterID: floor.characterID,
             responseID: floor.responseID,
             text: text,
+            performed: words != nil && submitted != words ? submitted : nil,
             offeredAt: floor.offeredAt,
             answeredAt: now,
             // Why a pass, whenever the mind said: a declined question, or a turn with nothing
@@ -278,9 +282,9 @@ public actor SceneService {
         if text != nil {
             turn.conversationItemID = try await recordTurn(scene, turn)
         }
-        if let text, !streamed {
+        if let spoken = turn.spoken, !streamed {
             Self.queueSpeech(
-                of: text, by: floor.characterID, in: &scene, at: now, limits: limits)
+                of: spoken, by: floor.characterID, in: &scene, at: now, limits: limits)
         }
         scene.turns.append(turn)
         scene.floor = nil
@@ -512,7 +516,7 @@ public actor SceneService {
             return .maximumTurns
         }
         let spoken = scene.spokenTurns.reduce(0.0) {
-            $0 + limits.spokenSeconds(of: $1.text ?? "", by: $1.characterID)
+            $0 + limits.spokenSeconds(of: $1.spoken ?? "", by: $1.characterID)
         }
         if spoken >= limits.maximumSpokenSeconds {
             return .maximumSpokenSeconds

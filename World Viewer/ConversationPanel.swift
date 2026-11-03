@@ -59,7 +59,7 @@ struct ConversationTurnRow: View {
                         WhisperedLabel(bird: bird)
                     }
                 }
-                Text(item.text)
+                PerformedLine(item.performed ?? item.text)
                     .textSelection(.enabled)
                 if let delivery {
                     DeliveryChip(delivery: delivery)
@@ -82,6 +82,35 @@ struct ConversationTurnRow: View {
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+/// A bird's line as its voice performed it (#270): a cue in italics among the words, where the
+/// room heard the sigh. The Communicator and the minds see only the words.
+struct PerformedLine: View {
+    let line: String
+
+    init(_ line: String) {
+        self.line = line
+    }
+
+    var body: some View {
+        Text(styled)
+    }
+
+    private var styled: AttributedString {
+        var styled = AttributedString()
+        var rest = Substring(line)
+        for cue in VoiceCues.cues(in: line) {
+            guard let range = rest.range(of: cue) else { continue }
+            styled += AttributedString(rest[..<range.lowerBound])
+            var performed = AttributedString(cue)
+            performed.inlinePresentationIntent = .emphasized
+            performed.foregroundColor = .secondary
+            styled += performed
+            rest = rest[range.upperBound...]
+        }
+        return styled + AttributedString(rest)
     }
 }
 

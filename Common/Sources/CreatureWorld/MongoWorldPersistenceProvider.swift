@@ -168,7 +168,8 @@ struct MongoWorldPersistenceConnection: Sendable {
                     text: turn.text ?? "",
                     createdAt: turn.answeredAt,
                     responseID: turn.responseID,
-                    trace: scene.trace
+                    trace: scene.trace,
+                    performed: turn.performed
                 )
                 try await conversations.saveConversationItem(item)
                 await publishConversationItem(item)

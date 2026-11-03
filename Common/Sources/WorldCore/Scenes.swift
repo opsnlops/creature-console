@@ -55,8 +55,11 @@ public struct SceneTrigger: Hashable, Sendable, Codable {
 public struct SceneTurn: Hashable, Sendable, Codable {
     public var characterID: EntityID
     public var responseID: ResponseID
-    /// `nil` is a pass: the character had nothing to add this time.
+    /// `nil` is a pass: the character had nothing to add this time. The words only; a voice
+    /// cue is in `performed`.
     public var text: String?
+    /// The line as the voice performed it, cue and all (#270); `nil` when it had no cue.
+    public var performed: String?
     public var offeredAt: Date
     public var answeredAt: Date
     public var conversationItemID: ConversationItemID?
@@ -67,6 +70,7 @@ public struct SceneTurn: Hashable, Sendable, Codable {
         characterID: EntityID,
         responseID: ResponseID,
         text: String?,
+        performed: String? = nil,
         offeredAt: Date,
         answeredAt: Date,
         conversationItemID: ConversationItemID? = nil,
@@ -75,6 +79,7 @@ public struct SceneTurn: Hashable, Sendable, Codable {
         self.characterID = characterID
         self.responseID = responseID
         self.text = text
+        self.performed = performed
         self.offeredAt = offeredAt
         self.answeredAt = answeredAt
         self.conversationItemID = conversationItemID
@@ -83,10 +88,14 @@ public struct SceneTurn: Hashable, Sendable, Codable {
 
     public var isPass: Bool { text == nil }
 
+    /// What the voice says for this turn: the performed line when it had a cue.
+    public var spoken: String? { performed ?? text }
+
     private enum CodingKeys: String, CodingKey {
         case characterID = "character_id"
         case responseID = "response_id"
         case text
+        case performed
         case offeredAt = "offered_at"
         case answeredAt = "answered_at"
         case conversationItemID = "conversation_item_id"
@@ -517,6 +526,11 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     /// of a second of what ElevenLabs actually produced.
     public var charactersPerSecond: Double
     public var sentenceSeconds: TimeInterval
+    /// What one voice cue adds to a line (#270). A cue is performed, not read, so its letters
+    /// are no measure: `[choked up with happiness]` adds about half a second, `[yawns]` a
+    /// second and a half. Across the 47 cues measured on Beaky's voice it averaged about 0.6 s,
+    /// the performed sounds longer.
+    public var cueSeconds: TimeInterval
     /// Voices that speak at their own pace, by character ID. Kenny's voice drawls at about
     /// eleven characters a second where Beaky's and Mango's run twenty; without this the
     /// world thinks his lines are half as long as they are and the birds run ahead of the
@@ -558,6 +572,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         maximumSpokenSeconds: TimeInterval = 90,
         charactersPerSecond: Double = 20,
         sentenceSeconds: TimeInterval = 0.35,
+        cueSeconds: TimeInterval = 0.75,
         voices: [String: SpeakingPace] = [:],
         openOn: [SceneOpeningRule] = [],
         considerOn: [SceneOpeningRule] = [],
@@ -572,6 +587,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         self.maximumSpokenSeconds = maximumSpokenSeconds
         self.charactersPerSecond = charactersPerSecond
         self.sentenceSeconds = sentenceSeconds
+        self.cueSeconds = cueSeconds
         self.voices = voices
         self.openOn = openOn
         self.considerOn = considerOn
@@ -598,6 +614,8 @@ public struct SceneLimits: Hashable, Sendable, Codable {
                 Double.self, forKey: .charactersPerSecond) ?? defaults.charactersPerSecond,
             sentenceSeconds: try container.decodeIfPresent(
                 TimeInterval.self, forKey: .sentenceSeconds) ?? defaults.sentenceSeconds,
+            cueSeconds: try container.decodeIfPresent(TimeInterval.self, forKey: .cueSeconds)
+                ?? defaults.cueSeconds,
             voices: try container.decodeIfPresent([String: SpeakingPace].self, forKey: .voices)
                 ?? [:],
             openOn: try container.decodeIfPresent([SceneOpeningRule].self, forKey: .openOn) ?? [],
@@ -615,14 +633,16 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     }
 
     /// How long the room will take to say `text` in `speaker`'s voice: a fixed cost per
-    /// sentence plus the characters at that voice's pace. Nothing to say takes no time.
+    /// sentence, the words at that voice's pace, and each voice cue's performance. Nothing to
+    /// say takes no time.
     public func spokenSeconds(of text: String, by speaker: EntityID? = nil) -> TimeInterval {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return 0 }
+        let words = VoiceCues.words(text).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !words.isEmpty else { return 0 }
         let pace = pace(of: speaker)
-        let sentences = max(1, trimmed.filter { ".!?".contains($0) }.count)
+        let sentences = max(1, words.filter { ".!?".contains($0) }.count)
         return Double(sentences) * pace.sentenceSeconds
-            + Double(trimmed.count) / max(pace.charactersPerSecond, 0.1)
+            + Double(words.count) / max(pace.charactersPerSecond, 0.1)
+            + Double(VoiceCues.cues(in: text).count) * cueSeconds
     }
 
     public func pace(of speaker: EntityID?) -> SpeakingPace {
@@ -638,6 +658,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         case maximumSpokenSeconds = "maximum_spoken_seconds"
         case charactersPerSecond = "characters_per_second"
         case sentenceSeconds = "sentence_seconds"
+        case cueSeconds = "cue_seconds"
         case voices
         case openOn = "open_on"
         case considerOn = "consider_on"

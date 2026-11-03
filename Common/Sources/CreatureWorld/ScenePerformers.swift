@@ -127,7 +127,7 @@ struct CreatureServerScenePerformer: ScenePerforming, Sendable {
                     return ScenePerformance(
                         state: .failed, errorCode: Self.noCreatureCode, occurredAt: await clock.now)
                 }
-                turns.append(["creature_id": creatureID, "text": turn.text ?? ""])
+                turns.append(["creature_id": creatureID, "text": turn.spoken ?? ""])
             }
             let body: [String: Any] = [
                 "turns": turns,
@@ -327,7 +327,7 @@ actor StreamingScenePerformer: ScenePerforming {
 
     /// A whole line - unless it was streamed, in which case the room has already heard it.
     func sceneTurn(_ scene: Scene, _ turn: SceneTurn, streamed: Bool) async -> String? {
-        guard !streamed, let text = turn.text else { return nil }
+        guard !streamed, let text = turn.spoken else { return nil }
         return await send(scene, character: turn.characterID, text: text, piece: false)
     }
 

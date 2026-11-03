@@ -91,6 +91,18 @@ struct CharacterMind: Sendable {
     static let promptVersion = "world-conversation-v2"
     /// The one reserved reply: the model may decline to speak.
     static let silenceToken = "[silence]"
+    /// Creature Server's voice performs a cue in square brackets instead of saying it (#270):
+    /// a real sigh, measured, not the word. Offered only where the words are spoken aloud; a
+    /// Communicator reply is text. One a line, and the model judges when — each costs the room
+    /// up to a second and a half before the line is done.
+    static let voiceCues = """
+        Your voice can perform one cue in a line: a sound or a feeling in square brackets, just \
+        before the words it colours - [laughs], [sighs], [gasps], [clears throat], or a feeling \
+        in your own words, like [nervous] or [choked up with happiness]; the more precise, the \
+        more it does. It is the one exception to never describing actions. Most lines need none; \
+        save it for a moment with real feeling in it, because your voice takes a moment to \
+        perform it.
+        """
 
     struct Configuration: Sendable {
         let persona: CharacterPersona
@@ -394,8 +406,10 @@ struct CharacterMind: Sendable {
                     state: .failed, errorCode: "physical_speech_unavailable",
                     errorMessage: String(describing: error))
             }
+            // The record keeps the words; the voice performed the line, cue and all (#270).
+            let line = sentences.joined(separator: " ")
             let intent = try makeIntent(
-                text: sentences.joined(separator: " "), for: consideration,
+                text: VoiceCues.words(line), performed: line, for: consideration,
                 responseID: responseID, now: now)
             return .performed(
                 CharacterPerformance(
@@ -411,11 +425,12 @@ struct CharacterMind: Sendable {
     }
 
     /// The sentences offered to the room so far, validated one at a time as the model produces
-    /// them: the first decides silence and loses any speaker label, every one is speech-clean,
-    /// and the turn stops at the world's length limit.
+    /// them: the first decides silence and loses any speaker label, every one is speech-clean
+    /// with at most one voice cue in the line, and the turn stops at the world's length limit.
     private actor SpokenSentences {
         private(set) var sentences: [String] = []
         private(set) var declined = false
+        private var cues = CueAllowance()
         private let room: AsyncStream<String>.Continuation
 
         init(room: AsyncStream<String>.Continuation) {
@@ -437,19 +452,23 @@ struct CharacterMind: Sendable {
                 sentences.isEmpty
                 ? CharacterMind.withoutSpeakerLabel(stripped, characterName: characterName)
                 : stripped
-            let clean = TextSanitizer.sanitize(candidate).text
+            // Narration is not speech; a voice cue is the voice's to perform (#270).
+            let clean = TextSanitizer.sanitize(
+                CharacterMind.withoutStageDirections(candidate, keepingCues: true)
+            ).text
                 .trimmingCharacters(in: CharacterSet(charactersIn: "\"'\u{201C}\u{201D}"))
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !clean.isEmpty else { return true }
-            guard CharacterMind.fits(sentences + [clean]) else { return false }
-            sentences.append(clean)
-            room.yield(clean)
+            guard !clean.isEmpty, let sentence = cues.admit(clean) else { return true }
+            guard CharacterMind.fits(sentences + [sentence]) else { return false }
+            sentences.append(sentence)
+            room.yield(sentence)
             return true
         }
     }
 
     private func makeIntent(
         text: String,
+        performed: String? = nil,
         for consideration: WorldConsideration,
         responseID: ResponseID,
         now: Date
@@ -465,7 +484,8 @@ struct CharacterMind: Sendable {
             urgency: 0.3,
             createdAt: now,
             reasonReferences: [.event(consideration.envelope.eventID)],
-            trace: currentTraceContext() ?? utterance.trace
+            trace: currentTraceContext() ?? utterance.trace,
+            performed: performed == text ? nil : performed
         )
     }
 
@@ -658,6 +678,7 @@ struct CharacterMind: Sendable {
         private let startedAt: Date
         /// Inside a `[learned:` tag the sentence splitter cut in two.
         private var inTag = false
+        private var cues = CueAllowance()
 
         init(characterName: String, speaker: String?, startedAt: Date) {
             self.characterName = characterName
@@ -682,16 +703,17 @@ struct CharacterMind: Sendable {
                 }
                 return .skip
             }
-            guard CharacterMind.fits(spoken + [piece]) else { return .done }
+            guard let sentence = cues.admit(piece) else { return .skip }
+            guard CharacterMind.fits(spoken + [sentence]) else { return .done }
             if firstSentenceAt == nil { firstSentenceAt = Date() }
-            return .speak(spoken.count, piece)
+            return .speak(spoken.count, sentence)
         }
 
         func spoke(_ piece: String) { spoken.append(piece) }
     }
 
-    /// One sentence of a scene line, cleaned for speech; `nil` when there is nothing to say
-    /// in it (a stage direction alone, a label, silence).
+    /// One sentence of a scene line, cleaned for speech with its voice cue kept; `nil` when
+    /// there is nothing to say in it (a stage direction alone, a label, silence).
     static func scenePiece(
         _ raw: String, first: Bool, characterName: String, speaker: String?,
         inTag: inout Bool
@@ -702,7 +724,7 @@ struct CharacterMind: Sendable {
             LocalLLMClient.stripThinkTags(raw), inTag: &inTag)
         if first, declinesToSpeak(stripped) { return nil }
         var text = first ? withoutSpeakerLabel(stripped, characterName: characterName) : stripped
-        text = TextSanitizer.sanitize(withoutStageDirections(text)).text
+        text = TextSanitizer.sanitize(withoutStageDirections(text, keepingCues: true)).text
             .trimmingCharacters(in: CharacterSet(charactersIn: "\"'\u{201C}\u{201D}"))
             .trimmingCharacters(in: .whitespacesAndNewlines)
         if first, let speaker {
@@ -1018,7 +1040,7 @@ struct CharacterMind: Sendable {
         time, and lets it be; she may already know, and the others do not tell her again. \
         \(household) Do not begin your line with anyone's name unless \
         you are singling them out, and do not prefix your words with your own name. Never use \
-        emoji or symbols. Do not describe actions. \(typing)
+        emoji or symbols. Do not describe actions. \(voiceCues) \(typing)
         """
 
     /// April types fast. Three birds remarking on her spelling is not charm, it is a chorus of
@@ -1045,7 +1067,7 @@ struct CharacterMind: Sendable {
         April, and do not begin your line with anyone's name unless you are singling them out. \
         Do not write anyone else's line and do not prefix your words with your name. \
         \(newInformation) \(noHands) \(household) Never use emoji or symbols. Do not describe \
-        actions. \(typing) \(LearnedFact.contract)
+        actions. \(voiceCues) \(typing) \(LearnedFact.contract)
         """
 
     /// April lives alone. An afternoon of "mystery visitor" - her car in the driveway, her at
@@ -1352,7 +1374,8 @@ struct CharacterMind: Sendable {
             own voice in one to three short sentences. If you truly have nothing to add, reply with \
             exactly \(silenceToken) and nothing else. Your words are spoken aloud by your voice, so \
             never use emoji or symbols. Do not describe actions and do not mention that you are a \
-            program. \(typing) \(LearnedFact.contract)
+            program.\(route == .physicalSpeech ? " " + voiceCues : "") \(typing) \
+            \(LearnedFact.contract)
             """
     }
 
@@ -1417,14 +1440,23 @@ struct CharacterMind: Sendable {
     /// A small model narrates: `*giggles*`, `(chuckles)`, `[flaps wings]`. Nothing between
     /// asterisks or brackets is speech, so it is removed before the words are spoken — the
     /// persona's `never` rules make it rare; this makes it impossible. A stray opening quote
-    /// left behind ("*giggles* "I love you") is trimmed with the rest.
-    static func withoutStageDirections(_ text: String) -> String {
+    /// left behind ("*giggles* "I love you") is trimmed with the rest. In words spoken aloud,
+    /// `keepingCues` spares a voice cue — `[sighs]` — for the voice to perform (#270).
+    static func withoutStageDirections(_ text: String, keepingCues: Bool = false) -> String {
         // A learned-fact tag can be longer than a stage direction; it goes first, whole.
         let text = LearnedFact.stripped(text)
         let pattern = #"\*[^*\n]{1,80}\*|\([^()\n]{1,80}\)|\[[^\[\]\n]{1,80}\]"#
         guard let expression = try? NSRegularExpression(pattern: pattern) else { return text }
-        let range = NSRange(text.startIndex..., in: text)
-        return expression.stringByReplacingMatches(in: text, range: range, withTemplate: " ")
+        var kept = text
+        for match in expression.matches(in: text, range: NSRange(text.startIndex..., in: text))
+            .reversed()
+        {
+            guard let range = Range(match.range, in: text) else { continue }
+            if keepingCues, VoiceCues.cues(in: String(text[range])).count == 1 { continue }
+            kept.replaceSubrange(range, with: " ")
+        }
+        return
+            kept
             .replacingOccurrences(
                 of: #"\s{2,}"#, with: " ", options: .regularExpression
             )

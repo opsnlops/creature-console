@@ -112,8 +112,8 @@ struct SceneRow: View {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(CharacterName.of(turn.characterID))
                         .font(.caption.weight(.semibold))
-                    if let text = turn.text {
-                        Text(text)
+                    if let text = turn.spoken {
+                        PerformedLine(text)
                             .font(.caption)
                     } else {
                         // A pass is a decision; the mind's reason, when it gave one, is why.
@@ -128,7 +128,7 @@ struct SceneRow: View {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(CharacterName.of(floor.characterID))
                         .font(.caption.weight(.semibold))
-                    Text(floor.pieces.joined(separator: " ") + " …")
+                    PerformedLine(floor.pieces.joined(separator: " ") + " …")
                         .font(.caption)
                         .foregroundStyle(.orange)
                 }

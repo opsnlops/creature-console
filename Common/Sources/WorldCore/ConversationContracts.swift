@@ -215,6 +215,9 @@ public struct ConversationItem: Hashable, Sendable, Codable {
     /// The bird a whisper was for (#261): April's "@beaky …", and Beaky's answer to it. Nil for
     /// anything said to the room.
     public var aloneWith: EntityID?
+    /// A bird's line as its voice performed it, cue and all (#270); `text` is its words. Nil
+    /// when the line had no cue, or was never spoken aloud.
+    public var performed: String?
 
     public init(
         itemID: ConversationItemID = .generated(),
@@ -227,9 +230,11 @@ public struct ConversationItem: Hashable, Sendable, Codable {
         utteranceID: UtteranceID? = nil,
         responseID: ResponseID? = nil,
         trace: W3CTraceContext? = nil,
-        aloneWith: EntityID? = nil
+        aloneWith: EntityID? = nil,
+        performed: String? = nil
     ) throws {
         try validateConversationText(text)
+        if let performed { try validateConversationText(performed) }
         let hasExactlyOneOrigin = (utteranceID == nil) != (responseID == nil)
         let authorMatchesOrigin =
             (authorKind == .person && utteranceID != nil)
@@ -249,6 +254,7 @@ public struct ConversationItem: Hashable, Sendable, Codable {
         self.responseID = responseID
         self.trace = trace
         self.aloneWith = aloneWith
+        self.performed = performed
     }
 
     /// Whether `characterID` heard this: everything said to the room, and a whisper to it. A
@@ -275,7 +281,8 @@ public struct ConversationItem: Hashable, Sendable, Codable {
             utteranceID: container.decodeIfPresent(UtteranceID.self, forKey: .utteranceID),
             responseID: container.decodeIfPresent(ResponseID.self, forKey: .responseID),
             trace: container.decodeIfPresent(W3CTraceContext.self, forKey: .trace),
-            aloneWith: container.decodeIfPresent(EntityID.self, forKey: .aloneWith)
+            aloneWith: container.decodeIfPresent(EntityID.self, forKey: .aloneWith),
+            performed: container.decodeIfPresent(String.self, forKey: .performed)
         )
     }
 
@@ -292,6 +299,7 @@ public struct ConversationItem: Hashable, Sendable, Codable {
         case responseID = "response_id"
         case trace
         case aloneWith = "alone_with"
+        case performed
     }
 }
 
@@ -427,6 +435,9 @@ public struct CharacterUtteranceIntent: Hashable, Sendable, Codable {
     public var expiresAt: Date?
     public var reasonReferences: [ProvenanceReference]
     public var trace: W3CTraceContext?
+    /// The turn as the voice performed it, cue and all (#270); `text` is its words. Nil when
+    /// it had no cue.
+    public var performed: String?
 
     public init(
         responseID: ResponseID = .generated(),
@@ -439,9 +450,11 @@ public struct CharacterUtteranceIntent: Hashable, Sendable, Codable {
         createdAt: Date,
         expiresAt: Date? = nil,
         reasonReferences: [ProvenanceReference] = [],
-        trace: W3CTraceContext? = nil
+        trace: W3CTraceContext? = nil,
+        performed: String? = nil
     ) throws {
         try validateConversationText(text)
+        if let performed { try validateConversationText(performed) }
         guard urgency.isFinite,
             (0...1).contains(urgency),
             expiresAt.map({ $0 >= createdAt }) ?? true
@@ -460,6 +473,7 @@ public struct CharacterUtteranceIntent: Hashable, Sendable, Codable {
         self.expiresAt = expiresAt
         self.reasonReferences = reasonReferences
         self.trace = trace
+        self.performed = performed
     }
 
     public init(from decoder: any Decoder) throws {
@@ -483,7 +497,8 @@ public struct CharacterUtteranceIntent: Hashable, Sendable, Codable {
                 [ProvenanceReference].self,
                 forKey: .reasonReferences
             ) ?? [],
-            trace: container.decodeIfPresent(W3CTraceContext.self, forKey: .trace)
+            trace: container.decodeIfPresent(W3CTraceContext.self, forKey: .trace),
+            performed: container.decodeIfPresent(String.self, forKey: .performed)
         )
     }
 
@@ -509,6 +524,7 @@ public struct CharacterUtteranceIntent: Hashable, Sendable, Codable {
         case expiresAt = "expires_at"
         case reasonReferences = "reason_references"
         case trace
+        case performed
     }
 }
 
