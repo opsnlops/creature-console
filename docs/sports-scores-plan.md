@@ -80,6 +80,17 @@ From its source (`set_values.py`, `parse_espn.py`), not only its README:
 7. **Viewer:** the team's facts are in Entities, and the `game.*` events are on the timeline.
    Nothing new is needed to see them.
 
+## Fixed after the first game (house 0.6.1, World 0.66.1, #271)
+
+The Bears scored twice on 11-02 and nobody was asked. The touchdown arrived as April started a
+conversation, and was rightly held back. It spent the cooldown anyway, so the extra point
+found it spent. The World now starts a cooldown only when its scene opens. Both scores also
+carried the kickoff's time: Home Assistant's `last_changed` moves only with the state, so a
+score now happens at `last_updated`.
+
+Still open: a score held back by a conversation is not asked about once it ends; the next
+score is.
+
 ## Not in this slice
 
 - **The birds bringing up a final unprompted.** A `game.final` opens no scene: no scene rule

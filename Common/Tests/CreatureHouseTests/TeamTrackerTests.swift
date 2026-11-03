@@ -203,7 +203,7 @@ struct TeamTrackerTests {
             try await announcer.events(
                 from: nil,
                 to: sensor(
-                    "IN", at: offset,
+                    "IN", at: offset, changed: 0,
                     [
                         "team_score": .string("\(ours)"), "opponent_score": .string("\(theirs)"),
                         "clock": .string(clock), "last_play": .string("play at \(Int(offset))"),
@@ -222,6 +222,10 @@ struct TeamTrackerTests {
         #expect(touchdown.payload["clock"] == .string("7:12 - 2nd"))
         #expect(touchdown.payload["last_play"] == .string("play at 600"))
         #expect(touchdown.source.sourceEventID == "context:ctx-IN-600.0")
+        // A score moves only the attributes: Home Assistant's `last_changed` is still kickoff's,
+        // and the score happened at `last_updated` (#271).
+        #expect(started.occurredAt == kickedOff)
+        #expect(touchdown.occurredAt == kickedOff.addingTimeInterval(600))
 
         let answer = try #require(try await live(900, 6, 7).only)
         #expect(answer.payload["scored_by"] == .string("Kansas City Chiefs"))
@@ -266,8 +270,11 @@ struct TeamTrackerTests {
         ]
     }
 
+    /// Team Tracker's sensor as Home Assistant sends it: updated at `offset`, and changed - its
+    /// state, not its attributes - at `changed`, which is the same moment unless said otherwise.
     private func sensor(
-        _ state: String, at offset: TimeInterval, _ attributes: [String: WorldJSONValue] = [:]
+        _ state: String, at offset: TimeInterval, changed: TimeInterval? = nil,
+        _ attributes: [String: WorldJSONValue] = [:]
     ) -> EntityState {
         var all: [String: WorldJSONValue] = [
             "date": .string(kickoff), "league": .string("NFL"), "team_abbr": .string("SEA"),
@@ -280,8 +287,9 @@ struct TeamTrackerTests {
         all.merge(attributes) { $1 }
         return EntityState(
             entityID: "sensor.seattle_seahawks", state: state, attributes: all,
-            lastChanged: kickedOff.addingTimeInterval(offset),
-            contextID: "ctx-\(state)-\(offset)")
+            lastChanged: kickedOff.addingTimeInterval(changed ?? offset),
+            contextID: "ctx-\(state)-\(offset)",
+            lastUpdated: kickedOff.addingTimeInterval(offset))
     }
 }
 

@@ -124,9 +124,10 @@ struct SceneOpeningTests {
                 SceneOpeningRule(event: HouseEvents.personSeen, cooldownSeconds: 300),
             ])
         // Motion is a question for the lead.
-        #expect(
-            await policy.occasion(for: try event(HouseEvents.motionDetected, kitchen), at: now)
-                == SceneOpeningPolicy.Occasion(place: kitchen, kind: .houseConsideration))
+        let motion = try event(HouseEvents.motionDetected, kitchen)
+        let asked = try #require(await policy.occasion(for: motion, at: now))
+        #expect(asked == SceneOpeningPolicy.Occasion(place: kitchen, kind: .houseConsideration))
+        await policy.opened(asked, for: motion, at: now)
         // A person in the driveway is a must-speak, even though a consider rule also matches.
         #expect(
             await policy.occasion(for: try event(HouseEvents.personSeen, driveway), at: now)
@@ -276,6 +277,25 @@ struct SceneOpeningTests {
         #expect(Happening.isStoryworthy(told))
     }
 
+    @Test("An occasion held back spends nothing: the next score may still ask (#271)")
+    func heldBackSpendsNothing() async throws {
+        let seahawks = try EntityID(validating: "team:seahawks")
+        let policy = SceneOpeningPolicy(
+            rules: [],
+            considerRules: [SceneOpeningRule(event: HouseEvents.gameScored, cooldownSeconds: 180)],
+            gapSeconds: 60)
+        // The Bears' touchdown came as April started talking: the opener held it back and
+        // opened nothing.
+        let touchdown = try event(HouseEvents.gameScored, seahawks)
+        #expect(await policy.occasion(for: touchdown, at: now) != nil)
+        // The extra point, once her scene had closed, is asked about - and that one is spent.
+        let extraPoint = try event(HouseEvents.gameScored, seahawks)
+        let asked = try #require(await policy.occasion(for: extraPoint, at: now + 31))
+        await policy.opened(asked, for: extraPoint, at: now + 31)
+        #expect(await policy.occasion(for: touchdown, at: now + 90) == nil)
+        #expect(await policy.occasion(for: touchdown, at: now + 212) != nil)
+    }
+
     @Test("An ending is an occasion wherever its beginning is, and reads as a stay")
     func endingsFollowBeginnings() async throws {
         let policy = SceneOpeningPolicy(
@@ -312,9 +332,9 @@ struct SceneOpeningTests {
                 SceneOpeningRule(event: HouseEvents.gameScoreCorrected, cooldownSeconds: 180),
             ])
         let touchdown = try event(HouseEvents.gameScored, seahawks)
-        #expect(
-            await policy.occasion(for: touchdown, at: now)
-                == .init(place: seahawks, kind: .houseConsideration))
+        let asked = try #require(await policy.occasion(for: touchdown, at: now))
+        #expect(asked == .init(place: seahawks, kind: .houseConsideration))
+        await policy.opened(asked, for: touchdown, at: now)
         // The extra point a minute later is the same remark.
         #expect(await policy.occasion(for: touchdown, at: now + 60) == nil)
         // Taken back on review: a question of its own.

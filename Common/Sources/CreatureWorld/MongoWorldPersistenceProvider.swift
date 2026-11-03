@@ -380,6 +380,8 @@ struct MongoWorldPersistenceConnection: Sendable {
                                     zone: memory.zone))),
                         participants: participants,
                         trace: event.trace)
+                    // Spent only now: an occasion held back above leaves the next one free (#271).
+                    await openingPolicy.opened(occasion, for: event, at: await clock.now)
                     logger.info(
                         occasion.kind == .houseConsideration
                             ? "The house asked the lead about something"

@@ -1,3 +1,18 @@
+creature-cli (2.106.2+world0.66.1+house0.6.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.66.1: a house cooldown starts only when its scene
+    opens (#271). At the Bears game on 11-02 the touchdown arrived as
+    April started talking. The opener rightly held it back, but had
+    already spent the three-minute score cooldown, so the extra point,
+    after her scene closed, was dropped too. SceneOpeningPolicy.occasion
+    now only looks; the opener calls opened() once the scene is open.
+  * creature-house 0.6.1: a score happens at Home Assistant's
+    last_updated. A score changes only the sensor's attributes, and
+    last_changed moves only with its state, so every score had carried
+    the kickoff's time.
+
+ -- April White <april@creature.engineering>  Mon, 02 Nov 2026 17:36:33 -0800
+
 creature-cli (2.106.2+world0.66.0+house0.6.0+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-agent 2.106.2: as many voice cues as a line wants (#270).

@@ -257,6 +257,13 @@ was just seen at the driveway." — and Beaky, as lead, speaks first. Nobody log
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 
+A cooldown starts only when its scene opens (`0.66.1`, #271). `SceneOpeningPolicy.occasion`
+only looks; the opener calls `opened` once the scene is open. An occasion held back costs
+nothing: a house question that would have interrupted a conversation, or a room with nobody
+in it. On the night of the Bears game the touchdown came 1 ms after April started talking,
+and was rightly held back. It spent the three-minute cooldown anyway, so the extra point found
+it spent after her scene closed, and nobody was asked about either.
+
 **The day's record is a day** (`0.36.1`, #202). Sizing the nightly memory for the Batch API
 found the episodes call reading 370k tokens a night: `GET /v1/days/{day}`'s "learned" section
 carried every `facts.given` of the day - 3,972 of 4,247 lines were a body's readings, 222 the

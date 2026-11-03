@@ -129,6 +129,10 @@ struct HouseTranslator: Sendable {
         let type: WorldEventType
         let key: String
         var scored: TeamTrackerGame.Scored?
+        // When it happened: a new stage is a new state, so `last_changed`. A score changes only
+        // the attributes, which move `last_updated` alone; by `last_changed` every score of the
+        // Bears game happened at kickoff (#271).
+        var happened = new.lastChanged
         if sameGame, let before, before.stage == game.stage {
             // Under way, a score is news: April wants the birds asked about each one. A
             // correction that only takes points away keeps the World's score right and asks
@@ -139,9 +143,10 @@ struct HouseTranslator: Sendable {
             else { return nil }
             scored = game.scored(since: before)
             type = scored == nil ? HouseEvents.gameScoreCorrected : HouseEvents.gameScored
+            happened = new.updatedAt
             key =
                 new.contextID.map { "context:\($0)" }
-                ?? "game:\(WorldJSON.timestamp(game.kickoff)):score:\(WorldJSON.timestamp(new.lastChanged))"
+                ?? "game:\(WorldJSON.timestamp(game.kickoff)):score:\(WorldJSON.timestamp(happened))"
         } else {
             let stage: String
             (type, stage) =
@@ -184,7 +189,7 @@ struct HouseTranslator: Sendable {
         }
         return try WorldEventEnvelope(
             type: type,
-            occurredAt: new.lastChanged,
+            occurredAt: happened,
             source: EventSource(
                 id: try SourceID(validating: "home-assistant:\(Self.sourceName(new.entityID))"),
                 kind: HouseEvents.sourceKind, sourceEventID: key),

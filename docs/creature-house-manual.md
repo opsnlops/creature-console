@@ -209,6 +209,11 @@ A score is keyed by Home Assistant's context, not by the score, so a touchdown o
 scored again is two scores. A restart mid-game tells the game under way with its score, and
 no score event.
 
+A score happens at Home Assistant's `last_updated` (`0.6.1`, #271). A score changes only the
+sensor's attributes, and `last_changed` moves only when the state does, so in 0.6.0 every score
+of the Bears game carried the kickoff's time. The stage events are state changes and keep
+`last_changed`.
+
 These are not news:
 - the odds or the clock moving under the same state
 - a bye or `NOT_FOUND`

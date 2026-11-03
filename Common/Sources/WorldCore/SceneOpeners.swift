@@ -133,13 +133,22 @@ public actor SceneOpeningPolicy {
         self.quietHours = quietHours
     }
 
-    /// The place the scene is about, when this event should open one now.
+    /// The place the scene is about, when this event should open one now; the scene is taken to
+    /// open, and the cooldown is spent.
     public func shouldOpen(for event: WorldEventEnvelope, at now: Date) -> EntityID? {
-        occasion(for: event, at: now).map(\.place)
+        guard let occasion = occasion(for: event, at: now) else { return nil }
+        opened(occasion, for: event, at: now)
+        return occasion.place
     }
 
-    /// What the house does about this event now: a must-speak scene (`open_on`), a may-decline
-    /// one (`consider_on`), or nothing. An `open_on` rule wins when both match.
+    /// What the house would do about this event now: a must-speak scene (`open_on`), a
+    /// may-decline one (`consider_on`), or nothing. An `open_on` rule wins when both match.
+    ///
+    /// Nothing is spent until `opened`: an occasion that comes to nothing - a conversation
+    /// already going, nobody in the room - leaves its cooldown for the next one. The Bears'
+    /// touchdown came a millisecond after April started talking, was rightly held back, and
+    /// spent the cooldown all the same; the extra point, thirty seconds later and after her
+    /// scene had closed, then found it spent, and nobody was asked about either (#271).
     public func occasion(for event: WorldEventEnvelope, at now: Date) -> Occasion? {
         guard let place = event.subjectIDs.first else { return nil }
         // The birds sleep. Cooldowns are not touched: the first thing after seven may speak.
@@ -158,12 +167,11 @@ public actor SceneOpeningPolicy {
         if event.type == HouseEvents.departureSoon || event.type == HouseEvents.departureNow
             || event.type == HouseEvents.reminderDue
         {
-            let key =
-                "\(SceneTrigger.Kind.houseConsideration.rawValue)|\(event.type.rawValue)|\(place.rawValue)"
-            if let last = lastOpened[key], now.timeIntervalSince(last) < 300 { return nil }
-            lastOpened[key] = now
-            lastOpenedAny = now
-            return Occasion(place: place, kind: .houseConsideration)
+            let occasion = Occasion(place: place, kind: .houseConsideration)
+            if let last = lastOpened[Self.key(occasion, event)], now.timeIntervalSince(last) < 300 {
+                return nil
+            }
+            return occasion
         }
         func matching(_ candidates: [SceneOpeningRule]) -> SceneOpeningRule? {
             candidates.first {
@@ -180,16 +188,26 @@ public actor SceneOpeningPolicy {
         } else {
             return nil
         }
-        let key = "\(kind.rawValue)|\(event.type.rawValue)|\(place.rawValue)"
-        if let last = lastOpened[key], now.timeIntervalSince(last) < rule.cooldownSeconds {
+        let occasion = Occasion(place: place, kind: kind)
+        if let last = lastOpened[Self.key(occasion, event)],
+            now.timeIntervalSince(last) < rule.cooldownSeconds
+        {
             return nil
         }
         if gapSeconds > 0, let last = lastOpenedAny, now.timeIntervalSince(last) < gapSeconds {
             return nil
         }
-        lastOpened[key] = now
+        return occasion
+    }
+
+    /// The scene for this occasion opened: its cooldown, and the house's gap, start now.
+    public func opened(_ occasion: Occasion, for event: WorldEventEnvelope, at now: Date) {
+        lastOpened[Self.key(occasion, event)] = now
         lastOpenedAny = now
-        return Occasion(place: place, kind: kind)
+    }
+
+    private static func key(_ occasion: Occasion, _ event: WorldEventEnvelope) -> String {
+        "\(occasion.kind.rawValue)|\(event.type.rawValue)|\(occasion.place.rawValue)"
     }
 
     /// " for two hours" / " for 25 minutes", from `after_seconds`; nothing when unknown.
