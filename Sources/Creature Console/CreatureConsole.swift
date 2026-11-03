@@ -184,8 +184,16 @@ struct CreatureConsole: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environment(ConsoleStore.shared)
+            // Under the test runner the host app stays quiet (issue #38), and that includes its
+            // window: the real root view consumes every notice a test posts to AppState -
+            // banner shown, notice cleared - and refreshes caches from a server whenever the
+            // scene goes active. AppStateTests read back a notice the view had already taken.
+            if TestRun.isActive {
+                Color.clear
+            } else {
+                RootView()
+                    .environment(ConsoleStore.shared)
+            }
         }
         .modelContainer(modelContainer)
         #if os(macOS) || os(iOS)
