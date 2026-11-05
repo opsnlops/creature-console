@@ -33,6 +33,9 @@ struct DroppedConnectionRetryTests {
         /// The connections a request was read on: each one a send that reached the server.
         let readers = NIOLockedValueBox<Set<ObjectIdentifier>>([])
 
+        /// What each connection has sent so far: a request may arrive in more than one read.
+        let received = NIOLockedValueBox<[ObjectIdentifier: String]>([:])
+
         /// How many sends the server read.
         var reads: Int { readers.withLockedValue { $0.count } }
 
@@ -50,16 +53,23 @@ struct DroppedConnectionRetryTests {
         }
 
         func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-            // A request may arrive in more than one read; it is one send, answered once.
-            let first = readers.withLockedValue {
-                $0.insert(ObjectIdentifier(context.channel)).inserted
-            }
-            guard first else { return }
+            let connection = ObjectIdentifier(context.channel)
+            let first = readers.withLockedValue { $0.insert(connection).inserted }
             if let dropAfterReading {
+                guard first else { return }
                 let channel = context.channel
                 channel.eventLoop.scheduleTask(in: dropAfterReading) { channel.close(promise: nil) }
                 return
             }
+            // Answered once the whole request is in, as a real server does. Closing with some of
+            // it still on the way resets the connection, and a reset throws away the answer the
+            // client had not read yet: it looked like a drop, and was rightly sent again.
+            let chunk = String(buffer: unwrapInboundIn(data))
+            let whole = received.withLockedValue { received -> Bool in
+                received[connection, default: ""] += chunk
+                return received[connection, default: ""].hasSuffix("\r\n\r\n{}")
+            }
+            guard whole else { return }
             let body = #"{"ok":true}"#
             let response =
                 "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: \(body.utf8.count)"
