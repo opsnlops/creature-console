@@ -95,6 +95,7 @@ systemd service reads `/etc/creature/world.json` by default.
 | Retention | `retention.event_days`, `cheap_event_days`, `processing_days`, `timer_days`, `ingress_days`, `retired_fact_days`, `delivery_days`, `scene_days` | — | — | `90`, `7`, `7`, `7`, `30`, `90`, `90`, `180` |
 | House questions | `scenes.consider_on` (same shape as `open_on`) | — | — | `[]` |
 | Scene pacing | `scenes.characters_per_second`, `scenes.sentence_seconds`, `scenes.cue_seconds`, `scenes.turn_lead_seconds`, `scenes.voices` | — | — | `20`, `0.35`, `0.75`, `2`, `{}` |
+| House news | `scenes.news_seconds` | — | — | `45` |
 
 Example:
 
@@ -251,13 +252,35 @@ start a scene on their own, where, and how often —
 — the MQTT agent's areas and cooldowns, as world rules. When a matching event is accepted
 (and its place has not opened one within the cooldown), the world opens a scene in the
 region whose `places` include it (a person's event uses the lead's region), in
-`house_conversation` (default `conversation:april-house`), with everyone logged into the
-region in a shuffled order (`0.68.0`, #274); the trigger is a stage note the birds read — "A
-person was just seen at the driveway." — and whoever is offered the floor first takes the
-lead's part. House scenes stop at three turns. Until 0.68.0 the lead went first and the rest
-followed in the order their minds had logged in, so after a restart Kenny was fourth through
-the whole Bears game and never spoke. April: "let's shake it up". Every bird present stays in
-the cast, because the minds read who is in the room from it. Nobody logged in means
+`house_conversation` (default `conversation:april-house`), with the lead first and the rest of
+the region's birds in a shuffled order; the trigger is a stage note the birds read — "A person
+was just seen at the driveway." — and Beaky, as lead, speaks first. House scenes stop at three
+turns, so that is the lead and two random birds.
+
+- **Before `0.68.0` (#274),** the rest followed in the order their minds had logged in, so after
+  a restart Kenny was fourth through the whole Bears game and never spoke.
+- **`0.68.0`** shuffled everyone. The first bird sets the scene, though, and that was usually a
+  chorus bird on the smaller model. April: "they're talking about nonesense more".
+- **`0.69.1` (#278)** keeps the lead first and shuffles only the chorus. If the lead isn't in
+  the room, everyone is shuffled.
+
+Every bird present stays in the cast, because the minds read who is in the room from it.
+
+**Old news opens no scene** (`0.69.1`, #279). Every stage note says something *just* happened,
+so an event that reached the World more than `scenes.news_seconds` (default 45) after it
+happened is recorded, and its facts update, but it opens no scene and spends no cooldown. The
+log says "Old news; no scene".
+
+- **What it's for:** a house restart restates the present so the World starts from what's true,
+  with Home Assistant's own time for when it became true. On 2026-11-04 at 9:07 AM that opened
+  "The front door was just locked" for a door locked 15.5 hours earlier, in the middle of April's
+  meeting.
+- **Why 45 s:** live events arrive within a second (0.52 s at worst, measured over two days).
+  45 s is more than the house's 30 s outbox flush, so an event held through a short World
+  restart still counts. It's less than the 60 s door and person cooldowns, so a house restarting
+  just after a real change cannot repeat it.
+- **How it's judged:** by `received_at` against `occurred_at`, on the event itself, not by when
+  the opener reads it (#266). Nobody logged in means
 no scene. The rest is the ordinary scene machinery, including the facts on each floor offer
 (so the birds also know it is 66 degrees and the cameras are otherwise quiet).
 

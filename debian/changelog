@@ -1,3 +1,20 @@
+creature-cli (2.108.0+world0.69.1+house0.7.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.69.1: the lead speaks first in a scene the house
+    opens, and the chorus after her is shuffled (#278). Shuffling everyone
+    (#274) gave Kenny his turns but usually put a smaller model in front.
+    April: "it needs to be Lead + random selection of chorus."
+  * Old news opens no scene (#279). A house restart restates the present,
+    with Home Assistant's own time for when it became true, and the World
+    announced that as just having happened: on 11-04 at 9:07 AM, "The
+    front door was just locked" for a door locked 15.5 hours before, during
+    April's meeting. An event that reaches the World more than
+    scenes.news_seconds (45) after it happened is recorded and its facts
+    update, but it opens no scene and spends no cooldown. Live events take
+    half a second at worst.
+
+ -- April White <april@creature.engineering>  Wed, 04 Nov 2026 21:26:05 -0800
+
 creature-cli (2.108.0+world0.69.0+house0.7.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.69.0: the house tells the birds when the game ends

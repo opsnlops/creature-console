@@ -133,16 +133,30 @@ public actor SceneOpeningPolicy {
         self.quietHours = quietHours
     }
 
-    /// Who speaks when the house opens a scene, in order: everyone in the room, shuffled each
-    /// time (#274). House scenes stop at three turns, and the order the minds had logged in in
+    /// Who speaks when the house opens a scene, in order: the lead, then the chorus shuffled
+    /// each time. House scenes stop at three turns, and the order the minds had logged in in
     /// decided who was cut: after a restart Kenny was fourth all through the Bears game and
-    /// never spoke ("I wonder why Kenny is being so quiet"). April: "let's shake it up". Every
-    /// bird present stays in the cast - the minds read who is in the room from it - and the
-    /// first to be offered the floor takes the lead's part.
+    /// never spoke, so the cast was shuffled (#274). But the first bird sets the scene, and with
+    /// everyone shuffled that was usually a chorus bird on the smaller model. April: "they're
+    /// talking about nonesense more... it needs to be Lead + random selection of chorus" (#278).
+    /// Every bird present stays in the cast - the minds read who is in the room from it.
     public static func cast(
-        _ present: [EntityID], using generator: inout some RandomNumberGenerator
+        _ present: [EntityID], lead: EntityID,
+        using generator: inout some RandomNumberGenerator
     ) -> [EntityID] {
-        present.shuffled(using: &generator)
+        let chorus = present.filter { $0 != lead }.shuffled(using: &generator)
+        return present.contains(lead) ? [lead] + chorus : chorus
+    }
+
+    /// Whether this event reached the World as it happened, which is what makes it worth a
+    /// scene: every stage note says something *just* happened. A house restarting restates the
+    /// present, with Home Assistant's own time for when it became true - right for the facts,
+    /// but "The front door was just locked" fifteen hours after it was (#279). Live events
+    /// arrive within a second; judged by the event itself, not by when the opener reads it
+    /// (#266). An event the World has not stamped yet has not arrived late.
+    public static func isNews(_ event: WorldEventEnvelope, within seconds: TimeInterval) -> Bool {
+        guard let received = event.receivedAt else { return true }
+        return received.timeIntervalSince(event.occurredAt) <= seconds
     }
 
     /// The place the scene is about, when this event should open one now; the scene is taken to

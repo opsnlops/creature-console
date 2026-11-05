@@ -299,9 +299,22 @@ struct CreatureWorldBlackBoxTests {
             ])
         #expect(sceneEvents.map(\.type.rawValue).suffix(2) == ["scene.closed", "scene.performed"])
 
+        // The house restarts and restates a sighting from an hour ago: recorded, but it did not
+        // just happen, so it opens no scene and spends no cooldown (#279). The opener reads the
+        // world in order, so the sighting below opening its scene means this was passed over.
+        let restated = try WorldEventEnvelope(
+            type: HouseEvents.personSeen,
+            occurredAt: Date().addingTimeInterval(-3_600),
+            source: EventSource(
+                id: SourceID(validating: "home-assistant:test-camera"), kind: "home-assistant",
+                sourceEventID: "snapshot:\(UUID().uuidString)"),
+            subjectIDs: [driveway], placeID: driveway,
+            epistemic: EpistemicState(type: .observed, confidence: 1),
+            payload: [:])
+        #expect(try await api.post(restated).status == .accepted)
+
         // The house says a person is at the driveway: the world opens a scene on its own,
-        // everyone in the room in a shuffled order (#274), and the birds read it as a stage
-        // note.
+        // the lead gets the floor first (#278), and the birds read it as a stage note.
         let sighting = try WorldEventEnvelope(
             type: HouseEvents.personSeen,
             occurredAt: Date(),
@@ -316,13 +329,12 @@ struct CreatureWorldBlackBoxTests {
             triggeredBy: sighting.eventID, after: sightingSequence)
         #expect(houseScene.trigger.kind == .worldEvent)
         #expect(houseScene.trigger.text.contains("A person was just seen at the driveway"))
-        #expect(Set(houseScene.participants) == [beaky, mango])
+        #expect(houseScene.trigger.eventID == sighting.eventID)
+        #expect(houseScene.participants == [beaky, mango])
         // Opened and offered are two writes: a scene read between them has no floor yet, and
         // against a database across the network (MongoDB 9 on the dev server, 2026-10-16) the
         // read landed there two runs in three. Wait for the floor, as the scene above does.
-        #expect(
-            try await api.waitForFloor(in: houseScene.sceneID).characterID
-                == houseScene.participants.first)
+        #expect(try await api.waitForFloor(in: houseScene.sceneID).characterID == beaky)
         #expect(houseScene.conversationID == conversationID)
         // Twice in a row is once: the cooldown holds.
         var again = sighting

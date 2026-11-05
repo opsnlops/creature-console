@@ -350,6 +350,16 @@ struct MongoWorldPersistenceConnection: Sendable {
                     guard
                         let occasion = await openingPolicy.occasion(for: event, at: await clock.now)
                     else { continue }
+                    // Old news: recorded, and the facts are right, but it did not just happen.
+                    guard SceneOpeningPolicy.isNews(event, within: sceneLimits.newsSeconds) else {
+                        logger.info(
+                            "Old news; no scene",
+                            metadata: [
+                                "world.event.type": "\(event.type.rawValue)",
+                                "world.event.occurred_at": "\(event.occurredAt)",
+                            ])
+                        continue
+                    }
                     let place = occasion.place
                     // The region the place belongs to; a person's region is wherever the lead is.
                     var regionID = regions.first { $0.value.places.contains(place) }?.key
@@ -368,7 +378,8 @@ struct MongoWorldPersistenceConnection: Sendable {
                         continue
                     }
                     var dice = SystemRandomNumberGenerator()
-                    let participants = SceneOpeningPolicy.cast(present, using: &dice)
+                    let participants = SceneOpeningPolicy.cast(
+                        present, lead: leadCharacter, using: &dice)
                     let scene = try await sceneService.open(
                         regionID: regionID,
                         conversationID: houseConversation,

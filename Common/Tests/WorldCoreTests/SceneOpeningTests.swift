@@ -296,22 +296,56 @@ struct SceneOpeningTests {
         #expect(await policy.occasion(for: touchdown, at: now + 212) != nil)
     }
 
-    @Test("The house's cast is everyone in the room, shuffled: nobody is always fourth (#274)")
-    func castIsShuffled() throws {
+    @Test("The house's cast is the lead, then a shuffled chorus: nobody is always last (#278)")
+    func castIsLeadThenShuffled() throws {
         let birds = try ["beaky", "mango", "caroll", "kenny"].map {
             try EntityID(validating: "character:\($0)")
         }
-        var dice = Dice(seed: 274)
+        let lead = birds[0]
+        var dice = Dice(seed: 278)
         var spoke: [EntityID: Int] = [:]
-        for _ in 0..<200 {
-            let cast = SceneOpeningPolicy.cast(birds, using: &dice)
+        var second: Set<EntityID> = []
+        for _ in 0..<300 {
+            let cast = SceneOpeningPolicy.cast(birds, lead: lead, using: &dice)
+            #expect(cast.first == lead)
             #expect(Set(cast) == Set(birds))
             #expect(cast.count == birds.count)
-            // The three a house scene's turns reach.
-            for bird in cast.prefix(3) { spoke[bird, default: 0] += 1 }
+            second.insert(cast[1])
+            // The two turns a house scene has left after the lead.
+            for bird in cast[1...2] { spoke[bird, default: 0] += 1 }
         }
-        // Kenny, last to log in, speaks about as often as anyone.
-        for bird in birds { #expect(spoke[bird, default: 0] > 100) }
+        // Each of the chorus follows the lead, and Kenny, last to log in, speaks as often as
+        // anyone: two of three, about two hundred of the three hundred.
+        #expect(second == Set(birds.dropFirst()))
+        for bird in birds.dropFirst() { #expect(spoke[bird, default: 0] > 150) }
+        // With the lead out of the room, the chorus is all there is.
+        let chorus = Array(birds.dropFirst())
+        let without = SceneOpeningPolicy.cast(chorus, lead: lead, using: &dice)
+        #expect(Set(without) == Set(chorus))
+        #expect(without.count == chorus.count)
+    }
+
+    @Test("Only what reached the World as it happened is news (#279)")
+    func newsIsWhatJustHappened() throws {
+        var locked = try event(HouseEvents.doorLocked, driveway)
+        // Not stamped by the World yet: it cannot have arrived late.
+        #expect(SceneOpeningPolicy.isNews(locked, within: 45))
+        // A live lock arrives within a second, and a brief World restart's outbox within thirty.
+        locked.receivedAt = locked.occurredAt.addingTimeInterval(0.5)
+        #expect(SceneOpeningPolicy.isNews(locked, within: 45))
+        locked.receivedAt = locked.occurredAt.addingTimeInterval(45)
+        #expect(SceneOpeningPolicy.isNews(locked, within: 45))
+        // 2026-11-04: the house restarted and restated a door locked fifteen and a half hours
+        // before, which the world announced as "just locked".
+        locked.receivedAt = locked.occurredAt.addingTimeInterval(55_818)
+        #expect(SceneOpeningPolicy.isNews(locked, within: 45) == false)
+        locked.receivedAt = locked.occurredAt.addingTimeInterval(46)
+        #expect(SceneOpeningPolicy.isNews(locked, within: 45) == false)
+        // Tunable, and it has a sensible default for a world.json that says nothing.
+        #expect(SceneLimits().newsSeconds == 45)
+        let tuned = try JSONDecoder().decode(
+            SceneLimits.self, from: Data(#"{"news_seconds": 90}"#.utf8))
+        #expect(tuned.newsSeconds == 90)
     }
 
     @Test("An ending is an occasion wherever its beginning is, and reads as a stay")

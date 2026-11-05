@@ -541,6 +541,11 @@ public struct SceneLimits: Hashable, Sendable, Codable {
     /// The world events the house *asks* the lead about: a scene opens, but the lead may
     /// judge it not worth a word and stay quiet, and the world records that.
     public var considerOn: [SceneOpeningRule]
+    /// How late an event may reach the World and still open a scene (#279). Live events arrive
+    /// within a second. This is more than the house's thirty-second outbox flush, so an event
+    /// held through a short World restart still counts, and less than the sixty-second door and
+    /// person cooldowns, so a house restarting just after a real change cannot repeat it.
+    public var newsSeconds: TimeInterval
     /// When the house does not wake the birds at all; nil means never quiet.
     public var quietHours: QuietHours?
     /// The least time between any two scenes the house opens, across all rules; zero (the
@@ -576,6 +581,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         voices: [String: SpeakingPace] = [:],
         openOn: [SceneOpeningRule] = [],
         considerOn: [SceneOpeningRule] = [],
+        newsSeconds: TimeInterval = 45,
         houseGapSeconds: TimeInterval = 0,
         quietHours: QuietHours? = nil,
         turnLeadSeconds: TimeInterval = 2,
@@ -591,6 +597,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         self.voices = voices
         self.openOn = openOn
         self.considerOn = considerOn
+        self.newsSeconds = newsSeconds
         self.houseGapSeconds = houseGapSeconds
         self.quietHours = quietHours
         self.turnLeadSeconds = turnLeadSeconds
@@ -621,6 +628,8 @@ public struct SceneLimits: Hashable, Sendable, Codable {
             openOn: try container.decodeIfPresent([SceneOpeningRule].self, forKey: .openOn) ?? [],
             considerOn: try container.decodeIfPresent(
                 [SceneOpeningRule].self, forKey: .considerOn) ?? [],
+            newsSeconds: try container.decodeIfPresent(TimeInterval.self, forKey: .newsSeconds)
+                ?? defaults.newsSeconds,
             houseGapSeconds: try container.decodeIfPresent(
                 TimeInterval.self, forKey: .houseGapSeconds) ?? defaults.houseGapSeconds,
             quietHours: try container.decodeIfPresent(QuietHours.self, forKey: .quietHours),
@@ -662,6 +671,7 @@ public struct SceneLimits: Hashable, Sendable, Codable {
         case voices
         case openOn = "open_on"
         case considerOn = "consider_on"
+        case newsSeconds = "news_seconds"
         case houseGapSeconds = "house_gap_seconds"
         case quietHours = "quiet_hours"
         case turnLeadSeconds = "turn_lead_seconds"
