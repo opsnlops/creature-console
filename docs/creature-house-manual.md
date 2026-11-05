@@ -86,7 +86,7 @@ was seen at the driveway 3 minutes ago.", "It is 68 degrees outside.", "April is
 
 ## Scenes: "Beaky, set the lights to normal evening"
 
-With `scenes.offer` on, the adapter posts `house.scenes_offered` at startup (the friendly names
+With `scenes.offer` off, the house still follows Home Assistant and tells the World everything; it just has no world stream to follow (before `0.7.2`, #277, it exited at startup). With `scenes.offer` on, the adapter posts `house.scenes_offered` at startup (the friendly names
 of every `scene.*`), which becomes the `house.scenes` fact on `house_id`, phrased to the minds
 as "You can set the lights to: Normal Evening, Movie Time, …". Recognising an ask is a
 **world rule, not a model roll**: at ingress, `SceneRequestRule` matches the words against the

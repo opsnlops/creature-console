@@ -1,3 +1,14 @@
+creature-cli (2.108.0+world0.69.1+house0.7.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
+
+  * creature-house 0.7.2: a house that offers no scenes keeps running
+    (#277). The house ends when its first loop does, and the loop following
+    the world returned at once when scenes.offer was false, so such a house
+    stopped following Home Assistant as it started, and systemd restarted it
+    in a loop. That loop now only starts when there is a world to follow.
+    Production offers scenes, so nothing changes there.
+
+ -- April White <april@creature.engineering>  Wed, 04 Nov 2026 22:03:03 -0800
+
 creature-cli (2.108.0+world0.69.1+house0.7.1+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.69.1: the lead speaks first in a scene the house

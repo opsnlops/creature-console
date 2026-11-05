@@ -43,7 +43,11 @@ struct HouseService: Service {
             try await cancelWhenGracefulShutdown {
                 try await withThrowingTaskGroup(of: Void.self) { group in
                     group.addTask { try await followHomeAssistant() }
-                    group.addTask { try await followWorld() }
+                    // Any loop that ends takes the house with it, so one with nothing to do is
+                    // not started: a house offering no scenes has no world to follow (#277).
+                    if configuration.offersScenes {
+                        group.addTask { try await followWorld() }
+                    }
                     group.addTask { try await flushOutbox() }
                     try await group.next()
                     group.cancelAll()
@@ -170,7 +174,6 @@ struct HouseService: Service {
 
     /// Follow the world's stream for scene requests and act on them.
     private func followWorld() async throws {
-        guard configuration.offersScenes else { return }
         var resumeAfter: Int64? = nil
         while !Task.isCancelled {
             do {
