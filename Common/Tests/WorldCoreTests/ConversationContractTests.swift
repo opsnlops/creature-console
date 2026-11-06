@@ -169,3 +169,73 @@ struct ConversationContractTests {
 
     private static let now = Date(timeIntervalSince1970: 1_789_042_000)
 }
+
+@Suite("Conversation page requests")
+struct ConversationPageRequestTests {
+    private let itemID = "conversation-item:anchor"
+
+    @Test("No parameters read forward from the beginning, as every old client expects")
+    func defaultsForward() throws {
+        #expect(
+            try ConversationPageRequest(after: nil, before: nil, order: nil)
+                == .forward(after: nil)
+        )
+        #expect(
+            try ConversationPageRequest(after: itemID, before: nil, order: nil)
+                == .forward(after: ConversationItemID(validating: itemID))
+        )
+    }
+
+    @Test("Asking for the newest, or for what came before an item, reads backward")
+    func readsBackward() throws {
+        let anchor = try ConversationItemID(validating: itemID)
+        #expect(
+            try ConversationPageRequest(after: nil, before: nil, order: "newest")
+                == .backward(before: nil)
+        )
+        #expect(
+            try ConversationPageRequest(after: nil, before: itemID, order: nil)
+                == .backward(before: anchor)
+        )
+        #expect(
+            try ConversationPageRequest(after: nil, before: itemID, order: "newest")
+                == .backward(before: anchor)
+        )
+    }
+
+    @Test("A request that points both ways, or nowhere known, is refused")
+    func refusesContradictions() {
+        for (after, before, order) in [
+            (itemID, itemID, nil),
+            (itemID, nil, "newest"),
+            (nil, nil, "sideways"),
+            (nil, nil, ""),
+        ] as [(String?, String?, String?)] {
+            #expect(throws: WorldContractError.invalidConversationPageRequest) {
+                try ConversationPageRequest(after: after, before: before, order: order)
+            }
+        }
+    }
+
+    @Test("A page's parameters read back as the same request")
+    func queryParametersRoundTrip() throws {
+        let anchor = try ConversationItemID(validating: itemID)
+        for page in [
+            ConversationPageRequest.forward(after: nil),
+            .forward(after: anchor),
+            .backward(before: nil),
+            .backward(before: anchor),
+        ] {
+            let parameters = Dictionary(
+                uniqueKeysWithValues: page.queryParameters.map { ($0.name, $0.value) }
+            )
+            #expect(
+                try ConversationPageRequest(
+                    after: parameters["after_item_id"],
+                    before: parameters["before_item_id"],
+                    order: parameters["order"]
+                ) == page
+            )
+        }
+    }
+}

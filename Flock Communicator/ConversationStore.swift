@@ -15,6 +15,9 @@ final class ConversationStore {
     private(set) var items: [ConversationItem] = []
     var draft = ""
     var replyingTo: ConversationItem?
+    private(set) var hasOlderHistory = false
+    private(set) var isLoadingOlder = false
+    private(set) var olderHistoryFailed = false
     private(set) var isLoading = false
     private(set) var isSending = false
     private(set) var connectionState: ConversationConnectionState = .connecting
@@ -22,6 +25,7 @@ final class ConversationStore {
 
     @ObservationIgnored private let service: any CommunicatorConversationService
     @ObservationIgnored private var isRefreshing = false
+    @ObservationIgnored private var shownRevision = 0
 
     init(service: any CommunicatorConversationService) {
         self.service = service
@@ -29,7 +33,11 @@ final class ConversationStore {
 
     func load() async {
         guard items.isEmpty else { return }
-        isLoading = true
+        // The cache needs no network. If reading it fails, the refresh below reports why.
+        if let cached = try? await service.cachedConversation() {
+            show(cached)
+        }
+        isLoading = items.isEmpty
         defer { isLoading = false }
         await refresh()
     }
@@ -39,10 +47,32 @@ final class ConversationStore {
         isRefreshing = true
         defer { isRefreshing = false }
         do {
-            items = try await service.conversation()
+            show(try await service.conversation())
         } catch {
             errorAlert = ErrorAlert(title: "The World Is Quiet", error: error)
         }
+    }
+
+    func loadOlder() async {
+        guard hasOlderHistory, !isLoadingOlder else { return }
+        isLoadingOlder = true
+        olderHistoryFailed = false
+        defer { isLoadingOlder = false }
+        do {
+            // Scrolling away cancels the view's task. Let the page finish anyway: it's on its way,
+            // and the next scroll wants it.
+            let service = service
+            show(try await Task { try await service.olderConversation() }.value)
+        } catch {
+            olderHistoryFailed = true
+        }
+    }
+
+    private func show(_ window: ConversationWindow) {
+        guard window.revision >= shownRevision else { return }
+        shownRevision = window.revision
+        items = window.items
+        hasOlderHistory = window.hasOlder
     }
 
     func observeUpdates() async {
@@ -80,7 +110,7 @@ final class ConversationStore {
 
         do {
             try await service.submit(text: text, inReplyTo: replyingTo)
-            items = try await service.conversation()
+            show(try await service.conversation())
             draft = ""
             replyingTo = nil
         } catch {

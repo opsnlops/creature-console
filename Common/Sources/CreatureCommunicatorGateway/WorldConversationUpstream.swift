@@ -13,7 +13,7 @@ public protocol CommunicatorWorldUpstream: Sendable {
     func submit(_ utterance: PersonUtterance) async throws -> UtteranceIngressResult
     func items(
         in conversationID: ConversationID,
-        after itemID: ConversationItemID?,
+        page: ConversationPageRequest,
         limit: Int
     ) async throws -> ConversationItemPage
     func conversationStream(
@@ -112,13 +112,12 @@ public struct HTTPCommunicatorWorldUpstream: CommunicatorWorldUpstream, Sendable
 
     public func items(
         in conversationID: ConversationID,
-        after itemID: ConversationItemID?,
+        page: ConversationPageRequest,
         limit: Int
     ) async throws -> ConversationItemPage {
-        var queryItems = [URLQueryItem(name: "limit", value: String(limit))]
-        if let itemID {
-            queryItems.append(URLQueryItem(name: "after_item_id", value: itemID.rawValue))
-        }
+        let queryItems =
+            [URLQueryItem(name: "limit", value: String(limit))]
+            + page.queryParameters.map { URLQueryItem(name: $0.name, value: $0.value) }
         let response = try await execute(
             pathComponents: ["conversations", conversationID.rawValue, "items"],
             queryItems: queryItems

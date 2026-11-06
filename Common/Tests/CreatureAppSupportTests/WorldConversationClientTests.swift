@@ -67,6 +67,35 @@ struct WorldConversationClientTests {
         #expect(request.value(forHTTPHeaderField: "x-acw-api-key") == nil)
     }
 
+    @Test("History asks for the newest page, then for what came before an item")
+    func loadsHistoryBackward() async throws {
+        let utterance = try Self.makeUtterance()
+        let result = try Self.makeResult(for: utterance)
+        let page = ConversationItemPage(items: [], nextItemID: nil, hasMore: false)
+        let loader = RecordingLoader(response: page)
+        let client = WorldConversationClient(
+            connection: CreatureServiceConnection(
+                hostname: "10.69.66.1",
+                port: 8_000,
+                usesTLS: false
+            ),
+            loader: loader
+        )
+
+        _ = try await client.history(in: utterance.conversationID, limit: 25)
+        let newest = try #require(await loader.lastRequest)
+        #expect(newest.url?.query == "limit=25&order=newest")
+
+        _ = try await client.history(
+            in: utterance.conversationID,
+            before: result.conversationItem.itemID,
+            limit: 25
+        )
+        let older = try #require(await loader.lastRequest)
+        #expect(older.url?.query?.contains("before_item_id=") == true)
+        #expect(older.url?.query?.contains("order=") == false)
+    }
+
     @Test("A caller can select the narrow Communicator gateway namespace")
     func communicatorGatewayNamespace() async throws {
         let utterance = try Self.makeUtterance()

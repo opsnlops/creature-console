@@ -187,6 +187,55 @@ struct MongoWorldPersistenceTests {
         }
     }
 
+    @Test("History reads backward through ties, and only within its conversation")
+    func historyReadsBackward() async throws {
+        try await withPersistence { persistence in
+            let suffix = UUID().uuidString.lowercased()
+            let conversationID = try ConversationID(validating: "conversation:\(suffix)")
+            let otherID = try ConversationID(validating: "conversation:other-\(suffix)")
+            // Two turns in one instant: only the item id can order them.
+            let dates = [1_000.0, 2_000, 2_000, 3_000]
+            var ingresses: [StoredUtteranceIngress] = []
+            for (index, date) in dates.enumerated() {
+                ingresses.append(
+                    try makeIngress(
+                        suffix: "\(suffix)-\(index)",
+                        conversationID: conversationID,
+                        occurredAt: Date(timeIntervalSince1970: date)
+                    )
+                )
+            }
+            let other = try makeIngress(
+                suffix: "other-\(suffix)",
+                conversationID: otherID,
+                occurredAt: Date(timeIntervalSince1970: 2_500)
+            )
+            for ingress in ingresses + [other] {
+                _ = try await persistence.conversations.prepare(ingress)
+            }
+            let ids = ingresses.map(\.conversationItem.itemID)
+
+            let conversations = persistence.conversations
+            func before(_ itemID: ConversationItemID?, limit: Int) async throws
+                -> [ConversationItemID]
+            {
+                try await conversations.conversationItems(
+                    in: conversationID,
+                    before: itemID,
+                    limit: limit
+                ).map(\.itemID)
+            }
+
+            #expect(try await before(nil, limit: 2) == [ids[2], ids[3]])
+            #expect(try await before(ids[2], limit: 2) == [ids[0], ids[1]])
+            #expect(try await before(ids[1], limit: 2) == [ids[0]])
+            #expect(try await before(ids[0], limit: 2).isEmpty)
+            await #expect(throws: WorldAPIError.invalidQuery(name: "before_item_id")) {
+                try await before(other.conversationItem.itemID, limit: 2)
+            }
+        }
+    }
+
     @Test("Beaky's turn is durable, idempotent, and ordered with April's")
     func characterDeliveryIsDurableAndOrdered() async throws {
         try await withPersistence { persistence in

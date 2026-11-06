@@ -812,6 +812,11 @@ private struct HeldConversation: ConversationApplicationService {
     }
 
     private var unavailable: UnavailableConversationApplicationService { .init() }
+    func conversationHistory(
+        in conversationID: ConversationID, before itemID: ConversationItemID?, limit: Int
+    ) async throws -> ConversationItemPage {
+        try await unavailable.conversationHistory(in: conversationID, before: itemID, limit: limit)
+    }
     func ingest(_ utterance: PersonUtterance) async throws -> UtteranceIngressResult {
         try await unavailable.ingest(utterance)
     }

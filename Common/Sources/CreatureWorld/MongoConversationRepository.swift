@@ -38,15 +38,7 @@ struct MongoConversationRepository: UtteranceIngressRepository, Sendable {
     func newestConversationItems(in conversationID: ConversationID, limit: Int) async throws
         -> [ConversationItem]
     {
-        precondition(limit > 0)
-        let newestFirst = try await items.find(
-            ["conversation_id": conversationID.rawValue],
-            as: ConversationItem.self
-        )
-        .sort(["created_at": -1, "_id": -1])
-        .limit(limit)
-        .drain()
-        return newestFirst.reversed()
+        try await conversationItems(in: conversationID, before: nil, limit: limit)
     }
 
     /// A day's conversation, oldest first.
@@ -62,6 +54,35 @@ struct MongoConversationRepository: UtteranceIngressRepository, Sendable {
         .sort(["created_at": 1, "_id": 1])
         .limit(limit)
         .drain()
+    }
+
+    /// The items just older than `itemID`, or the newest when there is no anchor, oldest first.
+    func conversationItems(
+        in conversationID: ConversationID,
+        before itemID: ConversationItemID?,
+        limit: Int
+    ) async throws -> [ConversationItem] {
+        precondition(limit > 0)
+        var query: Document = ["conversation_id": conversationID.rawValue]
+        if let itemID {
+            guard
+                let anchor = try await items.findOne(
+                    ["_id": itemID.rawValue],
+                    as: ConversationItem.self
+                ), anchor.conversationID == conversationID
+            else { throw WorldAPIError.invalidQuery(name: "before_item_id") }
+            let earlierDate: Document = ["created_at": ["$lt": anchor.createdAt]]
+            let earlierID: Document = [
+                "created_at": anchor.createdAt,
+                "_id": ["$lt": itemID.rawValue],
+            ]
+            query["$or"] = [earlierDate, earlierID]
+        }
+        let newestFirst = try await items.find(query, as: ConversationItem.self)
+            .sort(["created_at": -1, "_id": -1])
+            .limit(limit)
+            .drain()
+        return newestFirst.reversed()
     }
 
     func conversationItems(

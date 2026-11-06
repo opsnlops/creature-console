@@ -1332,7 +1332,7 @@ current endpoints are:
 | `GET /world/v1/events` | Read ordered history after `after_sequence`. |
 | `POST /world/v1/conversations/{conversation_id}/utterances` | Durably accept one typed `PersonUtterance`; returns 202 when new or 200 when already accepted. |
 | `POST /world/v1/conversations/{conversation_id}/responses` | Carry one `CharacterUtteranceIntent` (a Beaky turn) into the conversation. The deterministic router reads fresh presence, persists the canonical item first, then delivers; returns 202 with `disposition: accepted` when this call handled it or 200 with `disposition: duplicate` when the same `response_id` was already handled. |
-| `GET /world/v1/conversations/{conversation_id}/items` | Read canonical conversation items in chronological, stable-ID order. |
+| `GET /world/v1/conversations/{conversation_id}/items` | Read canonical conversation items in chronological, stable-ID order. Reads forward by default, with `after_item_id`. `order=newest` starts from the newest items and `before_item_id` continues back from an item (`0.70.0`, #282); items in a page stay oldest first, `next_item_id` is the page's oldest item, and `has_more` says whether anything older exists. Asking for both directions is a 400. |
 | `GET /world/v1/conversations/{conversation_id}/stream` | Receive an immediate `ready` event followed by live conversation-item notifications over SSE. Reconcile through the items endpoint after connecting. |
 | `POST /world/v1/conversations/{conversation_id}/stage` | A mind asks where a turn it is about to produce should be performed: `{ "response_id", "character_id", "recipient_id" }`. The router reads presence once and persists a `CharacterDeliveryDecision` for that `response_id` (expired by MongoDB after five minutes if never used). Asking again returns the same decision; a turn already carried answers `already_delivered` with the record so it is never performed twice. Added in `0.4.0`. |
 | `POST /world/v1/conversations/{conversation_id}/performances` | A mind records a turn it performed itself on a staged decision: `{ "intent", "attempt_id", "outcome": { "state": "performed" \| "failed", "provider_reference"?, "error_code"? } }`. The canonical item, decision, and outcome are stored in one step and the item is published to conversation subscribers; returns the same body as `/responses`. A performance the world never staged is refused with 400. Added in `0.4.0`. |
@@ -1350,7 +1350,8 @@ current endpoints are:
 | `GET /world/v1/stream` | Receive an initial snapshot or resumed history followed by ordered live deltas over SSE. |
 
 History uses `after_sequence`; conversation, delivery, fact, and timer pages use
-`after_item_id`, `after_response_id`, `after_fact_id`, and `after_timer_id`.
+`after_item_id`, `after_response_id`, `after_fact_id`, and `after_timer_id`. Conversation pages
+can also read backward with `before_item_id`.
 Every list accepts `limit`, defaults to 100, and permits at most 500 results. Page responses state
 whether more results exist and provide the cursor for the next request. A snapshot marks facts or
 timers as truncated rather than implying that a bounded result is complete.

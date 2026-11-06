@@ -1,3 +1,15 @@
+creature-cli (2.108.0+world0.70.0+house0.7.2+gateway0.2.0+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.70.0: conversation history reads backward (#282).
+    order=newest starts from the newest items and before_item_id continues
+    back from an item, so a client can show the present without downloading
+    the past. after_item_id reads forward as it always has.
+  * creature-communicator-gateway 0.2.0: forwards the new paging, and a
+    cursor the World rejects stays a 400 rather than becoming a 503, so a
+    client can tell it from the World being down.
+
+ -- April White <april@creature.engineering>  Fri, 06 Nov 2026 12:00:00 -0800
+
 creature-cli (2.108.0+world0.69.1+house0.7.2+gateway0.1.6+body0.2.1) unstable; urgency=medium
 
   * creature-house 0.7.2: a house that offers no scenes keeps running

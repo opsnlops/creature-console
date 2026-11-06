@@ -75,6 +75,7 @@ struct ConversationPersistenceTests {
 
         let reopenedContainer = try ModelContainer(
             for: ConversationItemModel.self, PendingUtteranceModel.self,
+            ConversationSyncStateModel.self,
             configurations: ModelConfiguration(url: storeURL)
         )
         let reopenedRepository = SwiftDataConversationRepository(modelContainer: reopenedContainer)
@@ -82,13 +83,57 @@ struct ConversationPersistenceTests {
         let restoredItems = try await reopenedRepository.conversation(serverURI: serverURI)
         #expect(restoredItems.map(\.text) == ["Yes, please remember."])
         #expect(restoredItems.only?.authorKind == .person)
-        #expect(try await reopenedRepository.latestCachedItemID(serverURI: serverURI) == nil)
+        #expect(try await reopenedRepository.syncState(serverURI: serverURI) == nil)
+    }
+
+    @Test("A store from before paged history opens, and keeps its rows and outbox")
+    func opensAStoreFromBeforePagedHistory() async throws {
+        let storeDirectory = FileManager.default.temporaryDirectory.appending(
+            path: "beaky-communicator-migration-\(UUID().uuidString)",
+            directoryHint: .isDirectory
+        )
+        try FileManager.default.createDirectory(
+            at: storeDirectory,
+            withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: storeDirectory) }
+        let storeURL = storeDirectory.appending(path: "conversation.store")
+        let serverURI = "https://world.example/v1"
+        let item = try Self.makeItem()
+
+        try await MainActor.run {
+            let container = try ModelContainer(
+                for: Schema([PreviousStore.ConversationItemModel.self]),
+                configurations: ModelConfiguration(url: storeURL)
+            )
+            container.mainContext.insert(
+                PreviousStore.ConversationItemModel(
+                    id: ConversationItemModel.storageID(serverURI: serverURI, itemID: item.itemID),
+                    serverURI: serverURI,
+                    conversationID: item.conversationID.rawValue,
+                    createdAt: item.createdAt,
+                    payload: try WorldJSON.makeEncoder().encode(item)
+                )
+            )
+            try container.mainContext.save()
+        }
+
+        let reopened = try ModelContainer(
+            for: ConversationItemModel.self, PendingUtteranceModel.self,
+            ConversationSyncStateModel.self,
+            configurations: ModelConfiguration(url: storeURL)
+        )
+        let repository = SwiftDataConversationRepository(modelContainer: reopened)
+
+        #expect(try await repository.conversation(serverURI: serverURI) == [item])
+        #expect(try await repository.syncState(serverURI: serverURI) == nil)
     }
 
     @Test("Conversation cache and outbox are partitioned by World server URI")
     func partitionsApplicationDataByServerURI() async throws {
         let container = try ModelContainer(
             for: ConversationItemModel.self, PendingUtteranceModel.self,
+            ConversationSyncStateModel.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let repository = SwiftDataConversationRepository(modelContainer: container)
@@ -99,8 +144,10 @@ struct ConversationPersistenceTests {
         var productionItem = developmentItem
         productionItem.text = "Production history"
 
-        try await repository.cache([developmentItem], serverURI: developmentURI)
-        try await repository.cache([productionItem], serverURI: productionURI)
+        _ = try await repository.startHistory(
+            with: Self.page(developmentItem), serverURI: developmentURI)
+        _ = try await repository.startHistory(
+            with: Self.page(productionItem), serverURI: productionURI)
 
         #expect(
             try await repository.conversation(serverURI: developmentURI).map(\.text)
@@ -111,7 +158,7 @@ struct ConversationPersistenceTests {
                 == ["Production history"]
         )
         #expect(
-            try await repository.latestCachedItemID(serverURI: developmentURI)
+            try await repository.syncState(serverURI: developmentURI)?.newestItemID
                 == developmentItem.itemID
         )
 
@@ -141,15 +188,21 @@ struct ConversationPersistenceTests {
                 pending.text
             ])
         #expect(try await repository.conversation(serverURI: productionURI).isEmpty)
+        #expect(try await repository.syncState(serverURI: developmentURI) == nil)
         #expect(
             try await repository.pendingUtterances(serverURI: developmentURI).map(\.text)
                 == [pending.text]
         )
     }
 
+    private static func page(_ item: ConversationItem) -> ConversationItemPage {
+        ConversationItemPage(items: [item], nextItemID: item.itemID, hasMore: false)
+    }
+
     private func writeConversation(to storeURL: URL) async throws {
         let container = try ModelContainer(
             for: ConversationItemModel.self, PendingUtteranceModel.self,
+            ConversationSyncStateModel.self,
             configurations: ModelConfiguration(url: storeURL)
         )
         let repository = SwiftDataConversationRepository(modelContainer: container)
@@ -174,4 +227,31 @@ struct ConversationPersistenceTests {
 
 extension Array {
     fileprivate var only: Element? { count == 1 ? first : nil }
+}
+
+/// The conversation row as it was stored before paged history added its index.
+private enum PreviousStore {
+    @Model
+    final class ConversationItemModel {
+        @Attribute(.unique) var id: String
+        var serverURI: String = ""
+        var conversationID: String
+        var createdAt: Date
+        var payload: Data
+
+        init(id: String, serverURI: String, conversationID: String, createdAt: Date, payload: Data)
+        {
+            self.id = id
+            self.serverURI = serverURI
+            self.conversationID = conversationID
+            self.createdAt = createdAt
+            self.payload = payload
+        }
+    }
+}
+
+extension SwiftDataConversationRepository {
+    fileprivate func conversation(serverURI: String) throws -> [ConversationItem] {
+        try conversationWindow(serverURI: serverURI, from: nil, newest: 1_000).items
+    }
 }

@@ -270,18 +270,32 @@ struct WorldHTTPAPI: Sendable {
                     throw WorldAPIError.invalidQuery(name: "conversation_id")
                 }
                 let conversationID = try ConversationID(validating: rawConversationID)
-                let after = try request.uri.queryParameters["after_item_id"].map {
-                    try ConversationItemID(validating: String($0))
-                }
+                let parameters = request.uri.queryParameters
+                let page = try ConversationPageRequest(
+                    after: parameters["after_item_id"].map(String.init),
+                    before: parameters["before_item_id"].map(String.init),
+                    order: parameters["order"].map(String.init)
+                )
                 let limit = try pageLimit(request)
                 return try await execute {
-                    try jsonResponse(
-                        await conversationService.conversationItems(
-                            in: conversationID,
-                            after: after,
-                            limit: limit
+                    switch page {
+                    case .forward(let after):
+                        try jsonResponse(
+                            await conversationService.conversationItems(
+                                in: conversationID,
+                                after: after,
+                                limit: limit
+                            )
                         )
-                    )
+                    case .backward(let before):
+                        try jsonResponse(
+                            await conversationService.conversationHistory(
+                                in: conversationID,
+                                before: before,
+                                limit: limit
+                            )
+                        )
+                    }
                 }
             }
         }

@@ -26,6 +26,8 @@ struct MongoWorldPersistenceConnection: Sendable {
         @Sendable (CharacterPerformance, ConversationID) async throws -> CharacterDeliveryResult
     let conversationItems:
         @Sendable (ConversationID, ConversationItemID?, Int) async throws -> ConversationItemPage
+    let conversationHistory:
+        @Sendable (ConversationID, ConversationItemID?, Int) async throws -> ConversationItemPage
     let deliveries:
         @Sendable (ConversationID, ResponseID?, Int) async throws -> CharacterDeliveryPage
     let loginCharacter:
@@ -599,6 +601,19 @@ struct MongoWorldPersistenceConnection: Sendable {
                 hasMore: hasMore
             )
         }
+        conversationHistory = { conversationID, before, limit in
+            let loaded = try await persistence.conversations.conversationItems(
+                in: conversationID,
+                before: before,
+                limit: limit + 1
+            )
+            let pageItems = Array(loaded.suffix(limit))
+            return ConversationItemPage(
+                items: pageItems,
+                nextItemID: pageItems.first?.itemID,
+                hasMore: loaded.count > limit
+            )
+        }
         deliveries = { conversationID, after, limit in
             let loaded = try await persistence.characterDeliveries.deliveries(
                 in: conversationID,
@@ -815,6 +830,9 @@ struct MongoWorldPersistenceConnection: Sendable {
         conversationItems:
             @escaping @Sendable (ConversationID, ConversationItemID?, Int) async throws
             -> ConversationItemPage = { _, _, _ in throw WorldAPIError.databaseUnavailable },
+        conversationHistory:
+            @escaping @Sendable (ConversationID, ConversationItemID?, Int) async throws
+            -> ConversationItemPage = { _, _, _ in throw WorldAPIError.databaseUnavailable },
         deliveries:
             @escaping @Sendable (ConversationID, ResponseID?, Int) async throws
             -> CharacterDeliveryPage = { _, _, _ in throw WorldAPIError.databaseUnavailable },
@@ -918,6 +936,7 @@ struct MongoWorldPersistenceConnection: Sendable {
         self.stageCharacter = stageCharacter
         self.recordPerformance = recordPerformance
         self.conversationItems = conversationItems
+        self.conversationHistory = conversationHistory
         self.deliveries = deliveries
         self.loginCharacter = loginCharacter
         self.heartbeatCharacter = heartbeatCharacter
@@ -1328,6 +1347,15 @@ actor MongoWorldPersistenceProvider {
     ) async throws -> ConversationItemPage {
         guard let connection else { throw WorldAPIError.databaseUnavailable }
         return try await connection.conversationItems(conversationID, itemID, limit)
+    }
+
+    func conversationHistory(
+        in conversationID: ConversationID,
+        before itemID: ConversationItemID?,
+        limit: Int
+    ) async throws -> ConversationItemPage {
+        guard let connection else { throw WorldAPIError.databaseUnavailable }
+        return try await connection.conversationHistory(conversationID, itemID, limit)
     }
 
     func deliveries(

@@ -156,7 +156,7 @@ private struct HealthyWorldUpstream: CommunicatorWorldUpstream {
 
     func items(
         in conversationID: ConversationID,
-        after itemID: ConversationItemID?,
+        page: ConversationPageRequest,
         limit: Int
     ) async throws -> ConversationItemPage {
         fatalError("Not used by foreground lease tests")

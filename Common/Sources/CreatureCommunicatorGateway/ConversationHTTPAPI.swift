@@ -41,12 +41,15 @@ public struct ConversationGatewayHTTPAPI: Sendable {
         router.get("v1/conversations/:conversationID/items") { request, context in
             await respond {
                 let conversationID = try conversationID(from: context)
-                let after = try request.uri.queryParameters["after_item_id"].map {
-                    try ConversationItemID(validating: String($0))
-                }
+                let parameters = request.uri.queryParameters
+                let page = try ConversationPageRequest(
+                    after: parameters["after_item_id"].map(String.init),
+                    before: parameters["before_item_id"].map(String.init),
+                    order: parameters["order"].map(String.init)
+                )
                 let limit = try pageLimit(request)
                 return try jsonResponse(
-                    await upstream.items(in: conversationID, after: after, limit: limit)
+                    await upstream.items(in: conversationID, page: page, limit: limit)
                 )
             }
         }
@@ -138,7 +141,10 @@ public struct ConversationGatewayHTTPAPI: Sendable {
             status = .unsupportedMediaType
             code = "unsupported_media_type"
             message = "Content-Type must be application/json"
-        case ConversationGatewayHTTPError.invalidQuery:
+        case ConversationGatewayHTTPError.invalidQuery,
+            CommunicatorWorldUpstreamError.requestFailed(statusCode: 400):
+            // A client must be able to tell a cursor the World rejected from a World that is down:
+            // one means start over, the other means try again.
             status = .badRequest
             code = "invalid_query"
             message = "The conversation query is invalid"

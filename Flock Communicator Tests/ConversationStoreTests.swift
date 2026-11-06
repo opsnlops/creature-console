@@ -56,6 +56,95 @@ struct ConversationStoreTests {
         #expect(store.items == [first, second])
     }
 
+    @Test("The cache shows before the network answers")
+    func showsCacheFirst() async throws {
+        let cached = try makeCharacterItem(text: "From the cache")
+        let service = HeldConversationService(cached: [cached])
+        let store = ConversationStore(service: service)
+
+        let loading = Task { await store.load() }
+        await service.waitForNetworkRead()
+
+        #expect(store.items == [cached])
+        #expect(!store.isLoading)
+        await service.release()
+        await loading.value
+    }
+
+    @Test("The spinner is for an empty cache")
+    func spinsOnlyWhenEmpty() async throws {
+        let service = HeldConversationService(cached: [])
+        let store = ConversationStore(service: service)
+
+        let loading = Task { await store.load() }
+        await service.waitForNetworkRead()
+
+        #expect(store.isLoading)
+        await service.release()
+        await loading.value
+        #expect(!store.isLoading)
+    }
+
+    @Test("Loading older history replaces the window and tracks what remains")
+    func loadsOlder() async throws {
+        let older = try makeCharacterItem(
+            text: "Older",
+            suffix: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+            createdAt: Date(timeIntervalSince1970: 1_788_000_000)
+        )
+        let newer = try makeCharacterItem(text: "Newer")
+        let service = TestConversationService(items: [newer], hasOlder: true)
+        let store = ConversationStore(service: service)
+        await store.load()
+        #expect(store.hasOlderHistory)
+
+        await service.setOlder(ConversationWindow(items: [older, newer], hasOlder: false))
+        await store.loadOlder()
+
+        #expect(store.items == [older, newer])
+        #expect(!store.hasOlderHistory)
+    }
+
+    @Test("Older history that can't load offers a retry rather than an alert")
+    func olderFailureOffersRetry() async throws {
+        let item = try makeCharacterItem(text: "Hello")
+        let service = TestConversationService(items: [item], hasOlder: true)
+        let store = ConversationStore(service: service)
+        await store.load()
+
+        await service.setOlderFailure(URLError(.notConnectedToInternet))
+        await store.loadOlder()
+
+        #expect(store.olderHistoryFailed)
+        #expect(store.errorAlert == nil)
+        #expect(store.items == [item])
+
+        await service.setOlderFailure(nil)
+        await service.setOlder(ConversationWindow(items: [item], hasOlder: false))
+        await store.loadOlder()
+        #expect(!store.olderHistoryFailed)
+    }
+
+    @Test("A refresh that began before a scroll back cannot undo it")
+    func staleWindowIsIgnored() async throws {
+        let older = try makeCharacterItem(
+            text: "Older",
+            suffix: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+            createdAt: Date(timeIntervalSince1970: 1_788_000_000)
+        )
+        let newer = try makeCharacterItem(text: "Newer")
+        let service = TestConversationService(items: [newer], hasOlder: true)
+        let store = ConversationStore(service: service)
+        await store.load()
+
+        await service.setOlder(ConversationWindow(items: [older, newer], revision: 5))
+        await store.loadOlder()
+        await service.setRevision(4)
+        await store.refresh()
+
+        #expect(store.items == [older, newer])
+    }
+
     @Test("Live updates expose connected and reconnecting states")
     func reportsConnectionState() async {
         let service = StreamingConversationService()
@@ -109,7 +198,11 @@ private actor StreamingConversationService: CommunicatorConversationService {
         )
     }
 
-    func conversation() -> [ConversationItem] { [] }
+    func conversation() -> ConversationWindow { ConversationWindow() }
+
+    func cachedConversation() -> ConversationWindow { ConversationWindow() }
+
+    func olderConversation() -> ConversationWindow { ConversationWindow() }
 
     func submit(text: String, inReplyTo item: ConversationItem?) {}
 
@@ -128,6 +221,41 @@ private enum StreamingTestError: Error {
     case disconnected
 }
 
+/// Holds the network read open, so a test can look at what shows while it waits.
+private actor HeldConversationService: CommunicatorConversationService {
+    private let cached: [ConversationItem]
+    private let reads: AsyncStream<Void>
+    private let readContinuation: AsyncStream<Void>.Continuation
+    private let releases: AsyncStream<Void>
+    private let releaseContinuation: AsyncStream<Void>.Continuation
+
+    init(cached: [ConversationItem]) {
+        self.cached = cached
+        (reads, readContinuation) = AsyncStream.makeStream()
+        (releases, releaseContinuation) = AsyncStream.makeStream()
+    }
+
+    func conversation() async -> ConversationWindow {
+        readContinuation.yield()
+        for await _ in releases { break }
+        return ConversationWindow(items: cached)
+    }
+
+    func cachedConversation() -> ConversationWindow { ConversationWindow(items: cached) }
+
+    func olderConversation() -> ConversationWindow { ConversationWindow(items: cached) }
+
+    func submit(text: String, inReplyTo item: ConversationItem?) {}
+
+    func waitForNetworkRead() async {
+        for await _ in reads { break }
+    }
+
+    func release() {
+        releaseContinuation.yield()
+    }
+}
+
 private actor TestConversationService: CommunicatorConversationService {
     struct Submission: Sendable {
         let text: String
@@ -135,14 +263,26 @@ private actor TestConversationService: CommunicatorConversationService {
     }
 
     private var items: [ConversationItem]
+    private var hasOlder: Bool
+    private var revision = 0
+    private var older = ConversationWindow()
+    private var olderFailure: (any Error)?
     private(set) var submission: Submission?
 
-    init(items: [ConversationItem]) {
+    init(items: [ConversationItem], hasOlder: Bool = false) {
         self.items = items
+        self.hasOlder = hasOlder
     }
 
-    func conversation() -> [ConversationItem] {
-        items
+    func conversation() -> ConversationWindow {
+        ConversationWindow(items: items, hasOlder: hasOlder, revision: revision)
+    }
+
+    func cachedConversation() -> ConversationWindow { conversation() }
+
+    func olderConversation() throws -> ConversationWindow {
+        if let olderFailure { throw olderFailure }
+        return older
     }
 
     func submit(text: String, inReplyTo item: ConversationItem?) {
@@ -151,5 +291,17 @@ private actor TestConversationService: CommunicatorConversationService {
 
     func replaceItems(with items: [ConversationItem]) {
         self.items = items
+    }
+
+    func setOlder(_ window: ConversationWindow) {
+        older = window
+    }
+
+    func setOlderFailure(_ error: (any Error)?) {
+        olderFailure = error
+    }
+
+    func setRevision(_ revision: Int) {
+        self.revision = revision
     }
 }

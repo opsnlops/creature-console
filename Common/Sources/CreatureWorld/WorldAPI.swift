@@ -226,6 +226,11 @@ protocol ConversationApplicationService: Sendable {
         after itemID: ConversationItemID?,
         limit: Int
     ) async throws -> ConversationItemPage
+    func conversationHistory(
+        in conversationID: ConversationID,
+        before itemID: ConversationItemID?,
+        limit: Int
+    ) async throws -> ConversationItemPage
     func deliveries(
         in conversationID: ConversationID,
         after responseID: ResponseID?,
@@ -328,6 +333,14 @@ struct UnavailableConversationApplicationService: ConversationApplicationService
     func conversationItems(
         in conversationID: ConversationID,
         after itemID: ConversationItemID?,
+        limit: Int
+    ) async throws -> ConversationItemPage {
+        throw WorldAPIError.databaseUnavailable
+    }
+
+    func conversationHistory(
+        in conversationID: ConversationID,
+        before itemID: ConversationItemID?,
         limit: Int
     ) async throws -> ConversationItemPage {
         throw WorldAPIError.databaseUnavailable

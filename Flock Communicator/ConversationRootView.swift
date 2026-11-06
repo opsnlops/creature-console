@@ -75,7 +75,11 @@ private struct ConversationView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 14) {
-                    welcomeHeader
+                    if store.hasOlderHistory {
+                        OlderHistoryRow(store: store)
+                    } else {
+                        welcomeHeader
+                    }
                     ForEach(store.items, id: \.itemID) { item in
                         ConversationBubble(item: item) {
                             store.replyingTo = item
@@ -133,6 +137,32 @@ private struct ConversationView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 20)
+    }
+}
+
+/// Sits above the oldest message on screen, and fetches more when it comes into view. It keeps
+/// going while it stays in view, because a short page may not push it off the screen.
+private struct OlderHistoryRow: View {
+    let store: ConversationStore
+
+    var body: some View {
+        Group {
+            if store.olderHistoryFailed {
+                Button("Couldn't reach older messages. Try again", systemImage: "arrow.clockwise") {
+                    Task { await store.loadOlder() }
+                }
+                .buttonStyle(.glass)
+                .communicatorFont(.callout)
+            } else {
+                ProgressView()
+                    .accessibilityLabel("Loading older messages")
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .task(id: store.items.first?.itemID) {
+            await store.loadOlder()
+        }
     }
 }
 
@@ -313,6 +343,7 @@ private struct ConversationPreview: View {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         container = try? ModelContainer(
             for: ConversationItemModel.self, PendingUtteranceModel.self,
+            ConversationSyncStateModel.self,
             configurations: configuration
         )
     }

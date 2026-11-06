@@ -59,8 +59,69 @@ struct ConversationHTTPAPITests {
 
         let request = try #require(await upstream.itemRequests.first)
         #expect(request.conversationID == utterance.conversationID)
-        #expect(request.after?.rawValue == "conversation-item:before")
+        #expect(
+            request.page
+                == .forward(after: try ConversationItemID(validating: "conversation-item:before"))
+        )
         #expect(request.limit == 25)
+    }
+
+    @Test("Newest-first paging reaches the World unchanged")
+    func newestFirstHistory() async throws {
+        let utterance = try Self.makeUtterance()
+        let upstream = RecordingWorldUpstream(result: try Self.makeResult(for: utterance))
+        let application = makeApplication(upstream: upstream)
+        let base = "/communicator/v1/conversations/conversation:april-beaky/items"
+
+        try await application.test(.router) { client in
+            try await client.execute(uri: "\(base)?order=newest&limit=25", method: .get) {
+                #expect($0.status == .ok)
+            }
+            try await client.execute(
+                uri: "\(base)?before_item_id=conversation-item:older",
+                method: .get
+            ) { #expect($0.status == .ok) }
+            try await client.execute(
+                uri: "\(base)?before_item_id=conversation-item:a&after_item_id=conversation-item:b",
+                method: .get
+            ) { #expect($0.status == .badRequest) }
+            try await client.execute(uri: "\(base)?order=sideways", method: .get) {
+                #expect($0.status == .badRequest)
+            }
+        }
+
+        #expect(
+            await upstream.itemRequests.map(\.page) == [
+                .backward(before: nil),
+                .backward(before: try ConversationItemID(validating: "conversation-item:older")),
+            ]
+        )
+    }
+
+    @Test("A cursor the World rejects is not reported as the World being down")
+    func rejectedCursorStaysABadRequest() async throws {
+        let utterance = try Self.makeUtterance()
+        let upstream = RecordingWorldUpstream(
+            result: try Self.makeResult(for: utterance),
+            failure: .requestFailed(statusCode: 400)
+        )
+        let unavailable = RecordingWorldUpstream(
+            result: try Self.makeResult(for: utterance),
+            failure: .requestFailed(statusCode: 500)
+        )
+        let uri =
+            "/communicator/v1/conversations/conversation:april-beaky/items?after_item_id=conversation-item:gone"
+
+        try await makeApplication(upstream: upstream).test(.router) { client in
+            try await client.execute(uri: uri, method: .get) {
+                #expect($0.status == .badRequest)
+            }
+        }
+        try await makeApplication(upstream: unavailable).test(.router) { client in
+            try await client.execute(uri: uri, method: .get) {
+                #expect($0.status == .serviceUnavailable)
+            }
+        }
     }
 
     @Test("Live SSE bytes are streamed through the gateway")
@@ -195,13 +256,14 @@ struct ConversationHTTPAPITests {
 private actor RecordingWorldUpstream: CommunicatorWorldUpstream {
     struct ItemRequest: Sendable {
         let conversationID: ConversationID
-        let after: ConversationItemID?
+        let page: ConversationPageRequest
         let limit: Int
     }
 
     private let result: UtteranceIngressResult
     private let page: ConversationItemPage
     private let streamBytes: [ByteBuffer]
+    private let failure: CommunicatorWorldUpstreamError?
     private(set) var submittedUtterances: [PersonUtterance] = []
     private(set) var itemRequests: [ItemRequest] = []
 
@@ -212,11 +274,13 @@ private actor RecordingWorldUpstream: CommunicatorWorldUpstream {
             nextItemID: nil,
             hasMore: false
         ),
-        streamBytes: [ByteBuffer] = []
+        streamBytes: [ByteBuffer] = [],
+        failure: CommunicatorWorldUpstreamError? = nil
     ) {
         self.result = result
         self.page = page
         self.streamBytes = streamBytes
+        self.failure = failure
     }
 
     func health() async throws {}
@@ -228,11 +292,12 @@ private actor RecordingWorldUpstream: CommunicatorWorldUpstream {
 
     func items(
         in conversationID: ConversationID,
-        after itemID: ConversationItemID?,
+        page request: ConversationPageRequest,
         limit: Int
     ) async throws -> ConversationItemPage {
         itemRequests.append(
-            ItemRequest(conversationID: conversationID, after: itemID, limit: limit))
+            ItemRequest(conversationID: conversationID, page: request, limit: limit))
+        if let failure { throw failure }
         return page
     }
 
@@ -259,7 +324,7 @@ private struct UnavailableWorldUpstream: CommunicatorWorldUpstream {
 
     func items(
         in conversationID: ConversationID,
-        after itemID: ConversationItemID?,
+        page: ConversationPageRequest,
         limit: Int
     ) async throws -> ConversationItemPage {
         throw Unavailable()

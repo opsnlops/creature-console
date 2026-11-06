@@ -71,6 +71,66 @@ struct WorldHTTPAPITests {
         }
     }
 
+    @Test("History reads backward from the newest item, a page at a time")
+    func readsHistoryBackward() async throws {
+        let application = try makeApplication(
+            worldService: TestWorldApplicationService(),
+            conversationService: TestConversationApplicationService()
+        )
+        let base = "/world/v1/conversations/conversation:april-beaky"
+        let headers: HTTPFields = [.contentType: "application/json"]
+
+        try await application.test(.router) { client in
+            for index in 0..<3 {
+                let utterance = try makeUtterance(
+                    id: "utterance:history-\(index)",
+                    occurredAt: Date(timeIntervalSince1970: 1_789_100_000 + Double(index))
+                )
+                try await client.execute(
+                    uri: "\(base)/utterances",
+                    method: .post,
+                    headers: headers,
+                    body: try encode(utterance)
+                ) { #expect($0.status == .accepted) }
+            }
+
+            var older: ConversationItemID?
+            try await client.execute(uri: "\(base)/items?order=newest&limit=2", method: .get) {
+                response in
+                #expect(response.status == .ok)
+                let page = try decode(ConversationItemPage.self, response.body)
+                #expect(
+                    page.items.map(\.utteranceID?.rawValue) == [
+                        "utterance:history-1", "utterance:history-2",
+                    ]
+                )
+                #expect(page.nextItemID == page.items.first?.itemID)
+                #expect(page.hasMore)
+                older = page.nextItemID
+            }
+
+            let anchor = try #require(older)
+            try await client.execute(
+                uri: "\(base)/items?before_item_id=\(anchor.rawValue)&limit=2",
+                method: .get
+            ) { response in
+                #expect(response.status == .ok)
+                let page = try decode(ConversationItemPage.self, response.body)
+                #expect(page.items.map(\.utteranceID?.rawValue) == ["utterance:history-0"])
+                #expect(!page.hasMore)
+            }
+
+            try await client.execute(
+                uri:
+                    "\(base)/items?before_item_id=\(anchor.rawValue)&after_item_id=\(anchor.rawValue)",
+                method: .get
+            ) { #expect($0.status == .badRequest) }
+            try await client.execute(uri: "\(base)/items?order=sideways", method: .get) {
+                #expect($0.status == .badRequest)
+            }
+        }
+    }
+
     @Test("Beaky's turn joins the conversation over HTTP exactly once")
     func characterResponseIngressAndHistory() async throws {
         let conversationService = TestConversationApplicationService()
@@ -1188,6 +1248,22 @@ private actor TestConversationApplicationService: ConversationApplicationService
             items: page,
             nextItemID: page.last?.itemID,
             hasMore: remaining.count > limit
+        )
+    }
+
+    func conversationHistory(
+        in conversationID: ConversationID,
+        before itemID: ConversationItemID?,
+        limit: Int
+    ) -> ConversationItemPage {
+        let all = orderedItems.filter { $0.conversationID == conversationID }
+        let end = itemID.flatMap { id in all.firstIndex { $0.itemID == id } } ?? all.count
+        let older = Array(all.prefix(end))
+        let page = Array(older.suffix(limit))
+        return ConversationItemPage(
+            items: page,
+            nextItemID: page.first?.itemID,
+            hasMore: older.count > limit
         )
     }
 

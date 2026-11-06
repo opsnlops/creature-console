@@ -303,6 +303,44 @@ public struct ConversationItem: Hashable, Sendable, Codable {
     }
 }
 
+/// Which way a client walks the canonical conversation.
+///
+/// Reading forward catches up from a known item. Reading backward starts from the newest item,
+/// or from `before`, so a client can show the present without downloading the past. Items in a
+/// page are oldest first either way; going backward, `next_item_id` is the page's oldest item and
+/// `has_more` says whether anything older exists.
+public enum ConversationPageRequest: Hashable, Sendable {
+    case forward(after: ConversationItemID?)
+    case backward(before: ConversationItemID?)
+
+    /// Reads the raw `after_item_id`, `before_item_id` and `order` query parameters.
+    public init(after: String?, before: String?, order: String?) throws {
+        let afterID = try after.map(ConversationItemID.init(validating:))
+        let beforeID = try before.map(ConversationItemID.init(validating:))
+        switch order {
+        case nil where beforeID == nil:
+            self = .forward(after: afterID)
+        case nil, "newest":
+            guard afterID == nil else {
+                throw WorldContractError.invalidConversationPageRequest
+            }
+            self = .backward(before: beforeID)
+        default:
+            throw WorldContractError.invalidConversationPageRequest
+        }
+    }
+
+    /// The query parameters that ask a server for this page.
+    public var queryParameters: [(name: String, value: String)] {
+        switch self {
+        case .forward(let after):
+            after.map { [("after_item_id", $0.rawValue)] } ?? []
+        case .backward(let before):
+            before.map { [("before_item_id", $0.rawValue)] } ?? [("order", "newest")]
+        }
+    }
+}
+
 /// A bounded, ordered page of the canonical conversation shared by every Creature client.
 public struct ConversationItemPage: Hashable, Sendable, Codable {
     public var items: [ConversationItem]

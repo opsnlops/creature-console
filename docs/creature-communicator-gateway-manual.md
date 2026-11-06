@@ -53,7 +53,7 @@ The current endpoints are:
 | --- | --- |
 | `GET /communicator/v1/health` | Readiness; returns 503 while World is unavailable, without stopping the gateway process. |
 | `POST /communicator/v1/conversations/{conversation_id}/utterances` | Forward one typed, bounded `PersonUtterance`. |
-| `GET /communicator/v1/conversations/{conversation_id}/items` | Fetch bounded canonical history with `limit` and `after_item_id`. |
+| `GET /communicator/v1/conversations/{conversation_id}/items` | Fetch bounded canonical history with `limit`: forward with `after_item_id`, or backward with `order=newest` and `before_item_id` (`0.2.0`). A cursor the World rejects stays a 400, so a client can tell it from the World being down, which is a 503. |
 | `GET /communicator/v1/conversations/{conversation_id}/stream` | Stream World conversation SSE bytes for immediate multi-client updates. |
 | `POST /communicator/v1/foreground-leases` | Acquire a short-lived foreground lease. |
 | `PUT /communicator/v1/foreground-leases` | Renew a foreground lease. |

@@ -13,6 +13,7 @@ public enum WorldContractError: Error, Equatable, Sendable {
     case emptyUtterance
     case invalidPersonUtterance
     case invalidConversationItem
+    case invalidConversationPageRequest
     case invalidCharacterUtteranceIntent
     case conversationContentTooLarge(maximumUnicodeScalars: Int)
     case conversationContextTooLarge(maximumItems: Int)
@@ -57,6 +58,8 @@ extension WorldContractError: LocalizedError {
             "An utterance must contain non-whitespace text"
         case .invalidPersonUtterance:
             "A person utterance must have one addressee and valid confidence"
+        case .invalidConversationPageRequest:
+            "A conversation page reads forward or backward, not both"
         case .invalidConversationItem:
             "A conversation item must identify exactly one valid author and contain text"
         case .invalidCharacterUtteranceIntent:

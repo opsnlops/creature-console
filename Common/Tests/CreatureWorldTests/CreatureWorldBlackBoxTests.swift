@@ -481,6 +481,16 @@ struct CreatureWorldBlackBoxTests {
                 == "a car or truck the camera noticed; usually a delivery")
 
         let conversation = try await api.conversationItems(in: conversationID)
+        // Reading back from the newest finds the same conversation, a page at a time.
+        let newest = try await api.conversationItemPage(
+            in: conversationID, query: "order=newest&limit=2")
+        #expect(newest.items == Array(conversation.suffix(2)))
+        #expect(newest.hasMore)
+        let older = try await api.conversationItemPage(
+            in: conversationID,
+            query: "before_item_id=\(try #require(newest.nextItemID).rawValue)&limit=100")
+        #expect(older.items == Array(conversation.dropLast(2)))
+        #expect(!older.hasMore)
         #expect(conversation.filter { $0.authorKind == .person }.count == 2)
         #expect(
             conversation.filter { $0.authorKind == .character }.count == 4,
@@ -829,15 +839,21 @@ private struct WorldServiceAPI {
     func conversationItems(in conversationID: ConversationID) async throws
         -> [ConversationItem]
     {
+        try await conversationItemPage(in: conversationID, query: "limit=100").items
+    }
+
+    func conversationItemPage(in conversationID: ConversationID, query: String) async throws
+        -> ConversationItemPage
+    {
         let response = try await client.execute(
             HTTPClientRequest(
-                url: "\(base)/conversations/\(conversationID.rawValue)/items?limit=100"
+                url: "\(base)/conversations/\(conversationID.rawValue)/items?\(query)"
             ),
             timeout: .seconds(15)
         )
         #expect(response.status == .ok)
         let body = try await response.body.collect(upTo: 1_048_576)
-        return try WorldJSON.makeDecoder().decode(ConversationItemPage.self, from: body).items
+        return try WorldJSON.makeDecoder().decode(ConversationItemPage.self, from: body)
     }
 
     /// The floor moves when the room has nearly finished the last line; wait for it.

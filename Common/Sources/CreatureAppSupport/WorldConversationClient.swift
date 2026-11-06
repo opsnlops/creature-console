@@ -80,13 +80,28 @@ public struct WorldConversationClient: Sendable {
         after itemID: ConversationItemID? = nil,
         limit: Int = 100
     ) async throws -> ConversationItemPage {
+        try await items(in: conversationID, page: .forward(after: itemID), limit: limit)
+    }
+
+    /// The items just older than `itemID`, or the newest when there is no anchor.
+    public func history(
+        in conversationID: ConversationID,
+        before itemID: ConversationItemID? = nil,
+        limit: Int = 100
+    ) async throws -> ConversationItemPage {
+        try await items(in: conversationID, page: .backward(before: itemID), limit: limit)
+    }
+
+    private func items(
+        in conversationID: ConversationID,
+        page: ConversationPageRequest,
+        limit: Int
+    ) async throws -> ConversationItemPage {
         precondition(limit > 0)
         var request = try request(
             pathComponents: ["conversations", conversationID.rawValue, "items"],
-            queryItems: [
-                URLQueryItem(name: "limit", value: String(limit)),
-                itemID.map { URLQueryItem(name: "after_item_id", value: $0.rawValue) },
-            ].compactMap { $0 }
+            queryItems: [URLQueryItem(name: "limit", value: String(limit))]
+                + page.queryParameters.map { URLQueryItem(name: $0.name, value: $0.value) }
         )
         request.httpMethod = "GET"
         return try await response(ConversationItemPage.self, for: request)

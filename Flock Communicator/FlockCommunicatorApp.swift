@@ -10,7 +10,10 @@ struct FlockCommunicatorApp: App {
 
     init() {
         do {
-            let schema = Schema([ConversationItemModel.self, PendingUtteranceModel.self])
+            let schema = Schema([
+                ConversationItemModel.self, PendingUtteranceModel.self,
+                ConversationSyncStateModel.self,
+            ])
             let configuration: ModelConfiguration
             if Self.isRunningTests {
                 configuration = ModelConfiguration(isStoredInMemoryOnly: true)
