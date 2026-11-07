@@ -1789,6 +1789,7 @@
 				BCA000000000000000000004 /* Sources */,
 				BCA000000000000000000005 /* Frameworks */,
 				BCA000000000000000000006 /* Resources */,
+				A1C0DE0000000000000000F3 /* Stamp Build Number */,
 			);
 			buildRules = (
 			);
@@ -1886,6 +1887,7 @@
 				WVA000000000000000000004 /* Sources */,
 				WVA000000000000000000005 /* Frameworks */,
 				WVA000000000000000000006 /* Resources */,
+				A1C0DE0000000000000000F4 /* Stamp Build Number */,
 			);
 			buildRules = (
 			);
@@ -2206,6 +2208,138 @@
 			showEnvVarsInLog = 0;
 		};
 		IBA00000000000000000001D /* Stamp Build Number */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Stamp Build Number";
+			shellPath = /bin/sh;
+			shellScript = (
+				"# Stamp CFBundleVersion with a monotonically increasing integer.",
+				"#",
+				"# App Store Connect requires CFBundleVersion to be a number that only ever goes up",
+				"# for a given marketing version. The previous git-short-SHA scheme is hexadecimal and",
+				"# unordered, so uploads were rejected outright — that is why this exists.",
+				"#",
+				"# The value is the number of commits reachable from HEAD. That is stateless,",
+				"# reproducible from any full checkout, and monotonic because commits only ever",
+				"# accumulate. Two builds of the same commit produce the same number, so to re-upload",
+				"# without a code change, either make a commit or raise BUILD_NUMBER_BASE below —",
+				"# raising it also jumps the sequence past anything already uploaded.",
+				"#",
+				"# Stamped at build time into the processed Info.plist so the signature covers it.",
+				"# CURRENT_PROJECT_VERSION in the project is only the fallback for a git-less build.",
+				"set -eu",
+				"",
+				"BUILD_NUMBER_BASE=0",
+				"",
+				"INFO_PLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"",
+				"if [ ! -f \"${INFO_PLIST}\" ]; then",
+				"  echo \"error: Info.plist not found at ${INFO_PLIST}; cannot stamp build number\"",
+				"  exit 1",
+				"fi",
+				"",
+				"COMMIT_COUNT=$(/usr/bin/git -C \"${SRCROOT}\" rev-list --count HEAD 2>/dev/null || true)",
+				"",
+				"# A shallow checkout counts only the commits it fetched, which would silently produce",
+				"# a much smaller build number than a full clone. CI defaults to depth 1, so warn loudly",
+				"# rather than let a bad number reach an upload.",
+				"IS_SHALLOW=$(/usr/bin/git -C \"${SRCROOT}\" rev-parse --is-shallow-repository 2>/dev/null || echo unknown)",
+				"if [ \"${IS_SHALLOW}\" = \"true\" ]; then",
+				"  echo \"warning: shallow git checkout — commit count ${COMMIT_COUNT} is not the real history depth.\"",
+				"  echo \"warning: do not ship this build; fetch the full history first (git fetch --unshallow).\"",
+				"fi",
+				"",
+				"if printf '%s' \"${COMMIT_COUNT}\" | /usr/bin/grep -Eq '^[0-9]+$'; then",
+				"  BUILD_NUMBER=$((BUILD_NUMBER_BASE + COMMIT_COUNT))",
+				"else",
+				"  # No git at all (archiving an exported source tree). Fall back rather than failing",
+				"  # the build, but say so: this number does not move, so it must not be shipped twice.",
+				"  BUILD_NUMBER=\"${CURRENT_PROJECT_VERSION:-}\"",
+				"  echo \"warning: git unavailable — falling back to CURRENT_PROJECT_VERSION=${BUILD_NUMBER}.\"",
+				"  echo \"warning: that number does NOT increment. Do not upload this build.\"",
+				"fi",
+				"",
+				"if ! printf '%s' \"${BUILD_NUMBER}\" | /usr/bin/grep -Eq '^[0-9]+$'; then",
+				"  echo \"error: computed build number '${BUILD_NUMBER}' is not a positive integer\"",
+				"  exit 1",
+				"fi",
+				"",
+				"/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion ${BUILD_NUMBER}\" \"${INFO_PLIST}\" \\",
+				"  || /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string ${BUILD_NUMBER}\" \"${INFO_PLIST}\"",
+				"echo \"Stamped CFBundleVersion = ${BUILD_NUMBER} (${COMMIT_COUNT:-?} commits + base ${BUILD_NUMBER_BASE})\"",
+				"",
+			);
+			showEnvVarsInLog = 0;
+		};
+		A1C0DE0000000000000000F3 /* Stamp Build Number */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Stamp Build Number";
+			shellPath = /bin/sh;
+			shellScript = (
+				"# Stamp CFBundleVersion with a monotonically increasing integer.",
+				"#",
+				"# App Store Connect requires CFBundleVersion to be a number that only ever goes up",
+				"# for a given marketing version. The previous git-short-SHA scheme is hexadecimal and",
+				"# unordered, so uploads were rejected outright — that is why this exists.",
+				"#",
+				"# The value is the number of commits reachable from HEAD. That is stateless,",
+				"# reproducible from any full checkout, and monotonic because commits only ever",
+				"# accumulate. Two builds of the same commit produce the same number, so to re-upload",
+				"# without a code change, either make a commit or raise BUILD_NUMBER_BASE below —",
+				"# raising it also jumps the sequence past anything already uploaded.",
+				"#",
+				"# Stamped at build time into the processed Info.plist so the signature covers it.",
+				"# CURRENT_PROJECT_VERSION in the project is only the fallback for a git-less build.",
+				"set -eu",
+				"",
+				"BUILD_NUMBER_BASE=0",
+				"",
+				"INFO_PLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"",
+				"if [ ! -f \"${INFO_PLIST}\" ]; then",
+				"  echo \"error: Info.plist not found at ${INFO_PLIST}; cannot stamp build number\"",
+				"  exit 1",
+				"fi",
+				"",
+				"COMMIT_COUNT=$(/usr/bin/git -C \"${SRCROOT}\" rev-list --count HEAD 2>/dev/null || true)",
+				"",
+				"# A shallow checkout counts only the commits it fetched, which would silently produce",
+				"# a much smaller build number than a full clone. CI defaults to depth 1, so warn loudly",
+				"# rather than let a bad number reach an upload.",
+				"IS_SHALLOW=$(/usr/bin/git -C \"${SRCROOT}\" rev-parse --is-shallow-repository 2>/dev/null || echo unknown)",
+				"if [ \"${IS_SHALLOW}\" = \"true\" ]; then",
+				"  echo \"warning: shallow git checkout — commit count ${COMMIT_COUNT} is not the real history depth.\"",
+				"  echo \"warning: do not ship this build; fetch the full history first (git fetch --unshallow).\"",
+				"fi",
+				"",
+				"if printf '%s' \"${COMMIT_COUNT}\" | /usr/bin/grep -Eq '^[0-9]+$'; then",
+				"  BUILD_NUMBER=$((BUILD_NUMBER_BASE + COMMIT_COUNT))",
+				"else",
+				"  # No git at all (archiving an exported source tree). Fall back rather than failing",
+				"  # the build, but say so: this number does not move, so it must not be shipped twice.",
+				"  BUILD_NUMBER=\"${CURRENT_PROJECT_VERSION:-}\"",
+				"  echo \"warning: git unavailable — falling back to CURRENT_PROJECT_VERSION=${BUILD_NUMBER}.\"",
+				"  echo \"warning: that number does NOT increment. Do not upload this build.\"",
+				"fi",
+				"",
+				"if ! printf '%s' \"${BUILD_NUMBER}\" | /usr/bin/grep -Eq '^[0-9]+$'; then",
+				"  echo \"error: computed build number '${BUILD_NUMBER}' is not a positive integer\"",
+				"  exit 1",
+				"fi",
+				"",
+				"/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion ${BUILD_NUMBER}\" \"${INFO_PLIST}\" \\",
+				"  || /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string ${BUILD_NUMBER}\" \"${INFO_PLIST}\"",
+				"echo \"Stamped CFBundleVersion = ${BUILD_NUMBER} (${COMMIT_COUNT:-?} commits + base ${BUILD_NUMBER_BASE})\"",
+				"",
+			);
+			showEnvVarsInLog = 0;
+		};
+		A1C0DE0000000000000000F4 /* Stamp Build Number */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			inputPaths = (
@@ -3116,6 +3250,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Flock-Communicator-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Flock Communicator";
@@ -3130,11 +3265,13 @@
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.7.0;
+				MARKETING_VERSION = 0.7.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Flock-Communicator";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -3162,6 +3299,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Flock-Communicator-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Flock Communicator";
@@ -3176,11 +3314,13 @@
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.7.0;
+				MARKETING_VERSION = 0.7.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.Flock-Communicator";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -3378,6 +3518,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "World-Viewer-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "World Viewer";
@@ -3386,7 +3527,7 @@
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "World Viewer scries Creature World on your local network.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.25.0;
+				MARKETING_VERSION = 0.25.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.World-Viewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3411,6 +3552,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "World-Viewer-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "World Viewer";
@@ -3419,7 +3561,7 @@
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "World Viewer scries Creature World on your local network.";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.25.0;
+				MARKETING_VERSION = 0.25.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.opsnlops.World-Viewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
