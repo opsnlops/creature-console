@@ -1,0 +1,13 @@
+Creature Console: iOS, six appearance renders passed
+Creature Console: macOS, six appearance renders passed
+Creature Console: macosx, Xcode .icon compilation passed
+Creature Console: iphoneos, Xcode .icon compilation passed
+Flock Communicator: iOS, six appearance renders passed
+Flock Communicator: macOS, six appearance renders passed
+Flock Communicator: macosx, Xcode .icon compilation passed
+Flock Communicator: iphoneos, Xcode .icon compilation passed
+World Viewer: iOS, six appearance renders passed
+World Viewer: macOS, six appearance renders passed
+World Viewer: macosx, Xcode .icon compilation passed
+World Viewer: iphoneos, Xcode .icon compilation passed
+39 PNG asset entries: references, dimensions and iOS opaque RGB format passed
