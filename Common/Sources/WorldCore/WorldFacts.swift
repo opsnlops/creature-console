@@ -392,9 +392,13 @@ public enum HouseEvents {
     /// the new `down_distance`. April: "Let's also add a scene opener on every first down. I
     /// might have you tone it down, but let's see if that annoys me."
     public static let gameFirstDown = WorldEventType(rawValue: "game.first_down")!
+    /// Any other snap in a game under way (#287): the game, with the new `down_distance` and
+    /// the `last_play`. April, wishing the birds said more: "Let's try every play and see how
+    /// annoying it is." A house question never interrupts a scene, so plays during one go by.
+    public static let gamePlay = WorldEventType(rawValue: "game.play")!
     /// Everything a game tells the World - what the game's quiet hour silences.
     public static let games: Set<WorldEventType> = [
         gameScheduled, gameStarted, gameFinal, gameScored, gameScoreCorrected, gamePossession,
-        gameReviewed, gamePenalty, gameFirstDown,
+        gameReviewed, gamePenalty, gameFirstDown, gamePlay,
     ]
 }

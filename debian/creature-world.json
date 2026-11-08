@@ -76,6 +76,7 @@
       { "event": "game.reviewed", "cooldown_seconds": 60 },
       { "event": "game.penalty", "cooldown_seconds": 60 },
       { "event": "game.first_down", "cooldown_seconds": 0 },
+      { "event": "game.play", "cooldown_seconds": 0 },
       { "event": "game.final", "cooldown_seconds": 600 }
     ]
   },

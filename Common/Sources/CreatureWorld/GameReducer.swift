@@ -11,6 +11,7 @@ struct GameReducer: WorldReducer {
         HouseEvents.gameScheduled, HouseEvents.gameStarted, HouseEvents.gameScored,
         HouseEvents.gameScoreCorrected, HouseEvents.gamePossession, HouseEvents.gameFinal,
         HouseEvents.gameReviewed, HouseEvents.gamePenalty, HouseEvents.gameFirstDown,
+        HouseEvents.gamePlay,
     ]
     let zone: TimeZone
 
@@ -34,7 +35,7 @@ struct GameReducer: WorldReducer {
             ends = nil
         case HouseEvents.gameStarted, HouseEvents.gameScored, HouseEvents.gameScoreCorrected,
             HouseEvents.gamePossession, HouseEvents.gameReviewed, HouseEvents.gamePenalty,
-            HouseEvents.gameFirstDown:
+            HouseEvents.gameFirstDown, HouseEvents.gamePlay:
             // Under way: the score and who has the ball, as of the last play the house told,
             // and the clock then.
             predicate = WorldFacts.gamePlaying

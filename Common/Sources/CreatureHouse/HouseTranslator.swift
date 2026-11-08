@@ -165,8 +165,8 @@ struct HouseTranslator: Sendable {
             // are compared with what the World last heard, not with the look before.
             let newPlay = game.lastPlay != nil && game.lastPlay != before.lastPlay
             // One play is one piece of news, the biggest: a score, the ball changing hands, a
-            // review's ruling, a flag, then a first down - a flag's automatic first down is the
-            // flag.
+            // review's ruling, a flag, a first down, then any other play - a flag's automatic
+            // first down is the flag.
             let kind: String
             if scoreMoved {
                 scored = game.scored(since: before)
@@ -186,6 +186,11 @@ struct HouseTranslator: Sendable {
             {
                 type = HouseEvents.gameFirstDown
                 kind = "first-down"
+            } else if newPlay, game.downDistance != nil, game.downDistance != before.downDistance {
+                // Any other snap (#287): April wanted the birds to say more. The down moving
+                // is what makes it a play - a timeout's write-up moves nothing.
+                type = HouseEvents.gamePlay
+                kind = "play"
             } else {
                 return nil
             }

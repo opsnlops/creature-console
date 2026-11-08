@@ -230,8 +230,11 @@ A score and a change of hands in one update is reported as the score, carrying t
   `challenged_by` (absent for the booth) and `outcome` (`reversed`, `upheld`, `stands`). ESPN
   never shows the flag being thrown.
 
-One play is one event, the biggest: a score, the ball changing hands, a review, a flag, then a
-first down. Each needs a `last_play` the World has not heard; a repeated look is nothing.
+- `game.play` (`0.9.0`): any other snap, once the down moves; a write-up that moves no down,
+  such as a timeout, is nothing
+
+One play is one event, the biggest: a score, the ball changing hands, a review, a flag, a first
+down, then any other play. Each needs a `last_play` the World has not heard; a repeated look is nothing.
 
 The side last known to have the ball outlives an update that names nobody (`0.7.1`). ESPN
 names nobody on a scoring play. In 0.7.0 the house remembered that blank, so the kickoff that

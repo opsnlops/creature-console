@@ -1,3 +1,18 @@
+creature-cli (2.109.0+world0.73.0+house0.9.0+gateway0.2.0+body0.2.1) unstable; urgency=medium
+
+  * creature-house 0.9.0: every other snap in a game under way is game.play
+    (#287), once the down moves; a timeout's write-up is not a play.
+  * creature-world 0.73.0: game.play keeps game.playing current, has its own
+    stage note, and the packaged world.json asks the lead about each with no
+    cooldown. A house question never interrupts an open scene, so it paces
+    itself. April: "Let's try every play and see how annoying it is."
+    Add the line to a hand-edited world.json.
+  * Every game stage note now ends by inviting the birds to feel it out loud
+    as fans of April's team, each in their own way. April: "It's fun when
+    they get super happy on good plays."
+
+ -- April White <april@creature.engineering>  Sun, 08 Nov 2026 15:45:00 -0800
+
 creature-cli (2.109.0+world0.72.0+house0.8.0+gateway0.2.0+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.72.0: a broadcast delay for the game (#288). April's TV

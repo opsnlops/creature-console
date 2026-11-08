@@ -296,7 +296,8 @@ whistle (`game.final`, `0.69.0`, #276). The stage note says who won and by how m
 between Seattle Seahawks, the team April follows, and Chicago Bears is over: Seattle Seahawks
 lost, 17 to 34." It also asks about each review's ruling (`game.reviewed`) and each enforced
 flag (`game.penalty`), 60 s apart, and every first down (`game.first_down`, no cooldown) (`0.71.0`,
-#287); `games_quiet` silences them too.
+#287), and every other play (`game.play`, no cooldown, `0.73.0`): a house question never
+interrupts an open scene, so it paces itself. `games_quiet` silences them too.
 
 **A broadcast delay** (`0.72.0`, #288). A bird keeps `house · house.games_delay`, the seconds
 April's TV runs behind the game feed (at most 120), until the day ends. While it holds, every

@@ -155,6 +155,20 @@ The pieces:
    `game.first_down` with no cooldown, for now. To tone it down, raise a cooldown or take a
    line out. `house.games_quiet` silences all three.
 
+**Every play** (house 0.9.0, World 0.73.0). Live, every one of these opened a scene and the
+birds talked through all of them, but at one every 3–4 minutes April was "wishing they said
+more", then "Let's try every play and see how annoying it is." Any other snap that moves the
+down is now `game.play`, with the new `down_distance` and the `last_play`, and the packaged
+`world.json` asks the lead about each with no cooldown. It paces itself: a house question
+never interrupts an open scene, so plays during a scene go by and the next one after it gets a
+remark. A write-up that moves no down, such as an official timeout, is not a play. The next
+lever, if it is still thin, is longer game scenes than the house's three turns.
+
+The same build asks for feelings. April: "Can you ask them to be really emotional, too? It's
+fun when they get super happy on good plays." Every game stage note ends: "You are watching
+with April as fans of Seattle Seahawks: feel it out loud, each in your own way - overjoyed at a
+good play for Seattle Seahawks, crushed or indignant at a bad one."
+
 Known gap: a half's kickoff received by the side that had the ball at the half reads as a
 first down, not a change of hands. The birds see the play, which says kickoff.
 

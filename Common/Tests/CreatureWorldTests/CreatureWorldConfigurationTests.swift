@@ -47,6 +47,8 @@ struct CreatureWorldConfigurationTests {
         #expect(asked[HouseEvents.gameReviewed] == 60)
         #expect(asked[HouseEvents.gamePenalty] == 60)
         #expect(asked[HouseEvents.gameFirstDown] == 0)
+        // And every other play: April wants them to say more.
+        #expect(asked[HouseEvents.gamePlay] == 0)
         // And the final whistle (#276).
         #expect(asked[HouseEvents.gameFinal] == 600)
     }

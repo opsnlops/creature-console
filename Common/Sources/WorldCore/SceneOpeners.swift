@@ -287,14 +287,14 @@ public actor SceneOpeningPolicy {
             return "A reminder of April's is due: \(value). April is home."
         case HouseEvents.gameScored, HouseEvents.gameScoreCorrected, HouseEvents.gamePossession,
             HouseEvents.gameFinal, HouseEvents.gameReviewed, HouseEvents.gamePenalty,
-            HouseEvents.gameFirstDown:
+            HouseEvents.gameFirstDown, HouseEvents.gamePlay:
             let home: String =
                 switch household.aprilHome {
                 case true?: " April is home."
                 case false?: " April is away."
                 case nil: ""
                 }
-            return gameText(event) + home
+            return gameText(event) + home + gameFeeling(event)
         case HouseEvents.dusk, HouseEvents.dawn:
             var light = ""
             if case .number(let lux)? = event.payload["lux"] {
@@ -367,7 +367,9 @@ public actor SceneOpeningPolicy {
             }
         let game = "the game between \(team), the team April follows, and \(opponent)"
         var line =
-            if event.type == HouseEvents.gameFirstDown {
+            if event.type == HouseEvents.gamePlay {
+                "The next play in \(game)"
+            } else if event.type == HouseEvents.gameFirstDown {
                 "\(text("possession") ?? "The side with the ball") just picked up a first down in \(game)"
             } else if event.type == HouseEvents.gamePenalty {
                 "A flag in \(game): \(text("foul") ?? "a foul") on \(text("penalty_on") ?? "one side")"
@@ -397,6 +399,18 @@ public actor SceneOpeningPolicy {
             line += " The play: \(play)" + (play.hasSuffix(".") ? "" : ".")
         }
         return line
+    }
+
+    /// How to watch it (#287): April, watching with the birds, "Can you ask them to be really
+    /// emotional, too? It's fun when they get super happy on good plays." A fan's invitation,
+    /// each bird in its own way; whether this play deserves it is still theirs to judge.
+    static func gameFeeling(_ event: WorldEventEnvelope) -> String {
+        let team: String =
+            if case .string(let name)? = event.payload["team"], !name.isEmpty { name } else {
+                "April's team"
+            }
+        return
+            " You are watching with April as fans of \(team): feel it out loud, each in your own way - overjoyed at a good play for \(team), crushed or indignant at a bad one."
     }
 
     /// `place:front-door` → "the front door"; `person:april` → "April".

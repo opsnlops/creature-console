@@ -270,10 +270,14 @@ struct TeamTrackerTests {
         #expect(first.payload["possession"] == .string("Kansas City Chiefs"))
         #expect(first.payload["down_distance"] == .string("1st & 10 at KC 25"))
         #expect(first.occurredAt == kickedOff.addingTimeInterval(30))
-        // Their downs go by: not news. ESPN says nothing between plays: not news either.
-        #expect(try await live(60, ball: "12", down: "2nd & 4 at KC 31").isEmpty)
+        // Their downs go by: each a play (#287). ESPN saying nothing between plays is not.
+        #expect(
+            try await live(60, ball: "12", down: "2nd & 4 at KC 31").only?.type
+                == HouseEvents.gamePlay)
         #expect(try await live(70, ball: nil).isEmpty)
-        #expect(try await live(80, ball: "12", down: "3rd & 4 at KC 31").isEmpty)
+        #expect(
+            try await live(80, ball: "12", down: "3rd & 4 at KC 31").only?.type
+                == HouseEvents.gamePlay)
         // A punt: the Seahawks have it.
         let punt = try #require(try await live(120, ball: "26", down: "1st & 10 at SEA 30").only)
         #expect(punt.type == HouseEvents.gamePossession)
@@ -321,7 +325,7 @@ struct TeamTrackerTests {
 
     /// Team Tracker's sensor as Home Assistant sends it: updated at `offset`, and changed - its
     /// state, not its attributes - at `changed`, which is the same moment unless said otherwise.
-    @Test("Under way, a first down, a flag and a review's ruling are each news, one per play")
+    @Test("Under way, a play, a first down, a flag and a review's ruling: one piece of news a play")
     func plays() async throws {
         let announcer = HouseAnnouncer(translator: translator)
         func live(_ offset: TimeInterval, play: String, down: String, ball: String = "12")
@@ -345,8 +349,11 @@ struct TeamTrackerTests {
         #expect(
             try await live(30, play: "Kickoff", down: "1st & 10 at KC 25").only?.type
                 == HouseEvents.gamePossession)
-        // Downs going by are not news; the down back to a first, for the same side, is.
-        #expect(try await live(60, play: "Run for 6 yards", down: "2nd & 4 at KC 31").isEmpty)
+        // A down going by is a play; the down back to a first, for the same side, a first down.
+        let run = try #require(
+            try await live(60, play: "Run for 6 yards", down: "2nd & 4 at KC 31").only)
+        #expect(run.type == HouseEvents.gamePlay)
+        #expect(run.payload["last_play"] == .string("Run for 6 yards"))
         let first = try #require(
             try await live(90, play: "Pass for 10 yards", down: "1st & 10 at KC 41").only)
         #expect(first.type == HouseEvents.gameFirstDown)
@@ -355,8 +362,11 @@ struct TeamTrackerTests {
         #expect(first.source.sourceEventID == "context:ctx-IN-90.0")
         // The same look again, the clock moving, is not.
         #expect(try await live(95, play: "Pass for 10 yards", down: "1st & 10 at KC 41").isEmpty)
-        // The write-up and the down can arrive in separate looks: still one first down.
-        #expect(try await live(120, play: "Incomplete", down: "2nd & 10 at KC 41").isEmpty)
+        // The write-up and the down can arrive in separate looks: still one first down, told
+        // when the down moves - a write-up that moves nothing, like a timeout's, is no play.
+        #expect(
+            try await live(120, play: "Incomplete", down: "2nd & 10 at KC 41").only?.type
+                == HouseEvents.gamePlay)
         #expect(try await live(150, play: "Pass for 12 yards", down: "2nd & 10 at KC 41").isEmpty)
         #expect(
             try await live(155, play: "Pass for 12 yards", down: "1st & 10 at KC 53").only?.type
@@ -383,13 +393,13 @@ struct TeamTrackerTests {
                 down: "1st & 5 at SEA 34"
             ).only)
         #expect(offside.payload["penalty_on"] == .string("Seattle Seahawks"))
-        // Declined or offsetting flags change nothing.
+        // A declined flag leaves just the play; offsetting ones, moving no down, nothing.
         #expect(
             try await live(
                 240,
                 play: "Run for 3 yards. PENALTY on KC-T.Smith, Offensive Holding, declined.",
                 down: "2nd & 2 at SEA 31"
-            ).isEmpty)
+            ).only?.type == HouseEvents.gamePlay)
         #expect(
             try await live(
                 270,

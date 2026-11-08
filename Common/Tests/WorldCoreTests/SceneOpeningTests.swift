@@ -402,6 +402,9 @@ struct SceneOpeningTests {
 
     @Test("A score in words the birds can use: who scored on whom, the score, the clock, the play")
     func scoreTriggerText() throws {
+        // April: "Can you ask them to be really emotional, too?" (#287)
+        let fans =
+            " You are watching with April as fans of Seattle Seahawks: feel it out loud, each in your own way - overjoyed at a good play for Seattle Seahawks, crushed or indignant at a bad one."
         let seahawks = try EntityID(validating: "team:seahawks")
         let home = HouseholdSituation(aprilHome: true)
         var payload: [String: WorldJSONValue] = [
@@ -416,6 +419,7 @@ struct SceneOpeningTests {
         }
         let score =
             "Seattle Seahawks 14, Chicago Bears 7 (7:12 - 2nd). The play: J. Smith 12 Yd Run (K. Jones Kick). April is home."
+            + fans
         #expect(
             try said(HouseEvents.gameScored)
                 == "Seattle Seahawks, the team April follows, just scored against Chicago Bears: "
@@ -441,14 +445,20 @@ struct SceneOpeningTests {
         #expect(
             try said(HouseEvents.gamePossession)
                 == "The ball just went to Chicago Bears in the game between Seattle Seahawks, the team April follows, and Chicago Bears: Seattle Seahawks 14, Chicago Bears 7 (7:12 - 2nd; 1st & 10 at CHI 25). The play: D. Moore punts 44 yards. April is home."
+                + fans
         )
         // A first down, a flag and a review's ruling (#287).
         payload["last_play"] = .string("Pass for 12 yards.")
         let state =
             ": Seattle Seahawks 14, Chicago Bears 7 (7:12 - 2nd; 1st & 10 at CHI 25). The play: Pass for 12 yards. April is home."
+            + fans
         #expect(
             try said(HouseEvents.gameFirstDown)
                 == "Chicago Bears just picked up a first down in the game between Seattle Seahawks, the team April follows, and Chicago Bears"
+                + state)
+        #expect(
+            try said(HouseEvents.gamePlay)
+                == "The next play in the game between Seattle Seahawks, the team April follows, and Chicago Bears"
                 + state)
         payload["penalty_on"] = .string("Seattle Seahawks")
         payload["foul"] = .string("Defensive Pass Interference")
@@ -483,10 +493,11 @@ struct SceneOpeningTests {
         }
         let over =
             "The game between Seattle Seahawks, the team April follows, and Chicago Bears is over: "
-        #expect(try ended("lost") == over + "Seattle Seahawks lost, 17 to 34. April is home.")
-        #expect(try ended("won") == over + "Seattle Seahawks won, 17 to 34. April is home.")
-        #expect(try ended("tied") == over + "it ended in a tie, 17 to 34. April is home.")
-        #expect(try ended(nil) == over + "it ended 17 to 34. April is home.")
+        #expect(
+            try ended("lost") == over + "Seattle Seahawks lost, 17 to 34. April is home." + fans)
+        #expect(try ended("won") == over + "Seattle Seahawks won, 17 to 34. April is home." + fans)
+        #expect(try ended("tied") == over + "it ended in a tie, 17 to 34. April is home." + fans)
+        #expect(try ended(nil) == over + "it ended 17 to 34. April is home." + fans)
     }
 
     private func event(
