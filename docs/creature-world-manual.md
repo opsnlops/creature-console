@@ -298,6 +298,14 @@ lost, 17 to 34." It also asks about each review's ruling (`game.reviewed`) and e
 flag (`game.penalty`), 60 s apart, and every first down (`game.first_down`, no cooldown) (`0.71.0`,
 #287); `games_quiet` silences them too.
 
+**A broadcast delay** (`0.72.0`, #288). A bird keeps `house · house.games_delay`, the seconds
+April's TV runs behind the game feed (at most 120), until the day ends. While it holds, every
+`game.*` event arriving at `POST /v1/events` is held on a world timer
+(`timer:game-held:<event id>`, purpose `game.held`) and answered `held` with HTTP 200. When the
+timer fires it releases the house's own event, with ESPN's `occurred_at` and `held_seconds` added,
+so `game.playing` and the scenes both wait for the TV. The old-news check allows
+`held_seconds` extra. An event the World already has is never held.
+
 A cooldown starts only when its scene opens (`0.66.1`, #271). `SceneOpeningPolicy.occasion`
 only looks; the opener calls `opened` once the scene is open. An occasion held back costs
 nothing: a house question that would have interrupted a conversation, or a room with nobody

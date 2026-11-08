@@ -1,3 +1,18 @@
+creature-cli (2.109.0+world0.72.0+house0.8.0+gateway0.2.0+body0.2.1) unstable; urgency=medium
+
+  * creature-world 0.72.0: a broadcast delay for the game (#288). April's TV
+    runs about 15 s behind ESPN's feed, so the birds remarked on plays before
+    she saw them. While house.games_delay holds, every game event waits that
+    many seconds on a world timer before the World takes it in, ESPN's time
+    intact, so the score the birds know and the scenes they open both wait
+    for the TV. Held at most 120 s; an event the World already has is never
+    held.
+  * creature-agent 2.109.0: the learning contract tells a bird to keep
+    "YouTube TV is 15 seconds behind" as house.games_delay, for today.
+    No functional change in creature-cli or creature-mqtt.
+
+ -- April White <april@creature.engineering>  Sun, 08 Nov 2026 15:00:00 -0800
+
 creature-cli (2.108.0+world0.71.0+house0.8.0+gateway0.2.0+body0.2.1) unstable; urgency=medium
 
   * creature-house 0.8.0: during a game the house also reports first downs,

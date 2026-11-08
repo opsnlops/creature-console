@@ -8,6 +8,9 @@ enum WorldEventDisposition: String, Equatable, Sendable {
     case accepted
     case duplicateEvent = "duplicate_event"
     case duplicateSourceEvent = "duplicate_source_event"
+    /// A game event the World is holding for April's TV (#288): it is taken in when the hold
+    /// ends.
+    case held
 }
 
 struct WorldEventAcceptance: Equatable, Sendable {
@@ -423,6 +426,9 @@ private struct WorldEventProcessor: Sendable {
             telemetry.duplicateEventCounter.increment()
         case .duplicateSourceEvent:
             telemetry.duplicateSourceEventCounter.increment()
+        case .held:
+            // Held at the door (#288), never by the World itself; counted when released.
+            break
         }
     }
 }

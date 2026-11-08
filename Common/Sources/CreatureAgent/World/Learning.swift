@@ -223,7 +223,9 @@ struct LearnedFact: Equatable, Sendable {
         be for a while, keep that too, so the house stops offering them: [learned: the house | \
         house.cameras_quiet | the yard guy is working | 1h] - and the same for a game, with \
         house.games_quiet: [learned: the house | house.games_quiet | watching a movie | 1h]. End \
-        either with none when she says you may talk about it again. When April tells you where she is while she is out, keep \
+        either with none when she says you may talk about it again. When April tells you how \
+        far behind her TV is on the game, keep it in seconds, for today: [learned: the house | \
+        house.games_delay | 15 | today]; the house then holds each play that long. When April tells you where she is while she is out, keep \
         it on her, naming the place with its kind: [learned: person: April | presence.place | \
         place: the dentist | 2h]. Expires: today, tomorrow, week, never, or a span such as \
         1h or 30m (at most 12h). \

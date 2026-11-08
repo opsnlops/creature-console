@@ -465,13 +465,22 @@ struct MongoWorldPersistenceConnection: Sendable {
         let whisperDesk = WhisperDesk(
             event: { try await persistence.events.event(withID: $0) },
             whisperedTo: { try await persistence.conversations.whisperedTo(utterance: $0) })
-        acceptEvent = {
+        acceptEvent = { event in
+            // A game event waits for April's TV, when she has told a bird how far behind it
+            // runs (#288): held on a world timer, taken in when it fires. One the World
+            // already has is not held again; it is the duplicate it always was.
+            if let held = try await BroadcastDelay.hold(
+                event, house: house, facts: persistence.facts, events: persistence.events,
+                now: await clock.now, schedule: { try await timerScheduler.schedule($0) })
+            {
+                return held
+            }
             // A mind's keeping, at the door: marked when it was learned in a whisper (#263),
             // never the world's own kinds (#255), and onto the kept id of a merge.
-            try await world.accept(
+            return try await world.accept(
                 try await filingDesk.redirect(
                     try await filingDesk.check(
-                        try await whisperDesk.mark(try await houseAskDesk.check($0)))))
+                        try await whisperDesk.mark(try await houseAskDesk.check(event)))))
         }
         houseAsks = { try await houseAskDesk.asks() }
         houseScenes = { try await houseAskDesk.scenes() }

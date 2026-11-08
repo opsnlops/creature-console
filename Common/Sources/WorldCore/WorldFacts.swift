@@ -37,6 +37,11 @@ public enum WorldFacts {
     /// (#272). April: "Beaky, ignore the game for the next hour." The game is still recorded -
     /// `game.playing` keeps the score and the ball - and no scene opens for it.
     public static let gamesQuiet = "house.games_quiet"
+    /// `house · house.games_delay` "15", valid until the day ends: how many seconds April's TV
+    /// runs behind the game feed (#288). April: "I can just tell Beaky what the latency is of
+    /// YouTube TV and she sets it. Have it take effect for just one game." While it holds, every
+    /// game event waits that long before the World takes it in; a bird ends it with `none`.
+    public static let gamesDelay = "house.games_delay"
     /// `order:*` `order.status`: placed, shipped, out_for_delivery, or delivered (the Bridge).
     public static let orderStatus = "order.status"
     /// `order:*` `order.expected`: the day the mail says it arrives, "September 25, 2026";
@@ -234,6 +239,8 @@ public enum WorldFacts {
             "April asked the birds to let the cameras be until this ends, and why; the house opens no scene for a camera sighting while it holds, and the sightings are still recorded",
         gamesQuiet:
             "April asked the birds to let the game be until this ends, and why; the house opens no scene for a score or a change of possession while it holds, and the game is still recorded - the score and who has the ball are still known",
+        gamesDelay:
+            "how many seconds April's TV runs behind the game feed today; the house holds every play that long, so the birds hear of it as she sees it, and the score you know is the score on her screen",
         visitorExpected:
             "someone April is expecting, and when; a person turning up then is almost certainly them",
         "departure.due":

@@ -158,6 +158,37 @@ The pieces:
 Known gap: a half's kickoff received by the side that had the ball at the half reads as a
 first down, not a change of hands. The birds see the play, which says kickoff.
 
+## Waiting for the TV (World 0.72.0, agent 2.109.0, #288)
+
+The same afternoon: "They're responding 15s or so ahead of what I see on TV. I guess YouTube TV
+has a delay vs ESPN's feed." Then: "I can just tell Beaky what the latency is of YouTube TV and
+she sets it. Have it take effect for just one game."
+
+1. **The bird keeps it.** The learning contract has a line for it:
+   `[learned: the house | house.games_delay | 15 | today]`, the number of seconds the TV runs
+   behind. It expires at the end of the day, which is one game; `none` ends it sooner. The
+   librarian never files it.
+2. **The World holds at its door.** While a delay is in force, a game event arriving from the
+   house is not taken in. It is put on a world timer (`timer:game-held:<event id>`,
+   purpose `game.held`) due that many seconds later, and the house is told `held` (HTTP 200,
+   which the house reads as delivered). A world timer outlives a restart, so a held score
+   isn't lost.
+3. **The hold fires as the event it held.** `WorldTimerScheduler.firedEvent` hands back the
+   house's own envelope, with its source, its id and ESPN's `occurred_at`, plus
+   `held_seconds`. Then it goes in like any event: `game.playing` moves, and the scene opener
+   hears it. Because the facts move only on release, a bird asked "what's the score?" during
+   the delay knows only what April has seen.
+4. **Still news.** The opener's old-news check allows `held_seconds` on top of
+   `news_seconds`.
+5. **Not held:** anything that isn't a game event, and an event the World already has (the
+   house sending it again after release), which is the duplicate it always was.
+6. **Viewer:** a pending hold is in the timers panel until it fires. A released event carries
+   `held_seconds`, and its `received_at` minus its `occurred_at` is the lag.
+
+Limits: at most 120 s, so "15 minutes" misheard can't hold the game for a quarter of an hour.
+Changing the delay mid-game affects only events that arrive afterwards. Ones already held
+keep their release time, so for a moment the order could differ from ESPN's.
+
 ## Not in this slice
 
 - ~~**The birds bringing up a final unprompted.**~~ Built in World 0.69.0 (#276). After the

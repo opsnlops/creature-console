@@ -156,7 +156,10 @@ public actor SceneOpeningPolicy {
     /// (#266). An event the World has not stamped yet has not arrived late.
     public static func isNews(_ event: WorldEventEnvelope, within seconds: TimeInterval) -> Bool {
         guard let received = event.receivedAt else { return true }
-        return received.timeIntervalSince(event.occurredAt) <= seconds
+        // A game event held for the TV (#288) is as fresh as when it was released.
+        var held: TimeInterval = 0
+        if case .number(let value)? = event.payload["held_seconds"] { held = value }
+        return received.timeIntervalSince(event.occurredAt) <= seconds + held
     }
 
     /// The place the scene is about, when this event should open one now; the scene is taken to

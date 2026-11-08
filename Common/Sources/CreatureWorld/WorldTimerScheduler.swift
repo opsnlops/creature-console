@@ -278,6 +278,10 @@ actor WorldTimerScheduler {
         for timer: WorldTimer,
         firingAt: Date
     ) throws -> WorldEventEnvelope {
+        // A held game event fires as itself, the house's own event, not as a timer's (#288).
+        if timer.purpose == BroadcastDelay.purpose {
+            return try BroadcastDelay.released(from: timer)
+        }
         let latenessMilliseconds = max(0, firingAt.timeIntervalSince(timer.dueAt) * 1_000)
         var payload = timer.payload
         payload["timer_id"] = .string(timer.timerID.rawValue)
