@@ -111,40 +111,54 @@ struct CreatureDetail: View {
                     }
                 }
             #else
-                // The macOS toolbar draws each item as Liquid Glass itself, so these stay plain
-                // system toolbar buttons: no glass, padding or animation of their own. Nesting
-                // an animated glass capsule inside the system's item made AppKit measure an item
-                // whose content was mid-animation (the idle state lands from the server while the
-                // toolbar is still re-tiling from the previous screen), and it crashed with an
-                // NSToolbarItemViewer minSize assertion (#252). Active state shows as a filled,
-                // tinted symbol instead.
                 ToolbarItem(placement: .secondaryAction) {
                     NavigationLink(destination: CreatureConfigDisplay(creature: creature)) {
-                        Label("Creature Configuration", systemImage: "slider.horizontal.3")
+                        Image(systemName: "slider.horizontal.3")
+                            .padding(8)
                     }
                     .help("View Creature Configuration")
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    let isStreaming = console.currentActivity == .streaming
-                    Button(action: toggleStreaming) {
-                        Label("Toggle Streaming", systemImage: "gamecontroller")
-                            .symbolVariant(isStreaming ? .fill : .none)
-                            .foregroundStyle(
-                                isStreaming
-                                    ? AnyShapeStyle(Activity.streaming.tintColor)
-                                    : AnyShapeStyle(.primary))
+                    Button(action: {
+                        toggleStreaming()
+                    }) {
+                        Label(
+                            "Toggle Streaming",
+                            systemImage: (console.currentActivity == .streaming)
+                                ? "gamecontroller.fill" : "gamecontroller"
+                        )
+                        .labelStyle(.iconOnly)
+                        .padding(8)
                     }
+                    .glassEffect(
+                        (console.currentActivity == .streaming)
+                            ? .regular.tint(Activity.streaming.tintColor).interactive()
+                            : .regular.interactive(),
+                        in: .capsule
+                    )
+                    .animation(.easeInOut, value: console.currentActivity)
                     .help("Toggle Streaming")
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    let isIdle = idleEnabled ?? false
-                    Button(action: toggleIdleLoop) {
-                        Label("Toggle Idle Loop", systemImage: "moon.zzz")
-                            .symbolVariant(isIdle ? .fill : .none)
-                            .foregroundStyle(
-                                isIdle ? AnyShapeStyle(.teal) : AnyShapeStyle(.primary))
+                    Button(action: {
+                        toggleIdleLoop()
+                    }) {
+                        Label(
+                            "Toggle Idle Loop",
+                            systemImage: (idleEnabled ?? false) ? "moon.zzz.fill" : "moon.zzz"
+                        )
+                        .labelStyle(.iconOnly)
+                        .padding(8)
                     }
+                    .glassEffect(
+                        (idleEnabled ?? false)
+                            ? .regular.tint(.teal).interactive()
+                            : .regular.interactive(),
+                        in: .capsule
+                    )
+                    .animation(.easeInOut, value: idleEnabled)
                     .disabled(idleToggleInFlight || idleEnabled == nil)
+                    .padding(.leading, 6)
                     .help("Toggle Idle Loop")
                 }
             #endif

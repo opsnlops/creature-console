@@ -149,9 +149,9 @@ struct StoryboardTable: View {
                     .frame(minWidth: 800, minHeight: 600)
                 }
             #endif
-            .toolbar(id: "storyboardList") {
+            .toolbar {
                 #if os(iOS)
-                    ToolbarItem(id: "create", placement: .topBarTrailing) {
+                    ToolbarItem(placement: .topBarTrailing) {
                         NavigationLink {
                             StoryboardEditor(createNew: true)
                         } label: {
@@ -159,14 +159,14 @@ struct StoryboardTable: View {
                         }
                     }
                 #else
-                    ToolbarItem(id: "create", placement: .primaryAction) {
+                    ToolbarItem(placement: .primaryAction) {
                         NavigationLink {
                             StoryboardEditor(createNew: true)
                         } label: {
                             Image(systemName: "plus")
                         }
                     }
-                    ToolbarItem(id: "edit", placement: .secondaryAction) {
+                    ToolbarItem(placement: .secondaryAction) {
                         if let id = selection, let board = storyboards.first(where: { $0.id == id })
                         {
                             NavigationLink {
