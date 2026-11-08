@@ -259,7 +259,8 @@ public actor SceneOpeningPolicy {
     /// the birds stop looking (the tree sprayer, the delivery driver: "They always assume
     /// it's me. They don't stop to think." - 2026-09-30, #214).
     public static func triggerText(
-        for event: WorldEventEnvelope, place: EntityID, household: HouseholdSituation = .unknown
+        for event: WorldEventEnvelope, place: EntityID, household: HouseholdSituation = .unknown,
+        earlier: [WorldEventEnvelope] = []
     ) -> String {
         let name = placeName(place)
         switch event.type {
@@ -294,7 +295,8 @@ public actor SceneOpeningPolicy {
                 case false?: " April is away."
                 case nil: ""
                 }
-            return gameText(event) + home + gameFeeling(event)
+            return gameText(event) + GameStory.context(of: event, earlier: earlier) + home
+                + gameFeeling(event)
         case HouseEvents.dusk, HouseEvents.dawn:
             var light = ""
             if case .number(let lux)? = event.payload["lux"] {
@@ -358,6 +360,13 @@ public actor SceneOpeningPolicy {
                 "The game between \(team), the team April follows, and \(opponent) is over: \(outcome)."
         }
         let scorer = text("scored_by")
+        // "just scored 3 points": a field goal, even before ESPN writes the play up (#287).
+        let scored: String =
+            switch text("points") {
+            case "1"?: "just scored 1 point"
+            case let points?: "just scored \(points) points"
+            case nil: "just scored"
+            }
         let ruling =
             switch text("outcome") {
             case "reversed"?: ", and the call was reversed"
@@ -384,15 +393,17 @@ public actor SceneOpeningPolicy {
             } else if event.type == HouseEvents.gameScoreCorrected {
                 "Points just came off the board in the game between \(team), the team April follows, and \(opponent) - a score taken back. It now stands"
             } else if scorer == team {
-                "\(team), the team April follows, just scored against \(opponent)"
+                "\(team), the team April follows, \(scored) against \(opponent)"
             } else if let scorer {
-                "\(scorer) just scored against \(team), the team April follows"
+                "\(scorer) \(scored) against \(team), the team April follows"
             } else {
                 "Both sides scored in the game between \(team), the team April follows, and \(opponent)"
             }
         line +=
             ": \(team) \(text("team_score") ?? "0"), \(opponent) \(text("opponent_score") ?? "0")"
-        let when = [text("clock"), text("down_distance")].compactMap { $0 }
+        // The down is what comes next, not the down the play was run on: "4th & 7" after a
+        // 3rd-down run read to two birds as a fourth down converted (#287).
+        let when = [text("clock"), text("down_distance").map { "next: \($0)" }].compactMap { $0 }
         if !when.isEmpty { line += " (\(when.joined(separator: "; ")))" }
         line += "."
         if let play = text("last_play") {

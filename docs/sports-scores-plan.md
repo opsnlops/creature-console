@@ -169,6 +169,21 @@ fun when they get super happy on good plays." Every game stage note ends: "You a
 with April as fans of Seattle Seahawks: feel it out loud, each in your own way - overjoyed at a
 good play for Seattle Seahawks, crushed or indignant at a bad one."
 
+**A field goal missed, and a down misread** (house 0.9.1, World 0.73.1). Late in the third,
+ESPN moved the score to 17–3 before writing up the field goal, so the stage note carried the
+8-yard run before it again; Beaky passed, "already celebrated this play". And "(4:37 - 3rd;
+4th & 7 at ARI 26)" after a 3rd-and-15 run read to Caroll and Mango as a fourth down converted.
+Now a write-up the World already heard is left out of the next event, a score carries
+`points` ("just scored 3 points against …"), and the down reads "next: 4th & 7 at ARI 26".
+
+**The game so far** (World 0.74.0). April: "Would we get a better show performance if we
+modeled the game in the server's memory?" Not faster (the time is the minds and the TV
+delay), but better told. The World already has every play of the game in its record, so for a
+game's stage note the scene opener reads the team's events since kickoff and `GameStory` adds
+what a person on the couch knows: "This play started from 3rd & 15 at ARI 34. The plays
+before it: …. Seattle Seahawks' drive: 6 plays so far, since getting the ball at SEA 16 (11:25 -
+3rd)." Read from the record, it survives a restart, and nothing new is stored.
+
 Known gap: a half's kickoff received by the side that had the ball at the half reads as a
 first down, not a change of hands. The birds see the play, which says kickoff.
 

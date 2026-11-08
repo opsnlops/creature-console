@@ -233,6 +233,9 @@ A score and a change of hands in one update is reported as the score, carrying t
 - `game.play` (`0.9.0`): any other snap, once the down moves; a write-up that moves no down,
   such as a timeout, is nothing
 
+A score carries `points`, how many it added (`0.9.1`), and an event whose `last_play` the World
+already heard leaves it out: ESPN moves the score before it writes the play up.
+
 One play is one event, the biggest: a score, the ball changing hands, a review, a flag, a first
 down, then any other play. Each needs a `last_play` the World has not heard; a repeated look is nothing.
 

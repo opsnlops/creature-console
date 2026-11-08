@@ -1,3 +1,18 @@
+creature-cli (2.109.0+world0.74.0+house0.9.1+gateway0.2.0+body0.2.1) unstable; urgency=medium
+
+  * creature-house 0.9.1: a score carries points, how many it added, and an
+    event never reuses a write-up the World already heard. ESPN moved the
+    score to 17-3 before writing up the field goal, so the birds were told
+    the run before it again, and Beaky passed (#287).
+  * creature-world 0.74.0: "just scored 3 points against ...", and the down
+    reads "next: 4th & 7" - two birds took the down after a 3rd-down run as
+    a fourth down converted. And the game so far: a game's stage note now
+    reads the game's own record for the down the play started from, the two
+    plays before it, and the drive so far. April: "Would we get a better
+    show performance if we modeled the game in the server's memory?"
+
+ -- April White <april@creature.engineering>  Sun, 08 Nov 2026 16:45:00 -0800
+
 creature-cli (2.109.0+world0.73.0+house0.9.0+gateway0.2.0+body0.2.1) unstable; urgency=medium
 
   * creature-house 0.9.0: every other snap in a game under way is game.play

@@ -444,13 +444,26 @@ struct SceneOpeningTests {
         payload["last_play"] = .string("D. Moore punts 44 yards.")
         #expect(
             try said(HouseEvents.gamePossession)
-                == "The ball just went to Chicago Bears in the game between Seattle Seahawks, the team April follows, and Chicago Bears: Seattle Seahawks 14, Chicago Bears 7 (7:12 - 2nd; 1st & 10 at CHI 25). The play: D. Moore punts 44 yards. April is home."
+                == "The ball just went to Chicago Bears in the game between Seattle Seahawks, the team April follows, and Chicago Bears: Seattle Seahawks 14, Chicago Bears 7 (7:12 - 2nd; next: 1st & 10 at CHI 25). The play: D. Moore punts 44 yards. April is home."
                 + fans
         )
+        // How many points, so a field goal is one before ESPN writes it up (#287).
+        var kick = payload
+        kick["possession"] = nil
+        kick["down_distance"] = nil
+        kick["last_play"] = nil
+        kick["scored_by"] = .string("Seattle Seahawks")
+        kick["points"] = .number(3)
+        #expect(
+            SceneOpeningPolicy.triggerText(
+                for: try event(HouseEvents.gameScored, seahawks, payload: kick), place: seahawks,
+                household: home)
+                == "Seattle Seahawks, the team April follows, just scored 3 points against Chicago Bears: Seattle Seahawks 14, Chicago Bears 7 (7:12 - 2nd). April is home."
+                + fans)
         // A first down, a flag and a review's ruling (#287).
         payload["last_play"] = .string("Pass for 12 yards.")
         let state =
-            ": Seattle Seahawks 14, Chicago Bears 7 (7:12 - 2nd; 1st & 10 at CHI 25). The play: Pass for 12 yards. April is home."
+            ": Seattle Seahawks 14, Chicago Bears 7 (7:12 - 2nd; next: 1st & 10 at CHI 25). The play: Pass for 12 yards. April is home."
             + fans
         #expect(
             try said(HouseEvents.gameFirstDown)

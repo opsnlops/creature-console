@@ -432,6 +432,40 @@ struct TeamTrackerTests {
         #expect(booth.payload["outcome"] == .string("upheld"))
     }
 
+    @Test("A score says how many points, and never reuses the play before it as its own")
+    func fieldGoalBeforeItsWriteUp() async throws {
+        let announcer = HouseAnnouncer(translator: translator)
+        func live(_ offset: TimeInterval, _ ours: Int, play: String, down: String?)
+            async throws -> [WorldEventEnvelope]
+        {
+            var attributes: [String: WorldJSONValue] = [
+                "team_score": .string("\(ours)"), "opponent_score": .string("3"),
+                "clock": .string("4:37 - 3rd"), "last_play": .string(play),
+                "possession": .string("26"),
+            ]
+            attributes["down_distance_text"] = down.map { .string($0) }
+            return try await announcer.events(
+                from: nil, to: sensor("IN", at: offset, changed: 0, attributes))
+        }
+        // 11-08: the run that set up the kick, then the score moving before ESPN wrote the
+        // field goal up - the run's write-up still there.
+        let run = " (Shotgun) Z.Charbonnet right guard to ARZ 26 for 8 yards (Ma.Wilson; B.Baker)."
+        _ = try await live(0, 14, play: "earlier", down: "3rd & 15 at ARI 34")
+        #expect(
+            try await live(30, 14, play: run, down: "4th & 7 at ARI 26").only?.type
+                == HouseEvents.gamePlay)
+        let kick = try #require(try await live(60, 17, play: run, down: "4th & 7 at ARI 26").only)
+        #expect(kick.type == HouseEvents.gameScored)
+        #expect(kick.payload["points"] == .number(3))
+        #expect(kick.payload["scored_by"] == .string("Seattle Seahawks"))
+        #expect(kick.payload["last_play"] == nil)
+        // A touchdown with its own write-up keeps it.
+        let touchdown = try #require(
+            try await live(600, 23, play: "J.Price 5 yard run, TOUCHDOWN.", down: nil).only)
+        #expect(touchdown.payload["points"] == .number(6))
+        #expect(touchdown.payload["last_play"] == .string("J.Price 5 yard run, TOUCHDOWN."))
+    }
+
     private func sensor(
         _ state: String, at offset: TimeInterval, changed: TimeInterval? = nil,
         _ attributes: [String: WorldJSONValue] = [:]

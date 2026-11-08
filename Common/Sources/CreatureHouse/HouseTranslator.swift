@@ -219,7 +219,11 @@ struct HouseTranslator: Sendable {
         payload["home_away"] = game.homeAway.map { .string($0) }
         payload["result"] = game.result.map { .string($0) }
         payload["clock"] = game.clock.map { .string($0) }
-        payload["last_play"] = game.lastPlay.map { .string($0) }
+        // A write-up the World already heard is the last play's, not this one's: ESPN moves
+        // the score before it writes the play up, and the field goal on 11-08 reached the
+        // birds as the run before it again, so Beaky passed - "already celebrated this play".
+        let stalePlay = sameGame && before?.stage == .playing && game.lastPlay == before?.lastPlay
+        payload["last_play"] = stalePlay ? nil : game.lastPlay.map { .string($0) }
         payload["possession"] = game.possession.map { .string($0) }
         payload["down_distance"] = game.downDistance.map { .string($0) }
         if type == HouseEvents.gamePenalty, let penalty = game.penalty {
@@ -231,9 +235,19 @@ struct HouseTranslator: Sendable {
             payload["challenged_by"] = review.challengedBy.map { .string($0) }
             payload["outcome"] = review.outcome.map { .string($0) }
         }
+        // Who scored, and how many: three is a field goal, whatever the write-up says yet.
+        func points(_ now: String?, _ then: String?) -> WorldJSONValue? {
+            guard let now = now.flatMap({ Int($0) }) else { return nil }
+            let gained = now - (then.flatMap { Int($0) } ?? 0)
+            return gained > 0 ? .number(Double(gained)) : nil
+        }
         switch scored {
-        case .team?: payload["scored_by"] = game.team.map { .string($0) }
-        case .opponent?: payload["scored_by"] = game.opponent.map { .string($0) }
+        case .team?:
+            payload["scored_by"] = game.team.map { .string($0) }
+            payload["points"] = points(game.teamScore, before?.teamScore)
+        case .opponent?:
+            payload["scored_by"] = game.opponent.map { .string($0) }
+            payload["points"] = points(game.opponentScore, before?.opponentScore)
         case .both?, nil: break
         }
         // A score is a number, but for a shootout's "2(4)".

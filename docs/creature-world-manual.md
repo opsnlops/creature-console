@@ -307,6 +307,11 @@ timer fires it releases the house's own event, with ESPN's `occurred_at` and `he
 so `game.playing` and the scenes both wait for the TV. The old-news check allows
 `held_seconds` extra. An event the World already has is never held.
 
+**The game so far** (`0.74.0`). For a game's stage note the scene opener reads the team's
+events since kickoff (`events(about:since:)`, at most 400), and `GameStory.context` adds the
+down the play started from, the two plays before it, and the drive so far, back to the change
+of hands that started it.
+
 A cooldown starts only when its scene opens (`0.66.1`, #271). `SceneOpeningPolicy.occasion`
 only looks; the opener calls `opened` once the scene is open. An occasion held back costs
 nothing: a house question that would have interrupted a conversation, or a room with nobody

@@ -379,6 +379,15 @@ struct MongoWorldPersistenceConnection: Sendable {
                     {
                         continue
                     }
+                    // The game so far, from the record, for a game's stage note (#287).
+                    var earlier: [WorldEventEnvelope] = []
+                    if HouseEvents.games.contains(event.type),
+                        case .string(let kickoff)? = event.payload["kickoff"],
+                        let kickedOff = WorldJSON.date(from: kickoff)
+                    {
+                        earlier = try await persistence.events.events(
+                            about: event.subjectIDs, since: kickedOff, limit: 400)
+                    }
                     var dice = SystemRandomNumberGenerator()
                     let participants = SceneOpeningPolicy.cast(
                         present, lead: leadCharacter, using: &dice)
@@ -391,7 +400,8 @@ struct MongoWorldPersistenceConnection: Sendable {
                                 for: event, place: place,
                                 household: try await Household.situation(
                                     facts: persistence.facts, at: await clock.now,
-                                    zone: memory.zone))),
+                                    zone: memory.zone),
+                                earlier: earlier)),
                         participants: participants,
                         trace: event.trace)
                     // Spent only now: an occasion held back above leaves the next one free (#271).
