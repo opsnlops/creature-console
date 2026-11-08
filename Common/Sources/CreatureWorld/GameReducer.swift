@@ -10,6 +10,7 @@ struct GameReducer: WorldReducer {
     let eventTypes: Set<WorldEventType> = [
         HouseEvents.gameScheduled, HouseEvents.gameStarted, HouseEvents.gameScored,
         HouseEvents.gameScoreCorrected, HouseEvents.gamePossession, HouseEvents.gameFinal,
+        HouseEvents.gameReviewed, HouseEvents.gamePenalty, HouseEvents.gameFirstDown,
     ]
     let zone: TimeZone
 
@@ -32,9 +33,10 @@ struct GameReducer: WorldReducer {
             predicate = WorldFacts.gameNext
             ends = nil
         case HouseEvents.gameStarted, HouseEvents.gameScored, HouseEvents.gameScoreCorrected,
-            HouseEvents.gamePossession:
-            // Under way: the score and who has the ball, as of the last score or change of
-            // possession, and the clock then.
+            HouseEvents.gamePossession, HouseEvents.gameReviewed, HouseEvents.gamePenalty,
+            HouseEvents.gameFirstDown:
+            // Under way: the score and who has the ball, as of the last play the house told,
+            // and the clock then.
             predicate = WorldFacts.gamePlaying
             for key in ["team_score", "opponent_score", "clock", "possession", "down_distance"] {
                 game[key] = event.payload[key]

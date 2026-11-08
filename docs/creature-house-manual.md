@@ -220,6 +220,19 @@ opponent's name. The event carries both scores, the clock, the `last_play` and
 A score and a change of hands in one update is reported as the score, carrying the new
 `possession`. Every game event under way carries `possession` and `down_distance`.
 
+**First downs, flags and reviews** (`0.8.0`, #287). Under way, the house also reports:
+- `game.first_down`: the down went back to `1st` for the side that already had the ball
+- `game.penalty`: an enforced foul in ESPN's write-up (`PENALTY on SEA-…, False Start, 5
+  yards, …`), with `penalty_on`, `foul` and `yards`. Declined and offsetting flags are not news.
+  `penalty_on` is the side's name when ESPN's short name matches `team_abbr` / `opponent_abbr`,
+  and ESPN's short name otherwise.
+- `game.reviewed`: a coach's challenge or the booth's review, once decided, with
+  `challenged_by` (absent for the booth) and `outcome` (`reversed`, `upheld`, `stands`). ESPN
+  never shows the flag being thrown.
+
+One play is one event, the biggest: a score, the ball changing hands, a review, a flag, then a
+first down. Each needs a `last_play` the World has not heard; a repeated look is nothing.
+
 The side last known to have the ball outlives an update that names nobody (`0.7.1`). ESPN
 names nobody on a scoring play. In 0.7.0 the house remembered that blank, so the kickoff that
 followed, with the scorers still on the ball, read as a change of hands: "Seattle Seahawks now

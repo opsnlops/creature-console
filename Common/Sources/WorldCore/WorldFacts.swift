@@ -197,8 +197,8 @@ public enum WorldFacts {
     /// `{team, opponent, home_away, kickoff, when}`.
     public static let gameNext = "game.next"
     /// A game the team is playing right now, as `game.next`, with the score, who has the ball
-    /// and where (`possession`, `down_distance`), and the game's clock, as of the last score or
-    /// change of possession.
+    /// and where (`possession`, `down_distance`), and the game's clock, as of the last score,
+    /// change of possession, first down, flag or review.
     public static let gamePlaying = "game.playing"
     /// The team's last game, final: as `game.next`, with `team_score`, `opponent_score` and
     /// `result`, and `ended_at` / `ended` when the house saw the final whistle itself.
@@ -290,7 +290,7 @@ public enum WorldFacts {
         gameNext:
             "the team's next game: who they play, home or away, and when; it is published on game day, about twelve hours before kickoff, so no next game here says nothing about later ones",
         gamePlaying:
-            "a game the team is playing right now: who against, home or away, when it kicked off, the score, and who has the ball and where, as of the last score or change of possession, with the game's clock then",
+            "a game the team is playing right now: who against, home or away, when it kicked off, the score, and who has the ball and where, as of the last score, change of possession, first down, flag or replay review, with the game's clock then",
         gameLast:
             "the team's most recent finished game: who they played, both scores, whether they won, lost or tied, when it kicked off, and when it ended if the house saw the final whistle (a game runs about three hours)",
     ]
@@ -371,8 +371,23 @@ public enum HouseEvents {
     /// both" - kept in `game.playing`, and a `consider_on` line so the lead may remark on it,
     /// or let a punt go by.
     public static let gamePossession = WorldEventType(rawValue: "game.possession")!
+    /// A play under way came out of a replay review (#287): the game as `game.possession`
+    /// carries it, with `challenged_by` (the challenger as ESPN writes it, "SEATTLE"; absent
+    /// for the booth) and `outcome` (`reversed`, `upheld`, `stands`). ESPN writes a review up
+    /// only once it is decided, so this is the ruling, never the flag. April asked whether the
+    /// birds could know when a challenge flag is thrown.
+    public static let gameReviewed = WorldEventType(rawValue: "game.reviewed")!
+    /// The officials enforced a foul on a play under way (#287): the game, with `penalty_on`
+    /// (the side's name, or ESPN's short name when it does not match), `foul` ("Defensive Pass
+    /// Interference") and `yards`. Declined and offsetting flags are not told.
+    public static let gamePenalty = WorldEventType(rawValue: "game.penalty")!
+    /// The side with the ball picked up a first down (#287): the game, with `possession` and
+    /// the new `down_distance`. April: "Let's also add a scene opener on every first down. I
+    /// might have you tone it down, but let's see if that annoys me."
+    public static let gameFirstDown = WorldEventType(rawValue: "game.first_down")!
     /// Everything a game tells the World - what the game's quiet hour silences.
     public static let games: Set<WorldEventType> = [
         gameScheduled, gameStarted, gameFinal, gameScored, gameScoreCorrected, gamePossession,
+        gameReviewed, gamePenalty, gameFirstDown,
     ]
 }

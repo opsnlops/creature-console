@@ -442,6 +442,33 @@ struct SceneOpeningTests {
             try said(HouseEvents.gamePossession)
                 == "The ball just went to Chicago Bears in the game between Seattle Seahawks, the team April follows, and Chicago Bears: Seattle Seahawks 14, Chicago Bears 7 (7:12 - 2nd; 1st & 10 at CHI 25). The play: D. Moore punts 44 yards. April is home."
         )
+        // A first down, a flag and a review's ruling (#287).
+        payload["last_play"] = .string("Pass for 12 yards.")
+        let state =
+            ": Seattle Seahawks 14, Chicago Bears 7 (7:12 - 2nd; 1st & 10 at CHI 25). The play: Pass for 12 yards. April is home."
+        #expect(
+            try said(HouseEvents.gameFirstDown)
+                == "Chicago Bears just picked up a first down in the game between Seattle Seahawks, the team April follows, and Chicago Bears"
+                + state)
+        payload["penalty_on"] = .string("Seattle Seahawks")
+        payload["foul"] = .string("Defensive Pass Interference")
+        payload["yards"] = .number(16)
+        #expect(
+            try said(HouseEvents.gamePenalty)
+                == "A flag in the game between Seattle Seahawks, the team April follows, and Chicago Bears: Defensive Pass Interference on Seattle Seahawks, 16 yards. The score"
+                + state)
+        payload["challenged_by"] = .string("SEATTLE")
+        payload["outcome"] = .string("reversed")
+        #expect(
+            try said(HouseEvents.gameReviewed)
+                == "A replay review just finished in the game between Seattle Seahawks, the team April follows, and Chicago Bears - SEATTLE challenged, and the call was reversed. The score"
+                + state)
+        payload["challenged_by"] = nil
+        payload["outcome"] = .string("stands")
+        #expect(
+            try said(HouseEvents.gameReviewed)
+                == "A replay review just finished in the game between Seattle Seahawks, the team April follows, and Chicago Bears - the booth's review, and the call on the field stands. The score"
+                + state)
         // The final whistle (#276): who won and by how much, nothing of the last play.
         let final: [String: WorldJSONValue] = [
             "team": .string("Seattle Seahawks"), "opponent": .string("Chicago Bears"),

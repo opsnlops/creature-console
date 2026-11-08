@@ -283,7 +283,8 @@ public actor SceneOpeningPolicy {
             if case .string(let text)? = event.payload["value"] { value = text } else { value = "" }
             return "A reminder of April's is due: \(value). April is home."
         case HouseEvents.gameScored, HouseEvents.gameScoreCorrected, HouseEvents.gamePossession,
-            HouseEvents.gameFinal:
+            HouseEvents.gameFinal, HouseEvents.gameReviewed, HouseEvents.gamePenalty,
+            HouseEvents.gameFirstDown:
             let home: String =
                 switch household.aprilHome {
                 case true?: " April is home."
@@ -329,7 +330,7 @@ public actor SceneOpeningPolicy {
     /// "The Chicago Bears just scored against the Seattle Seahawks, the team April follows:
     /// Seattle Seahawks 7, Chicago Bears 14 (7:12 - 2nd). The play: ..." - or points coming off
     /// the board, a score taken back on review (#269), the ball changing hands, with where it is
-    /// now, or the game over and who won.
+    /// now, a first down, a flag, a review's ruling (#287), or the game over and who won.
     static func gameText(_ event: WorldEventEnvelope) -> String {
         func text(_ key: String) -> String? {
             switch event.payload[key] {
@@ -354,8 +355,26 @@ public actor SceneOpeningPolicy {
                 "The game between \(team), the team April follows, and \(opponent) is over: \(outcome)."
         }
         let scorer = text("scored_by")
+        let ruling =
+            switch text("outcome") {
+            case "reversed"?: ", and the call was reversed"
+            case "upheld"?: ", and the call was upheld"
+            case "stands"?: ", and the call on the field stands"
+            default: ""
+            }
+        let game = "the game between \(team), the team April follows, and \(opponent)"
         var line =
-            if event.type == HouseEvents.gamePossession {
+            if event.type == HouseEvents.gameFirstDown {
+                "\(text("possession") ?? "The side with the ball") just picked up a first down in \(game)"
+            } else if event.type == HouseEvents.gamePenalty {
+                "A flag in \(game): \(text("foul") ?? "a foul") on \(text("penalty_on") ?? "one side")"
+                    + (text("yards").map { ", \($0) yards" } ?? "") + ". The score"
+            } else if event.type == HouseEvents.gameReviewed {
+                "A replay review just finished in \(game)"
+                    + (text("challenged_by").map { " - \($0) challenged" }
+                        ?? " - the booth's review")
+                    + ruling + ". The score"
+            } else if event.type == HouseEvents.gamePossession {
                 "The ball just went to \(text("possession") ?? "the other side") in the game between \(team), the team April follows, and \(opponent)"
             } else if event.type == HouseEvents.gameScoreCorrected {
                 "Points just came off the board in the game between \(team), the team April follows, and \(opponent) - a score taken back. It now stands"

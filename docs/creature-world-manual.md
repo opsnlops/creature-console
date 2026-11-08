@@ -294,7 +294,9 @@ happened. The packaged `world.json` asks the lead about each change of possessio
 (`game.possession`, 60 s apart); the lead may let a punt go by. And it asks about the final
 whistle (`game.final`, `0.69.0`, #276). The stage note says who won and by how much: "The game
 between Seattle Seahawks, the team April follows, and Chicago Bears is over: Seattle Seahawks
-lost, 17 to 34."
+lost, 17 to 34." It also asks about each review's ruling (`game.reviewed`) and each enforced
+flag (`game.penalty`), 60 s apart, and every first down (`game.first_down`, no cooldown) (`0.71.0`,
+#287); `games_quiet` silences them too.
 
 A cooldown starts only when its scene opens (`0.66.1`, #271). `SceneOpeningPolicy.occasion`
 only looks; the opener calls `opened` once the scene is open. An occasion held back costs
@@ -795,7 +797,7 @@ run on the authoritative event loop, and tells the minds about them. The first r
 | `environment.measurement_changed` `light_trend` (the world's daylight rule, `0.47.0`) | `place:outside` `environment.light_trend` = `brightening` / `steady` / `dimming`, the newest light reading against the oldest of the last half hour, for 45 minutes - so it lapses overnight | inferred, 1 |
 | `daylight.dusk` / `daylight.dawn` (the daylight rule, `0.47.0`) | none - a happening: the light fell through 100 lux after noon / rose through it before, once a day each, `lux` in the payload. Dusk is in the packaged `consider_on` (hourly cooldown), so the lead may remark on nightfall; dawn opens nothing unless a `consider_on` line names it | inferred, 1 |
 | `house.scenes_offered`, `house.scene_requested`, `house.scene_activated` | `house:<x>` `house.scenes`, `house.scene_requested` (two minutes), `house.scene` | observed, 1 |
-| `game.scheduled` / `game.started` / `game.scored` / `game.score_corrected` / `game.final` (from `creature-house` 0.6.0's Team Tracker mapping, `0.65.0`, #269) | `team:<x>` `game.next` / `game.playing` / `game.last`: the game (opponent, home or away, `kickoff` and `when` in words in the World's time zone). `game.playing` has the score and the clock as of the last score or correction. A final has both scores, `result`, and `ended_at` / `ended` when the house saw the whistle. A game under way ends `game.next`; a final ends both others. **On no bird's page**, named or not: April asked that the sports stay out of the envelope, so a bird finds them with `search_world` / `query_entity`. Never a happening. The packaged `consider_on` asks the lead about each `game.scored` and `game.score_corrected` (three-minute cooldown, in the lead's room) | observed, 1 |
+| `game.scheduled` / `game.started` / `game.scored` / `game.score_corrected` / `game.possession` / `game.reviewed` / `game.penalty` / `game.first_down` / `game.final` (from `creature-house` 0.6.0's Team Tracker mapping, `0.65.0`, #269) | `team:<x>` `game.next` / `game.playing` / `game.last`: the game (opponent, home or away, `kickoff` and `when` in words in the World's time zone). `game.playing` has the score and the clock as of the last score or correction. A final has both scores, `result`, and `ended_at` / `ended` when the house saw the whistle. A game under way ends `game.next`; a final ends both others. **On no bird's page**, named or not: April asked that the sports stay out of the envelope, so a bird finds them with `search_world` / `query_entity`. Never a happening. The packaged `consider_on` asks the lead about each `game.scored` and `game.score_corrected` (three-minute cooldown, in the lead's room) | observed, 1 |
 
 `facts` in `world.json` is for things April simply states until a source can observe them —
 who a person is, mostly — and is deliberately thin: a `person.description` is phrased to the

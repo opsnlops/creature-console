@@ -130,8 +130,9 @@ struct HouseTranslator: Sendable {
 
     // MARK: - A team's game (#269)
 
-    /// What a Team Tracker sensor's change is: a game at a stage the World has not heard, a
-    /// score or the ball changing hands while it is under way, or nothing. Odds, the clock, the
+    /// What a Team Tracker sensor's change is: a game at a stage the World has not heard; while
+    /// it is under way a score, the ball changing hands, a review's ruling, a flag or a first
+    /// down (#287); or nothing. Odds, the clock, the
     /// downs and records moving under the same state are not news, and nor is a sensor gone and
     /// back - `old` is what the World was last told.
     private func gameEvent(mapping: EntityMapping, old: EntityState?, new: EntityState) throws
@@ -159,18 +160,39 @@ struct HouseTranslator: Sendable {
             // nothing between plays is not a change; the side known again after it is, if it
             // is the other one. A score is the bigger news when both move in one look.
             let ballMoved = game.possession != nil && game.possession != before.possession
+            // A play the World has not heard (#287): ESPN's write-up of it differs from the
+            // last one told. The down and the write-up can arrive in separate looks, so both
+            // are compared with what the World last heard, not with the look before.
+            let newPlay = game.lastPlay != nil && game.lastPlay != before.lastPlay
+            // One play is one piece of news, the biggest: a score, the ball changing hands, a
+            // review's ruling, a flag, then a first down - a flag's automatic first down is the
+            // flag.
+            let kind: String
             if scoreMoved {
                 scored = game.scored(since: before)
                 type = scored == nil ? HouseEvents.gameScoreCorrected : HouseEvents.gameScored
+                kind = "score"
             } else if ballMoved {
                 type = HouseEvents.gamePossession
+                kind = "possession"
+            } else if newPlay, game.review != nil {
+                type = HouseEvents.gameReviewed
+                kind = "review"
+            } else if newPlay, game.penalty != nil {
+                type = HouseEvents.gamePenalty
+                kind = "penalty"
+            } else if newPlay, game.possession != nil, game.isFirstDown,
+                game.downDistance != before.downDistance
+            {
+                type = HouseEvents.gameFirstDown
+                kind = "first-down"
             } else {
                 return nil
             }
             happened = new.updatedAt
             key =
                 new.contextID.map { "context:\($0)" }
-                ?? "game:\(WorldJSON.timestamp(game.kickoff)):\(scoreMoved ? "score" : "possession"):\(WorldJSON.timestamp(happened))"
+                ?? "game:\(WorldJSON.timestamp(game.kickoff)):\(kind):\(WorldJSON.timestamp(happened))"
         } else {
             let stage: String
             (type, stage) =
@@ -195,6 +217,15 @@ struct HouseTranslator: Sendable {
         payload["last_play"] = game.lastPlay.map { .string($0) }
         payload["possession"] = game.possession.map { .string($0) }
         payload["down_distance"] = game.downDistance.map { .string($0) }
+        if type == HouseEvents.gamePenalty, let penalty = game.penalty {
+            payload["penalty_on"] = .string(penalty.on)
+            payload["foul"] = .string(penalty.foul)
+            payload["yards"] = penalty.yards.map { .number(Double($0)) }
+        }
+        if type == HouseEvents.gameReviewed, let review = game.review {
+            payload["challenged_by"] = review.challengedBy.map { .string($0) }
+            payload["outcome"] = review.outcome.map { .string($0) }
+        }
         switch scored {
         case .team?: payload["scored_by"] = game.team.map { .string($0) }
         case .opponent?: payload["scored_by"] = game.opponent.map { .string($0) }

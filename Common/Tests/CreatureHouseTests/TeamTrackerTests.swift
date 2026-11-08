@@ -321,6 +321,107 @@ struct TeamTrackerTests {
 
     /// Team Tracker's sensor as Home Assistant sends it: updated at `offset`, and changed - its
     /// state, not its attributes - at `changed`, which is the same moment unless said otherwise.
+    @Test("Under way, a first down, a flag and a review's ruling are each news, one per play")
+    func plays() async throws {
+        let announcer = HouseAnnouncer(translator: translator)
+        func live(_ offset: TimeInterval, play: String, down: String, ball: String = "12")
+            async throws -> [WorldEventEnvelope]
+        {
+            try await announcer.events(
+                from: nil,
+                to: sensor(
+                    "IN", at: offset, changed: 0,
+                    [
+                        "team_score": .string("0"), "opponent_score": .string("0"),
+                        "clock": .string("9:41 - 1st"), "last_play": .string(play),
+                        "possession": .string(ball), "down_distance_text": .string(down),
+                        "opponent_abbr": .string("KC"),
+                    ]))
+        }
+        _ = try await announcer.events(
+            from: nil,
+            to: sensor(
+                "IN", at: 0, ["team_score": .string("0"), "opponent_score": .string("0")]))
+        #expect(
+            try await live(30, play: "Kickoff", down: "1st & 10 at KC 25").only?.type
+                == HouseEvents.gamePossession)
+        // Downs going by are not news; the down back to a first, for the same side, is.
+        #expect(try await live(60, play: "Run for 6 yards", down: "2nd & 4 at KC 31").isEmpty)
+        let first = try #require(
+            try await live(90, play: "Pass for 10 yards", down: "1st & 10 at KC 41").only)
+        #expect(first.type == HouseEvents.gameFirstDown)
+        #expect(first.payload["possession"] == .string("Kansas City Chiefs"))
+        #expect(first.payload["down_distance"] == .string("1st & 10 at KC 41"))
+        #expect(first.source.sourceEventID == "context:ctx-IN-90.0")
+        // The same look again, the clock moving, is not.
+        #expect(try await live(95, play: "Pass for 10 yards", down: "1st & 10 at KC 41").isEmpty)
+        // The write-up and the down can arrive in separate looks: still one first down.
+        #expect(try await live(120, play: "Incomplete", down: "2nd & 10 at KC 41").isEmpty)
+        #expect(try await live(150, play: "Pass for 12 yards", down: "2nd & 10 at KC 41").isEmpty)
+        #expect(
+            try await live(155, play: "Pass for 12 yards", down: "1st & 10 at KC 53").only?.type
+                == HouseEvents.gameFirstDown)
+
+        // A flag, as ESPN wrote one up on 11-02, with its automatic first down: the flag is
+        // the news. ESPN's short name matches neither side here, so it is told as written.
+        let roughing =
+            " (Shotgun) S.Darnold pass incomplete short left.\nPENALTY on CHI-J.Lynch, Roughing the Passer, 15 yards, enforced at SEA 24 - No Play."
+        let flag = try #require(
+            try await live(180, play: roughing, down: "1st & 10 at KC 53").only)
+        #expect(flag.type == HouseEvents.gamePenalty)
+        #expect(flag.payload["penalty_on"] == .string("CHI"))
+        #expect(flag.payload["foul"] == .string("Roughing the Passer"))
+        #expect(flag.payload["yards"] == .number(15))
+        // Its automatic first down, arriving a look later, is still the flag's.
+        #expect(try await live(185, play: roughing, down: "1st & 10 at SEA 39").isEmpty)
+        // On a side ESPN names by its short name: told by the side's name.
+        let offside = try #require(
+            try await live(
+                210,
+                play:
+                    "PENALTY on SEA-B.Mafe, Defensive Offside, 5 yards, enforced at SEA 39 - No Play.",
+                down: "1st & 5 at SEA 34"
+            ).only)
+        #expect(offside.payload["penalty_on"] == .string("Seattle Seahawks"))
+        // Declined or offsetting flags change nothing.
+        #expect(
+            try await live(
+                240,
+                play: "Run for 3 yards. PENALTY on KC-T.Smith, Offensive Holding, declined.",
+                down: "2nd & 2 at SEA 31"
+            ).isEmpty)
+        #expect(
+            try await live(
+                270,
+                play:
+                    "PENALTY on KC-T.Smith, Face Mask, 15 yards. PENALTY on SEA-B.Mafe, Unnecessary Roughness, 15 yards. Penalties offset - No Play.",
+                down: "2nd & 2 at SEA 31"
+            ).isEmpty)
+
+        // A review's ruling, which ESPN writes up once it is decided: a coach's challenge,
+        // then the booth's.
+        let challenge = try #require(
+            try await live(
+                300,
+                play:
+                    "SEATTLE challenged the pass completion ruling, and the play was REVERSED. (Shotgun) P.Mahomes pass incomplete short right.",
+                down: "3rd & 2 at SEA 31"
+            ).only)
+        #expect(challenge.type == HouseEvents.gameReviewed)
+        #expect(challenge.payload["challenged_by"] == .string("SEATTLE"))
+        #expect(challenge.payload["outcome"] == .string("reversed"))
+        let booth = try #require(
+            try await live(
+                330,
+                play:
+                    "I.Pacheco up the middle to SEA 29 for 2 yards. The Replay Official reviewed the runner was down by contact ruling, and the play was Upheld. The ruling on the field stands.",
+                down: "1st & 10 at SEA 29"
+            ).only)
+        #expect(booth.type == HouseEvents.gameReviewed)
+        #expect(booth.payload["challenged_by"] == nil)
+        #expect(booth.payload["outcome"] == .string("upheld"))
+    }
+
     private func sensor(
         _ state: String, at offset: TimeInterval, changed: TimeInterval? = nil,
         _ attributes: [String: WorldJSONValue] = [:]

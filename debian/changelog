@@ -1,3 +1,18 @@
+creature-cli (2.108.0+world0.71.0+house0.8.0+gateway0.2.0+body0.2.1) unstable; urgency=medium
+
+  * creature-house 0.8.0: during a game the house also reports first downs,
+    enforced flags and replay reviews (#287): game.first_down, game.penalty
+    (penalty_on, foul, yards; declined and offsetting flags are not news) and
+    game.reviewed (challenged_by, outcome). ESPN writes a review up only once
+    it is decided, so the birds hear the ruling, never the flag. One play is
+    one event, the biggest of score, possession, review, flag, first down.
+  * creature-world 0.71.0: the three keep game.playing current, have their
+    own stage notes, and the packaged world.json asks the lead about each:
+    reviews and flags 60 s apart, every first down with no cooldown. April:
+    "I want them to chat more." Add the lines to a hand-edited world.json.
+
+ -- April White <april@creature.engineering>  Sun, 08 Nov 2026 14:30:00 -0800
+
 creature-cli (2.108.0+world0.70.0+house0.7.2+gateway0.2.0+body0.2.1) unstable; urgency=medium
 
   * creature-world 0.70.0: conversation history reads backward (#282).

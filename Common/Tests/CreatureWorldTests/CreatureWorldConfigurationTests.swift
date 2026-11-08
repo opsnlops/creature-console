@@ -43,6 +43,10 @@ struct CreatureWorldConfigurationTests {
         #expect(asked[HouseEvents.gameScored] == 180)
         #expect(asked[HouseEvents.gameScoreCorrected] == 180)
         #expect(asked[HouseEvents.gamePossession] == 60)
+        // A review's ruling, a flag, and every first down, to start with (#287).
+        #expect(asked[HouseEvents.gameReviewed] == 60)
+        #expect(asked[HouseEvents.gamePenalty] == 60)
+        #expect(asked[HouseEvents.gameFirstDown] == 0)
         // And the final whistle (#276).
         #expect(asked[HouseEvents.gameFinal] == 600)
     }

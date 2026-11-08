@@ -112,6 +112,52 @@ remembered that blank, so the scorers' own kickoff read as a change of hands. Th
 side now outlives a blank. The trigger also reads "The ball just went to …", which says it is
 a change.
 
+## First downs, flags and reviews (house 0.8.0, World 0.71.0, #287)
+
+Watching Seahawks–Cardinals on 2026-11-08, April asked whether the birds could know when a
+challenge flag is thrown, then about fouls, then: "I'm really enjoying watching the game with
+the birds and I want them to chat more", and "Let's also add a scene opener on every first
+down. I might have you tone it down, but let's see if that annoys me."
+
+What ESPN gives, through Team Tracker's `last_play`:
+
+- **Fouls** are written up with the play, seconds after it:
+  `PENALTY on CHI-J.Lynch, Roughing the Passer, 15 yards, enforced at SEA 24 - No Play.`
+  Declined flags say `declined`; offsetting ones say so.
+- **Reviews** are written up only once decided: `SEATTLE challenged the pass completion
+  ruling, and the play was REVERSED.`, or `The Replay Official reviewed …, and the play was
+  Upheld. The ruling on the field stands.` The flag itself never appears.
+- **First downs** are in `down_distance_text`, which the house already reads.
+
+The pieces:
+
+1. **The house** reports, under way and after a score and the ball changing hands:
+   - `game.reviewed`: `challenged_by` (as ESPN writes it; absent for the booth) and `outcome`
+     (`reversed`, `upheld`, `stands`)
+   - `game.penalty`: `penalty_on` (the side's name when ESPN's short name matches `team_abbr`
+     / `opponent_abbr`, otherwise as written: the Cardinals are `ARI` in the sensor and `ARZ` in
+     the plays), `foul`, `yards`. Declined and offsetting flags are not news.
+   - `game.first_down`: the down back to `1st` for the side that already had the ball, at a new
+     spot.
+
+   One play is one event, the biggest of: score, possession, review, flag, first down. A
+   flag's automatic first down is the flag. Each needs a write-up the World has not heard, and
+   both the write-up and the down are compared with what the World last heard, so a play whose
+   write-up and down arrive in separate looks is still one first down. Reading ESPN's fixed
+   wording is parsing; which fouls are worth a word is the lead's to judge.
+2. **`GameReducer`** treats all three like `game.possession`: `game.playing` keeps the score,
+   the ball, the down and the clock as of the last play told.
+3. **Stage notes:** "Kansas City Chiefs just picked up a first down in the game between …",
+   "A flag in the game between …: Defensive Pass Interference on Seattle Seahawks, 16 yards.
+   The score: …", "A replay review just finished in the game between … - SEATTLE challenged,
+   and the call was reversed. The score: …". Each ends with the clock, the down and the play.
+4. **The packaged `world.json`:** `game.reviewed` and `game.penalty` 60 s apart,
+   `game.first_down` with no cooldown, for now. To tone it down, raise a cooldown or take a
+   line out. `house.games_quiet` silences all three.
+
+Known gap: a half's kickoff received by the side that had the ball at the half reads as a
+first down, not a change of hands. The birds see the play, which says kickoff.
+
 ## Not in this slice
 
 - ~~**The birds bringing up a final unprompted.**~~ Built in World 0.69.0 (#276). After the
