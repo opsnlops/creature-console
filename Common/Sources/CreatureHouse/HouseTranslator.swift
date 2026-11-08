@@ -144,6 +144,7 @@ struct HouseTranslator: Sendable {
         let type: WorldEventType
         let key: String
         var scored: TeamTrackerGame.Scored?
+        var corrected = false
         // When it happened: a new stage is a new state, so `last_changed`. A score changes only
         // the attributes, which move `last_updated` alone; by `last_changed` every score of the
         // Bears game happened at kickoff (#271).
@@ -161,9 +162,12 @@ struct HouseTranslator: Sendable {
             // is the other one. A score is the bigger news when both move in one look.
             let ballMoved = game.possession != nil && game.possession != before.possession
             // A play the World has not heard (#287): ESPN's write-up of it differs from the
-            // last one told. The down and the write-up can arrive in separate looks, so both
+            // last one told, ignoring spacing - ESPN tells one play in two updates that differ
+            // only by a leading space or a line break, and both opened a scene on 11-08. The down and the write-up can arrive in separate looks, so both
             // are compared with what the World last heard, not with the look before.
-            let newPlay = game.lastPlay != nil && game.lastPlay != before.lastPlay
+            let newPlay =
+                game.lastPlay != nil
+                && game.lastPlay.map(GameStory.key) != before.lastPlay.map(GameStory.key)
             // One play is one piece of news, the biggest: a score, the ball changing hands, a
             // review's ruling, a flag, a first down, then any other play - a flag's automatic
             // first down is the flag.
@@ -191,6 +195,15 @@ struct HouseTranslator: Sendable {
                 // is what makes it a play - a timeout's write-up moves nothing.
                 type = HouseEvents.gamePlay
                 kind = "play"
+            } else if game.lastPlay != nil, game.downDistance != nil,
+                game.downDistance != before.downDistance
+            {
+                // The same play told again with another down: ESPN correcting itself. On 11-08
+                // an incomplete pass came first with "4th & 19", then with "2nd & 10". The
+                // World's scoreboard takes the correction; no scene opens for it twice.
+                type = HouseEvents.gamePlay
+                kind = "correction"
+                corrected = true
             } else {
                 return nil
             }
@@ -222,10 +235,13 @@ struct HouseTranslator: Sendable {
         // A write-up the World already heard is the last play's, not this one's: ESPN moves
         // the score before it writes the play up, and the field goal on 11-08 reached the
         // birds as the run before it again, so Beaky passed - "already celebrated this play".
-        let stalePlay = sameGame && before?.stage == .playing && game.lastPlay == before?.lastPlay
+        let stalePlay =
+            sameGame && before?.stage == .playing && game.lastPlay != nil
+            && game.lastPlay.map(GameStory.key) == before?.lastPlay.map(GameStory.key)
         payload["last_play"] = stalePlay ? nil : game.lastPlay.map { .string($0) }
         payload["possession"] = game.possession.map { .string($0) }
         payload["down_distance"] = game.downDistance.map { .string($0) }
+        if corrected { payload["corrected"] = .bool(true) }
         // What the World needs to keep the scoreboard (#287): whose half of the field the
         // down's "at ARI 34" is, and the timeouts left.
         payload["team_abbr"] = game.teamAbbreviation.map { .string($0) }

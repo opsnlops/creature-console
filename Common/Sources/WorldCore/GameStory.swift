@@ -28,19 +28,23 @@ public enum GameStory {
         guard underWay.contains(event.type), event.type != HouseEvents.gameStarted,
             let kickoff = text(event, "kickoff")
         else { return "" }
-        let before = earlier.filter {
-            $0.eventID != event.eventID && underWay.contains($0.type)
-                && text($0, "kickoff") == kickoff && $0.occurredAt <= event.occurredAt
-        }
+        let before = plays(
+            in: earlier.filter {
+                $0.eventID != event.eventID && underWay.contains($0.type)
+                    && text($0, "kickoff") == kickoff && $0.occurredAt <= event.occurredAt
+            },
+            excluding: text(event, "last_play").map(key))
         guard let previous = before.last else { return "" }
         var words = ""
-        // The down it was run on: the note's own down is the next one.
+        // The down it was run on: the note's own down is the next one. Taken from the last
+        // play that is not this one - ESPN can tell one play in two updates, and the first
+        // update's down is this play's own.
         if event.type != HouseEvents.gamePossession, let down = text(previous, "down_distance") {
             words += " This play started from \(down)."
         }
-        let plays = before.suffix(2).compactMap { text($0, "last_play") }.map { trimmed($0) }
-        if !plays.isEmpty {
-            words += " The plays before it: " + plays.joined(separator: " ")
+        let written = before.suffix(2).compactMap { text($0, "last_play") }.map { trimmed($0) }
+        if !written.isEmpty {
+            words += " The plays before it: " + written.joined(separator: " ")
         }
         // The drive: back to where the side with the ball got it.
         guard event.type != HouseEvents.gamePossession,
@@ -63,6 +67,33 @@ public enum GameStory {
             if drivePlays.contains(earlier.type) { count += 1 }
         }
         return words
+    }
+
+    /// One record per play, in order: ESPN tells a play in two updates when a flag or a
+    /// correction follows it, and both reached the World (on 11-08 an incomplete pass was
+    /// "the plays before it" twice). Consecutive records with the same write-up are one play,
+    /// told by the later; the play being told now is left out wherever it appears.
+    static func plays(in events: [WorldEventEnvelope], excluding current: String?)
+        -> [WorldEventEnvelope]
+    {
+        var plays: [WorldEventEnvelope] = []
+        for event in events {
+            let written = text(event, "last_play").map(key)
+            if let written, written == current { continue }
+            if let written, let last = plays.last, text(last, "last_play").map(key) == written {
+                plays[plays.count - 1] = event
+            } else {
+                plays.append(event)
+            }
+        }
+        return plays
+    }
+
+    /// A write-up as a key: ESPN's spacing and line breaks differ between two updates of one
+    /// play ("(A.Billings).\nPENALTY" and "(A.Billings).PENALTY", " D.Lock" and "D.Lock").
+    /// The house compares by it too, so a second update of the same play is not a new play.
+    public static func key(_ play: String) -> String {
+        String(play.unicodeScalars.filter { !CharacterSet.whitespacesAndNewlines.contains($0) })
     }
 
     private static func text(_ event: WorldEventEnvelope, _ key: String) -> String? {

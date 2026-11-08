@@ -72,6 +72,47 @@ struct GameStoryTests {
         #expect(GameStory.context(of: kick, earlier: [other]).isEmpty)
     }
 
+    @Test("One play told in two updates is one play, and never a play before itself")
+    func onePlayTwoUpdates() throws {
+        // 11-08, 11:32 in the 4th, as the World recorded it: the flag on a 25-yard catch told
+        // twice (a line break and a leading space apart), the incomplete pass with a garbled
+        // down, then the same pass again with the right one.
+        let flag =
+            "(Shotgun) D.Lock pass short right to Z.Charbonnet to ARZ 22 for 25 yards (D.Burke; B.Baker).PENALTY on ARZ-J.Sweat, Defensive Offside, 5 yards, enforced at ARZ 47 - No Play.Penalty on SEA-J.Sundell, Unnecessary Roughness, superseded."
+        let records = [
+            try event(
+                HouseEvents.gamePlay, at: 0, "Seattle Seahawks", "3rd & 5 at ARI 47", "12:14 - 4th",
+                " J.Price right guard to ARZ 47 for 1 yard (W.Nolen; B.Browning)."),
+            try event(
+                HouseEvents.gamePenalty, at: 100, "Seattle Seahawks", "1st & 10 at ARI 42",
+                "11:32 - 4th",
+                " (Shotgun) D.Lock pass short right to Z.Charbonnet to ARZ 22 for 25 yards (D.Burke; B.Baker).\nPENALTY on ARZ-J.Sweat, Defensive Offside, 5 yards, enforced at ARZ 47 - No Play.\nPenalty on SEA-J.Sundell, Unnecessary Roughness, superseded."
+            ),
+            try event(
+                HouseEvents.gamePenalty, at: 130, "Seattle Seahawks", "1st & 10 at ARI 42",
+                "11:32 - 4th", flag),
+            try event(
+                HouseEvents.gamePlay, at: 160, "Seattle Seahawks", "4th & 19 at SEA 38",
+                "11:32 - 4th", " D.Lock pass incomplete short middle to A.Barner (Ma.Wilson)."),
+        ]
+        let pass = try event(
+            HouseEvents.gamePlay, at: 180, "Seattle Seahawks", "2nd & 10 at SEA 38", "10:55 - 4th",
+            "D.Lock pass incomplete short middle to A.Barner (Ma.Wilson).")
+        let told = GameStory.context(of: pass, earlier: records + [pass])
+        // Started from the flag's down, not the garbled one ESPN first gave the pass; the pass is
+        // not among the plays before itself, and the flag is there once.
+        #expect(told.hasPrefix(" This play started from 1st & 10 at ARI 42."))
+        #expect(!told.contains("A.Barner"))
+        #expect(told.components(separatedBy: "Z.Charbonnet").count == 2)
+        #expect(told.contains("J.Price right guard"))
+        // The punt after it: the pass once.
+        let punt = try event(
+            HouseEvents.gamePossession, at: 220, "Arizona Cardinals", "1st & 10 at ARI 23",
+            "10:43 - 4th", " M.Dickson punts 53 yards to ARZ 9, Center-C.Stoll.")
+        let afterPunt = GameStory.context(of: punt, earlier: records + [pass])
+        #expect(afterPunt.components(separatedBy: "A.Barner").count == 2)
+    }
+
     private func event(
         _ type: WorldEventType, at offset: TimeInterval, _ possession: String?, _ down: String?,
         _ clock: String, _ play: String?

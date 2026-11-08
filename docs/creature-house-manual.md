@@ -233,6 +233,10 @@ A score and a change of hands in one update is reported as the score, carrying t
 - `game.play` (`0.9.0`): any other snap, once the down moves; a write-up that moves no down,
   such as a timeout, is nothing
 
+Write-ups are compared ignoring spacing (`0.10.1`): ESPN repeats a play with only a space or a
+line break changed, and that is not a new play. The same play with another down is told as a
+correction, `game.play` with `corrected: true`, which the World records and opens no scene for.
+
 Every game event under way carries `team_abbr`, `opponent_abbr`, `team_timeouts` and
 `opponent_timeouts` (`0.10.0`), for the World's scoreboard. A score carries `points`, how many
 it added (`0.9.1`), and an event whose `last_play` the World

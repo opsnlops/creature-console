@@ -193,6 +193,15 @@ note says: "Next: Seattle Seahawks have it, 4th and 7 at the ARI 26, 26 yards fr
 the line to gain at the ARI 19. Timeouts left: Seattle Seahawks 2, Arizona Cardinals 3." A spot
 on neither side by name, such as ESPN's ARZ, falls back to ESPN's own words.
 
+**One play, told twice** (house 0.10.1, World 0.75.1). ESPN often tells one play in two or
+three updates whose write-ups differ only by a leading space or a line break, and the first can
+carry a garbled down: an incomplete pass came with "4th & 19 at SEA 38", then again with "2nd &
+10". Beaky: "Oh, April, not on fourth down!" The house now compares write-ups ignoring spacing
+(`GameStory.key`), so a repeat is no new play; the same play with another down is a correction
+(`corrected: true`), which keeps `game.playing` right and opens no scene. `GameStory` collapses
+repeated records into one play, takes "started from" from the last different play, and never
+lists the play being told among the plays before it.
+
 Known gap: a half's kickoff received by the side that had the ball at the half reads as a
 first down, not a change of hands. The birds see the play, which says kickoff.
 

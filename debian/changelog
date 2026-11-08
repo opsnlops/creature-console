@@ -1,3 +1,16 @@
+creature-cli (2.109.0+world0.75.1+house0.10.1+gateway0.2.0+body0.2.1) unstable; urgency=medium
+
+  * creature-house 0.10.1: ESPN tells one play in updates that differ only by
+    spacing, the first sometimes with a garbled down ("4th & 19", then
+    "2nd & 10"), and each opened a scene. Write-ups are now compared ignoring
+    spacing, and the same play with another down is a correction
+    (corrected: true) (#287).
+  * creature-world 0.75.1: a correction keeps game.playing right and opens no
+    scene; the game so far collapses repeated records of one play and never
+    lists a play before itself.
+
+ -- April White <april@creature.engineering>  Sun, 08 Nov 2026 17:40:00 -0800
+
 creature-cli (2.109.0+world0.75.0+house0.10.0+gateway0.2.0+body0.2.1) unstable; urgency=medium
 
   * creature-house 0.10.0: every game event under way carries both sides'

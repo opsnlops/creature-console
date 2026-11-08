@@ -9,6 +9,20 @@ struct SceneOpeningTests {
     private let orchard = try! EntityID(validating: "place:orchard")
     private let frontDoor = try! EntityID(validating: "place:front-door")
 
+    @Test("A correction keeps the record and opens no scene (#287)")
+    func correctionOpensNothing() async throws {
+        let team = try EntityID(validating: "team:seahawks")
+        let policy = SceneOpeningPolicy(
+            rules: [],
+            considerRules: [SceneOpeningRule(event: HouseEvents.gamePlay, cooldownSeconds: 0)],
+            gapSeconds: 0)
+        var play = try event(
+            HouseEvents.gamePlay, team, payload: ["down_distance": .string("2nd & 10 at SEA 38")])
+        #expect(await policy.occasion(for: play, at: now) != nil)
+        play.payload["corrected"] = .bool(true)
+        #expect(await policy.occasion(for: play, at: now) == nil)
+    }
+
     @Test("A matching event opens a scene once per cooldown, per place")
     func cooldownPerPlace() async throws {
         let policy = SceneOpeningPolicy(

@@ -180,6 +180,8 @@ public actor SceneOpeningPolicy {
     /// scene had closed, then found it spent, and nobody was asked about either (#271).
     public func occasion(for event: WorldEventEnvelope, at now: Date) -> Occasion? {
         guard let place = event.subjectIDs.first else { return nil }
+        // A correction keeps the record right and is never news again (#287).
+        if event.payload["corrected"] == .bool(true) { return nil }
         // The birds sleep. Cooldowns are not touched: the first thing after seven may speak.
         if let quietHours, quietHours.contains(now) { return nil }
         // An ending is considered wherever its beginning is: a rule for `camera.vehicle_seen`

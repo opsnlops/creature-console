@@ -383,7 +383,11 @@ struct TeamTrackerTests {
         #expect(flag.payload["foul"] == .string("Roughing the Passer"))
         #expect(flag.payload["yards"] == .number(15))
         // Its automatic first down, arriving a look later, is still the flag's.
-        #expect(try await live(185, play: roughing, down: "1st & 10 at SEA 39").isEmpty)
+        // A correction: the scoreboard takes the new down, and no scene opens for it again.
+        let auto = try #require(
+            try await live(185, play: roughing, down: "1st & 10 at SEA 39").only)
+        #expect(auto.payload["corrected"] == .bool(true))
+        #expect(try await live(186, play: roughing, down: "1st & 10 at SEA 39").isEmpty)
         // On a side ESPN names by its short name: told by the side's name.
         let offside = try #require(
             try await live(
@@ -430,6 +434,46 @@ struct TeamTrackerTests {
         #expect(booth.type == HouseEvents.gameReviewed)
         #expect(booth.payload["challenged_by"] == nil)
         #expect(booth.payload["outcome"] == .string("upheld"))
+    }
+
+    @Test("A second update of the same play is no new play; a corrected down is a correction")
+    func samePlayTwice() async throws {
+        let announcer = HouseAnnouncer(translator: translator)
+        func live(_ offset: TimeInterval, play: String, down: String) async throws
+            -> [WorldEventEnvelope]
+        {
+            try await announcer.events(
+                from: nil,
+                to: sensor(
+                    "IN", at: offset, changed: 0,
+                    [
+                        "team_score": .string("17"), "opponent_score": .string("3"),
+                        "clock": .string("11:32 - 4th"), "last_play": .string(play),
+                        "possession": .string("26"), "down_distance_text": .string(down),
+                    ]))
+        }
+        _ = try await live(0, play: "earlier", down: "1st & 10 at ARI 42")
+        // 11-08: ESPN's first word on the pass, with a garbled down, then the same pass again.
+        #expect(
+            try await live(
+                30, play: " D.Lock pass incomplete short middle to A.Barner (Ma.Wilson).",
+                down: "4th & 19 at SEA 38"
+            ).only?.type == HouseEvents.gamePlay)
+        // The same pass with the right down: a correction, for the record and no scene.
+        let fix = try #require(
+            try await live(
+                50, play: "D.Lock pass incomplete short middle to A.Barner (Ma.Wilson).",
+                down: "2nd & 10 at SEA 38"
+            ).only)
+        #expect(fix.type == HouseEvents.gamePlay)
+        #expect(fix.payload["corrected"] == .bool(true))
+        #expect(fix.payload["down_distance"] == .string("2nd & 10 at SEA 38"))
+        // And the very same look again: nothing.
+        #expect(
+            try await live(
+                55, play: "D.Lock pass incomplete short middle to A.Barner (Ma.Wilson).",
+                down: "2nd & 10 at SEA 38"
+            ).isEmpty)
     }
 
     @Test("A score says how many points, and never reuses the play before it as its own")

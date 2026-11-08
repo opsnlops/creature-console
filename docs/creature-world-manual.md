@@ -316,6 +316,8 @@ of hands that started it.
 `team_abbr` / `opponent_abbr` (from house 0.10.0) into `down`, `to_go` (a number or `goal`),
 `ball_on`, `yards_to_end_zone` and `line_to_gain`. `game.playing` keeps them with
 `team_timeouts` / `opponent_timeouts`, and the stage note says them in a "Next: …" sentence.
+An event with `corrected: true` (house 0.10.1) updates the facts and is never an occasion
+(`0.75.1`); `GameStory` collapses repeated records of one play.
 
 A cooldown starts only when its scene opens (`0.66.1`, #271). `SceneOpeningPolicy.occasion`
 only looks; the opener calls `opened` once the scene is open. An occasion held back costs
