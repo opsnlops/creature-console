@@ -39,8 +39,15 @@ struct GameReducer: WorldReducer {
             // Under way: the score and who has the ball, as of the last play the house told,
             // and the clock then.
             predicate = WorldFacts.gamePlaying
-            for key in ["team_score", "opponent_score", "clock", "possession", "down_distance"] {
+            for key in [
+                "team_score", "opponent_score", "clock", "possession", "down_distance",
+                "team_timeouts", "opponent_timeouts",
+            ] {
                 game[key] = event.payload[key]
+            }
+            // The scoreboard: the down, yards to go, the ball, the end zone, the line (#287).
+            if let board = Scoreboard(event.payload) {
+                game.merge(board.fields) { $1 }
             }
             ends = ending(WorldFacts.gameNext, on: team)
         case HouseEvents.gameFinal:

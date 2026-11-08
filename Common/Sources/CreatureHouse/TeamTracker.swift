@@ -34,6 +34,9 @@ struct TeamTrackerGame: Equatable, Sendable {
     /// who a flag is on - though not always: the Cardinals are `ARI` here and `ARZ` in the plays.
     var teamAbbreviation: String?
     var opponentAbbreviation: String?
+    /// Timeouts each side has left, while it is under way.
+    var teamTimeouts: String?
+    var opponentTimeouts: String?
     /// `won`, `lost` or `tied`, once it is final.
     var result: String?
 
@@ -70,6 +73,8 @@ struct TeamTrackerGame: Equatable, Sendable {
             downDistance = text("down_distance_text")
             teamAbbreviation = text("team_abbr")
             opponentAbbreviation = text("opponent_abbr")
+            teamTimeouts = text("team_timeouts")
+            opponentTimeouts = text("opponent_timeouts")
             return
         }
         result = Self.result(

@@ -403,10 +403,20 @@ public actor SceneOpeningPolicy {
             ": \(team) \(text("team_score") ?? "0"), \(opponent) \(text("opponent_score") ?? "0")"
         // The down is what comes next, not the down the play was run on: "4th & 7" after a
         // 3rd-down run read to two birds as a fourth down converted (#287).
-        let when = [text("clock"), text("down_distance").map { "next: \($0)" }].compactMap { $0 }
+        // The scoreboard when the World can keep one (#287); ESPN's own words when not.
+        let board = Scoreboard(event.payload).flatMap { $0.yardsToEndZone == nil ? nil : $0 }
+        let when = [
+            text("clock"), board == nil ? text("down_distance").map { "next: \($0)" } : nil,
+        ].compactMap { $0 }
         if !when.isEmpty { line += " (\(when.joined(separator: "; ")))" }
         line += "."
-        if let play = text("last_play") {
+        if let board, let holder = text("possession") {
+            line += " Next: \(holder) have it, \(board.words)."
+        }
+        if let ours = text("team_timeouts"), let theirs = text("opponent_timeouts") {
+            line += " Timeouts left: \(team) \(ours), \(opponent) \(theirs)."
+        }
+        if let play = text("last_play")?.trimmingCharacters(in: .whitespacesAndNewlines) {
             line += " The play: \(play)" + (play.hasSuffix(".") ? "" : ".")
         }
         return line

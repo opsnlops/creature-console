@@ -459,6 +459,8 @@ struct TeamTrackerTests {
         #expect(kick.payload["points"] == .number(3))
         #expect(kick.payload["scored_by"] == .string("Seattle Seahawks"))
         #expect(kick.payload["last_play"] == nil)
+        // What the World needs for its scoreboard: whose half "ARI 26" is.
+        #expect(kick.payload["team_abbr"] == .string("SEA"))
         // A touchdown with its own write-up keeps it.
         let touchdown = try #require(
             try await live(600, 23, play: "J.Price 5 yard run, TOUCHDOWN.", down: nil).only)

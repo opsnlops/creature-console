@@ -1,3 +1,16 @@
+creature-cli (2.109.0+world0.75.0+house0.10.0+gateway0.2.0+body0.2.1) unstable; urgency=medium
+
+  * creature-house 0.10.0: every game event under way carries both sides'
+    short names and timeouts left, for the World's scoreboard (#287).
+  * creature-world 0.75.0: the scoreboard. game.playing keeps the down,
+    yards to go, where the ball is, yards to the end zone, the line to gain
+    and timeouts, and a game's stage note says them: "Next: Seattle Seahawks
+    have it, 4th and 7 at the ARI 26, 26 yards from the end zone, the line
+    to gain at the ARI 19." April: "having the server keep track of the
+    score, what the down counter is, where the bar is, etc."
+
+ -- April White <april@creature.engineering>  Sun, 08 Nov 2026 17:15:00 -0800
+
 creature-cli (2.109.0+world0.74.0+house0.9.1+gateway0.2.0+body0.2.1) unstable; urgency=medium
 
   * creature-house 0.9.1: a score carries points, how many it added, and an

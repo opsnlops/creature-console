@@ -184,6 +184,15 @@ what a person on the couch knows: "This play started from 3rd & 15 at ARI 34. Th
 before it: …. Seattle Seahawks' drive: 6 plays so far, since getting the ball at SEA 16 (11:25 -
 3rd)." Read from the record, it survives a restart, and nothing new is stored.
 
+**The scoreboard** (house 0.10.0, World 0.75.0). April: "What I'm picturing is having the
+server keep track of the score, what the down counter is, where the bar is, etc." The house
+now sends both sides' short names and timeouts with every game event. `Scoreboard` reads ESPN's
+down ("3rd & 15 at ARI 34") into the down, yards to go, where the ball is, yards to the end zone
+and the line to gain ("ARI 19"). `game.playing` keeps all of it plus the timeouts, and the stage
+note says: "Next: Seattle Seahawks have it, 4th and 7 at the ARI 26, 26 yards from the end zone,
+the line to gain at the ARI 19. Timeouts left: Seattle Seahawks 2, Arizona Cardinals 3." A spot
+on neither side by name, such as ESPN's ARZ, falls back to ESPN's own words.
+
 Known gap: a half's kickoff received by the side that had the ball at the half reads as a
 first down, not a change of hands. The birds see the play, which says kickoff.
 

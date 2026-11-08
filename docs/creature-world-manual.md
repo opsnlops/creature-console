@@ -312,6 +312,11 @@ events since kickoff (`events(about:since:)`, at most 400), and `GameStory.conte
 down the play started from, the two plays before it, and the drive so far, back to the change
 of hands that started it.
 
+**The scoreboard** (`0.75.0`). `Scoreboard` reads a game event's `down_distance` with
+`team_abbr` / `opponent_abbr` (from house 0.10.0) into `down`, `to_go` (a number or `goal`),
+`ball_on`, `yards_to_end_zone` and `line_to_gain`. `game.playing` keeps them with
+`team_timeouts` / `opponent_timeouts`, and the stage note says them in a "Next: …" sentence.
+
 A cooldown starts only when its scene opens (`0.66.1`, #271). `SceneOpeningPolicy.occasion`
 only looks; the opener calls `opened` once the scene is open. An occasion held back costs
 nothing: a house question that would have interrupted a conversation, or a room with nobody

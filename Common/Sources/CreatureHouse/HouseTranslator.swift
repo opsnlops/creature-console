@@ -226,6 +226,15 @@ struct HouseTranslator: Sendable {
         payload["last_play"] = stalePlay ? nil : game.lastPlay.map { .string($0) }
         payload["possession"] = game.possession.map { .string($0) }
         payload["down_distance"] = game.downDistance.map { .string($0) }
+        // What the World needs to keep the scoreboard (#287): whose half of the field the
+        // down's "at ARI 34" is, and the timeouts left.
+        payload["team_abbr"] = game.teamAbbreviation.map { .string($0) }
+        payload["opponent_abbr"] = game.opponentAbbreviation.map { .string($0) }
+        for (key, value) in [
+            ("team_timeouts", game.teamTimeouts), ("opponent_timeouts", game.opponentTimeouts),
+        ] {
+            payload[key] = value.flatMap { Int($0) }.map { .number(Double($0)) }
+        }
         if type == HouseEvents.gamePenalty, let penalty = game.penalty {
             payload["penalty_on"] = .string(penalty.on)
             payload["foul"] = .string(penalty.foul)
