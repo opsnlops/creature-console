@@ -1,3 +1,13 @@
+creature-cli (2.109.2+world0.75.3+house0.10.3+gateway0.2.2+body0.2.3) unstable; urgency=medium
+
+  * Every binary is linked with the toolchain's lld and -z relro -z now
+    (#290). Swift 6.4 linked with GNU ld, which put the whole program image
+    in one readable, writable and executable segment and could emit no
+    GNU_RELRO; the binaries now have W^X segments, RELRO, BIND_NOW and PIE.
+    scripts/check_package_layout.sh fails the build if any regresses.
+
+ -- April White <april@creature.engineering>  Thu, 12 Nov 2026 23:00:00 -0800
+
 creature-cli (2.109.1+world0.75.2+house0.10.2+gateway0.2.1+body0.2.2) unstable; urgency=medium
 
   * Packaging follows the fleet packaging policy (#290):

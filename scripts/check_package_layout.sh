@@ -8,8 +8,9 @@
 #   filesystem hides this mistake behind its symlinks, so read `dpkg-deb --contents`.
 # - Every Creature World package ships its section-8 manual page and keeps /etc/default/<pkg>
 #   (where its secrets live) at 0600 - dh_fixperms once silently reset it to 0644.
+# - Every binary is hardened: W^X segments, GNU_RELRO and BIND_NOW.
 #
-# Runs anywhere dpkg-deb exists: the CI runner, or the Debian image build_debs.sh uses.
+# Needs dpkg-deb and readelf (binutils): the CI runner has both; build_debs.sh installs binutils.
 
 set -euo pipefail
 
@@ -45,6 +46,33 @@ for name in creature-world creature-house creature-body creature-communicator-ga
         echo "error: ${package}: etc/default/${name} is not 0600 root:root" >&2
         status=1
     fi
+done
+
+# Hardened linking (debian/rules SWIFT_HARDENING): no segment both writable and executable,
+# a GNU_RELRO segment, and BIND_NOW. GNU ld's Swift output is one RWE segment, so a regression
+# to it fails here rather than only in the report-only lintian.
+work="$(mktemp -d)"
+trap 'rm -rf "${work}"' EXIT
+for package in "${dir}"/creature-*_[0-9]*_"${arch}".deb; do
+    [[ "${package}" == *-dbgsym_* ]] && continue
+    unpacked="${work}/$(basename "${package}" .deb)"
+    dpkg-deb -x "${package}" "${unpacked}"
+    for binary in "${unpacked}"/usr/bin/*; do
+        name="$(basename "${binary}")"
+        segments="$(readelf -lW "${binary}")"
+        if grep -E '^\s+LOAD' <<<"${segments}" | grep -q 'RWE'; then
+            echo "error: ${name} has a writable and executable LOAD segment" >&2
+            status=1
+        fi
+        if ! grep -q 'GNU_RELRO' <<<"${segments}"; then
+            echo "error: ${name} has no GNU_RELRO segment" >&2
+            status=1
+        fi
+        if ! readelf -dW "${binary}" | grep -q 'BIND_NOW'; then
+            echo "error: ${name} is not linked with BIND_NOW" >&2
+            status=1
+        fi
+    done
 done
 
 if [[ "${status}" -eq 0 ]]; then

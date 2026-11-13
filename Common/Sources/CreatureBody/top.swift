@@ -86,5 +86,5 @@ struct CreatureBody: AsyncParsableCommand {
 }
 
 enum CreatureBodyBuildInfo {
-    static let version = "0.2.2"
+    static let version = "0.2.3"
 }

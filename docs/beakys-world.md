@@ -25,8 +25,10 @@ The World's packages now meet the fleet packaging policy (agent-memory "How Apri
 software"); `docs/packaging-policy-compliance.md` has the audit. Binaries moved from `/bin` to
 `/usr/bin`; every package ships a section-8 man page (`man creature-world`); `/etc/default/*`
 are 0600; the minds run as a `DynamicUser`, not root; packages are built on Debian in CI too,
-with a report-only lintian. Versions: world `0.75.2`, house `0.10.2`, body `0.2.2`, gateway
-`0.2.1`, agent `2.109.1`. **After deploying:** `chmod 600` the edited `/etc/default/creature-world`,
+with a report-only lintian; every binary is linked with lld for W^X, RELRO and BIND_NOW (Swift's
+GNU-ld output was one writable and executable segment). Versions: world `0.75.3`, house
+`0.10.3`, body `0.2.3`, gateway `0.2.2`, agent `2.109.2`. On upgrade dpkg asks about
+`/etc/default/creature-agent`: keep the installed version (N). **After deploying:** `chmod 600` the edited `/etc/default/creature-world`,
 `-communicator-gateway` and `-agent` (dpkg keeps an edited conffile's old mode), and watch the four
 minds come back: their state moves to `/var/lib/private/creature-agent/` on first start.
 

@@ -176,7 +176,7 @@ for arch in "${ARCHES[@]}"; do
     if [[ "${RUN_CHECK}" -eq 1 ]]; then
         # dpkg-deb is Debian's; run the layout check where it exists.
         docker run --rm -v "$(arch_dir "${arch}"):/debs:ro" -v "${ROOT_DIR}/scripts:/scripts:ro" \
-            debian:trixie-slim /scripts/check_package_layout.sh /debs "${arch}"
+            -e DEBIAN_FRONTEND=noninteractive debian:trixie-slim bash -c 'apt-get update -qq >/dev/null && apt-get install -y -qq --no-install-recommends binutils >/dev/null && /scripts/check_package_layout.sh /debs "$0"' "${arch}"
         check_packages "${arch}"
         log "lintian report for ${arch} (report-only; never fails the build)"
         "${ROOT_DIR}/scripts/report_lintian.sh" "$(arch_dir "${arch}")"
