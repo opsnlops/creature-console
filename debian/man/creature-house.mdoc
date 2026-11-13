@@ -1,0 +1,34 @@
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev HA_TOKEN
+Home Assistant long-lived access token. Required.
+.It Ev OTEL_*
+OpenTelemetry export (OTEL_SERVICE_NAME, OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS,
+OTEL_EXPORTER_OTLP_PROTOCOL).
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /etc/creature/house.json
+Configuration: the Home Assistant URL, the World URL, the house id, and the mappings from Home
+Assistant entities to World subjects. A conffile; upgrades keep local edits.
+.It Pa /etc/default/creature-house
+Environment for the service, mode 0600. The only place
+.Ev HA_TOKEN
+lives.
+.It Pa /var/lib/creature-house/
+The outbox: events the World could not take yet, delivered when it is back.
+.It Pa /usr/lib/systemd/system/creature-house.service
+The unit. It runs as a
+.Li DynamicUser
+and is not started on install; set
+.Ev HA_TOKEN ,
+then
+.Dl systemctl enable --now creature-house
+.It Pa /usr/share/doc/creature-house/creature-house-manual.md
+The operator's manual, including every configuration key and mapping kind.
+.El
+.Sh EXAMPLES
+.Dl creature-house --config /etc/creature/house.json --log-level debug
+.Sh SEE ALSO
+.Xr creature-world 8 ,
+.Xr creature-body 8

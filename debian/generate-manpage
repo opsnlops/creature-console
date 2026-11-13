@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+#
+# Write a package's manual page: options generated from the program, configuration hand-written.
+#
+#   debian/generate-manpage <generate-manual> <program> <section> <include.mdoc> <out-file>
+#
+# The fleet packaging policy requires every package to ship a manual page covering all
+# command-line options and how the program is configured on the filesystem (Debian Policy 12.1).
+#
+# - Options come from swift-argument-parser's own generator (the `generate-manual` tool of the
+#   pinned dependency), which reads the parser model through `--experimental-dump-help`. Unlike
+#   help2man scraping `--help`, it is exact, and it documents subcommands (creature-agent run).
+# - Configuration (ENVIRONMENT, FILES, EXAMPLES, SEE ALSO) is mdoc in debian/man/<pkg>.mdoc,
+#   spliced in before EXIT STATUS, the place mdoc's conventional section order puts it.
+#
+# Generation can fail quietly, so the page is checked before it is written: it must have
+# OPTIONS and FILES sections and name every long option the program accepts.
+#
+# dh_installman installs the result; dh_compress gzips it (-9n).
+
+set -euo pipefail
+
+if [[ $# -ne 5 ]]; then
+    echo "usage: $0 <generate-manual> <program> <section> <include.mdoc> <out-file>" >&2
+    exit 2
+fi
+
+generator="$1"
+program="$2"
+section="$3"
+include="$4"
+out="$5"
+name="$(basename "${program}")"
+
+# Reproducible: the date is the changelog's, which dpkg exports as SOURCE_DATE_EPOCH.
+date="$(date -u -d "@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y-%m-%d)"
+
+work="$(mktemp -d)"
+trap 'rm -rf "${work}"' EXIT
+
+"${generator}" "${program}" --section "${section}" --date "${date}" \
+    --authors "April White<april@creature.engineering>" --output-directory "${work}"
+generated="${work}/${name}.${section}"
+test -s "${generated}"
+
+# swift-argument-parser lists the options straight after the DESCRIPTION prose with no heading of
+# their own; give them one at the first top-level list. Then splice in the configuration.
+python3 - "${generated}" "${include}" "${out}" <<'EOF'
+import sys
+
+generated, include, out = sys.argv[1:]
+lines = open(generated, encoding="utf-8").read().rstrip("\n").split("\n")
+extra = open(include, encoding="utf-8").read().rstrip("\n").split("\n")
+
+# The generator separates discussion paragraphs with blank lines, which groff warns about
+# (lintian groff-message); mdoc's paragraph break is .Pp.
+lines = [".Pp" if line.strip() == "" else line for line in lines]
+
+description = lines.index(".Sh DESCRIPTION")
+first_list = next(i for i in range(description, len(lines)) if lines[i].startswith(".Bl "))
+lines.insert(first_list, ".Sh OPTIONS")
+
+exit_status = lines.index('.Sh "EXIT STATUS"')
+lines[exit_status:exit_status] = extra
+
+open(out, "w", encoding="utf-8").write("\n".join(lines) + "\n")
+EOF
+
+# Every long option anywhere in the command tree must appear in the page.
+"${program}" --experimental-dump-help >"${work}/help.json"
+python3 - "${work}/help.json" "${out}" <<'EOF'
+import json
+import re
+import sys
+
+dump, page = sys.argv[1:]
+text = open(page, encoding="utf-8").read()
+
+missing = []
+def walk(command):
+    for argument in command.get("arguments", []):
+        for name in argument.get("names", []):
+            if name["kind"] in ("long", "longWithSingleDash"):
+                # "Fl -config", or "Fl c , -config" when the option also has a short name.
+                pattern = rf"(Fl|,) -{re.escape(name['name'])}(\s|$)"
+                if not re.search(pattern, text, re.M):
+                    missing.append(f"--{name['name']}")
+    for sub in command.get("subcommands", []):
+        walk(sub)
+
+walk(json.load(open(dump, encoding="utf-8"))["command"])
+for required in (".Sh OPTIONS", ".Sh FILES"):
+    if required not in text:
+        missing.append(required)
+if missing:
+    sys.exit(f"{page}: missing {', '.join(sorted(set(missing)))}")
+EOF

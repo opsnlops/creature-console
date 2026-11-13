@@ -10,7 +10,7 @@ User=creature-house
 DynamicUser=yes
 # HA_TOKEN lives here and nowhere else.
 EnvironmentFile=-/etc/default/creature-house
-ExecStart=/bin/creature-house --config /etc/creature/house.json
+ExecStart=/usr/bin/creature-house --config /etc/creature/house.json
 # The outbox: events the world could not take yet.
 StateDirectory=creature-house
 Restart=on-failure

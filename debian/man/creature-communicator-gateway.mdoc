@@ -1,0 +1,33 @@
+.Sh ENVIRONMENT
+Options override the environment, which overrides the configuration file.
+.Bl -tag -width Ds
+.It Ev CREATURE_COMMUNICATOR_GATEWAY_CONFIG
+Configuration file, when
+.Fl -config
+is not given.
+.It Ev SERVER_HOSTNAME , Ev SERVER_PORT
+HTTP bind address and port.
+.It Ev CREATURE_WORLD_URL
+Creature World API URL.
+.It Ev OTEL_*
+OpenTelemetry export (OTEL_SERVICE_NAME, OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS,
+OTEL_EXPORTER_OTLP_PROTOCOL).
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /etc/creature/communicator-gateway.json
+Configuration: bind address, port and the World URL. A conffile; upgrades keep local edits.
+.It Pa /etc/default/creature-communicator-gateway
+Environment for the service, mode 0600.
+.It Pa /usr/lib/systemd/system/creature-communicator-gateway.service
+The unit. It runs as a
+.Li DynamicUser
+and is not started on install:
+.Dl systemctl enable --now creature-communicator-gateway
+.It Pa /usr/share/doc/creature-communicator-gateway/creature-communicator-gateway-manual.md
+The operator's manual, including every configuration key.
+.El
+.Sh EXAMPLES
+.Dl creature-communicator-gateway --port 8002 --world-url http://127.0.0.1:8001/world/v1
+.Sh SEE ALSO
+.Xr creature-world 8

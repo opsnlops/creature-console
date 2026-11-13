@@ -3,11 +3,10 @@
 # Build the amd64 and arm64 Debian packages locally, exactly as CI does, and drop them in
 # artifacts/amd64/ and artifacts/arm64/ so a deploy never has to wait for GitHub Actions.
 #
-# This is .github/workflows/build-deb.yml run by hand: the same Debian Trixie base and apt
-# packages, the same pinned Swift release, the same dpkg-buildpackage invocation and build flags,
-# and the same clean-container install, --version, --help, and ldd smoke test. The only
-# difference is where the toolchain runs: the workflow's Swiftly step runs on an Ubuntu runner,
-# while this builds on Debian Trixie itself with swift.org's Debian toolchain tarball.
+# This is .github/workflows/build-deb.yml run by hand: the same Dockerfile.debian image (Debian
+# Trixie, swift.org's Debian toolchain), the same build recipe (scripts/dpkg-build-in-container.sh),
+# a clean-container install, --version, --help and ldd smoke test, and the same report-only
+# lintian run (scripts/report_lintian.sh).
 #
 # Each architecture builds inside the repository's own Debian Trixie image (Dockerfile.debian)
 # with a persistent, per-architecture build volume, so the first run is a cold Swift release
@@ -17,7 +16,8 @@
 # Usage:
 #   ./build_debs.sh                       # both architectures, packages + install smoke test
 #   ./build_debs.sh --arch arm64          # one architecture (native on Apple silicon)
-#   ./build_debs.sh --no-check            # skip the clean-container install smoke test
+#   ./build_debs.sh --no-check            # skip the clean-container install smoke test and lintian
+#                                         # and the (report-only) lintian run
 #   ./build_debs.sh --clean               # discard the build volumes first (forces a cold build)
 #   ./build_debs.sh --out /path           # artifact directory (default: ./artifacts); each
 #                                         # architecture's packages go in <out>/<arch>/
@@ -133,24 +133,11 @@ build_packages() {
                 --exclude "debian/*.debhelper*" --exclude "debian/files" \
                 --exclude "debian/*.substvars" --exclude "debian/tmp" \
                 /source/ /work/creature-console/
-            rm -f /work/*.deb /work/*.ddeb /work/*.changes /work/*.buildinfo
             # Nothing else ever builds in this volume; a lock left by an interrupted run
             # must not fail the next one.
             rm -f /work/creature-console/Common/.build/build.db
-            cd /work/creature-console
-            swift --version
-            # Identical to the "Build Debian package" step in .github/workflows/build-deb.yml.
-            export DEB_BUILD_OPTIONS=nocheck
-            SWIFT_BUILD_FLAGS="-c release --product creature-cli --static-swift-stdlib" \
-            SWIFT_BUILD_FLAGS_MQTT="-c release --product creature-mqtt --static-swift-stdlib" \
-            SWIFT_BUILD_FLAGS_WORLD="-c release --product creature-world --static-swift-stdlib" \
-            SWIFT_BUILD_FLAGS_COMMUNICATOR_GATEWAY="-c release --product creature-communicator-gateway --static-swift-stdlib" \
-            SWIFT_BUILD_FLAGS_HOUSE="-c release --product creature-house --static-swift-stdlib" \
-            SWIFT_BUILD_FLAGS_BODY="-c release --product creature-body --static-swift-stdlib" \
-                dpkg-buildpackage -us -uc -b
-            # Debian names debug-symbol packages *-dbgsym_*.deb; Ubuntu uses .ddeb. Take both.
-            find /work -maxdepth 1 \( -name "*_${ARCH}.deb" -o -name "*_${ARCH}.ddeb" \) \
-                -exec cp {} /out/ \;
+            # The same recipe the "Build Debian packages" CI step runs.
+            /work/creature-console/scripts/dpkg-build-in-container.sh /work/creature-console /out
         '
 }
 
@@ -187,7 +174,12 @@ for arch in "${ARCHES[@]}"; do
     image="$(build_image "${arch}")"
     build_packages "${arch}" "${image}"
     if [[ "${RUN_CHECK}" -eq 1 ]]; then
+        # dpkg-deb is Debian's; run the layout check where it exists.
+        docker run --rm -v "$(arch_dir "${arch}"):/debs:ro" -v "${ROOT_DIR}/scripts:/scripts:ro" \
+            debian:trixie-slim /scripts/check_package_layout.sh /debs "${arch}"
         check_packages "${arch}"
+        log "lintian report for ${arch} (report-only; never fails the build)"
+        "${ROOT_DIR}/scripts/report_lintian.sh" "$(arch_dir "${arch}")"
     fi
 done
 

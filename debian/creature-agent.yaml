@@ -5,7 +5,8 @@ mqttReconnectBackoff:
   initialDelaySeconds: 2
   maxDelaySeconds: 30
   maxFailures: 6
-openAiApiKey: <redacted>
+# The OpenAI key is a secret, so it never lives in this packaged file: set OPENAI_API_KEY in
+# /etc/default/creature-agent (mode 0600), which systemd reads before dropping privileges.
 openAiModel: gpt-5.2
 openAiTemperature: 1.2
 fallbackSpeech: "Hey April? There's something outside."

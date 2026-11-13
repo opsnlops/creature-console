@@ -8,6 +8,11 @@ SWIFT_BUILD_FLAGS_WORLD ?= -c release --product creature-world --static-swift-st
 SWIFT_BUILD_FLAGS_COMMUNICATOR_GATEWAY ?= -c release --product creature-communicator-gateway --static-swift-stdlib
 SWIFT_BUILD_FLAGS_HOUSE ?= -c release --product creature-house --static-swift-stdlib
 SWIFT_BUILD_FLAGS_BODY ?= -c release --product creature-body --static-swift-stdlib
+# swift-argument-parser's manual generator, from the pinned dependency. It runs only at build
+# time, so it is not statically linked.
+SWIFT_BUILD_FLAGS_MANUAL ?= -c release --product generate-manual
+# Packages whose manual pages debian/generate-manpage writes (section 8: they are daemons).
+MANPAGE_PACKAGES := creature-world creature-house creature-body creature-communicator-gateway creature-agent
 export SWIFT_BUILD_FLAGS
 export SWIFT_BUILD_FLAGS_MQTT
 export SWIFT_BUILD_FLAGS_AGENT
@@ -29,6 +34,7 @@ override_dh_auto_build:
 	cd Common && swift build $(SWIFT_BUILD_FLAGS_COMMUNICATOR_GATEWAY)
 	cd Common && swift build $(SWIFT_BUILD_FLAGS_HOUSE)
 	cd Common && swift build $(SWIFT_BUILD_FLAGS_BODY)
+	cd Common && swift build $(SWIFT_BUILD_FLAGS_MANUAL)
 
 override_dh_auto_install:
 	install -d $(CURDIR)/debian/creature-cli/usr/bin
@@ -58,7 +64,7 @@ override_dh_auto_install:
 	$$MQTT_BIN --generate-completion-script fish > $(CURDIR)/debian/creature-mqtt/usr/share/fish/vendor_completions.d/creature-mqtt.fish
 
 	install -d $(CURDIR)/debian/creature-agent/etc/default
-	install -m644 $(CURDIR)/debian/creature-agent.default $(CURDIR)/debian/creature-agent/etc/default/creature-agent
+	install -m600 $(CURDIR)/debian/creature-agent.default $(CURDIR)/debian/creature-agent/etc/default/creature-agent
 	# Agent configuration lives beside the World's in /etc/creature: agent.yaml for the single
 	# unit, agent/<instance>.yaml for creature-agent@<instance>.
 	install -d $(CURDIR)/debian/creature-agent/etc/creature/agent
@@ -78,12 +84,14 @@ override_dh_auto_install:
 	install -d $(CURDIR)/debian/creature-agent/usr/share/fish/vendor_completions.d; \
 	$$AGENT_BIN --generate-completion-script fish > $(CURDIR)/debian/creature-agent/usr/share/fish/vendor_completions.d/creature-agent.fish
 
-	# Creature World follows the repository's merged-/usr convention. /bin is the
-	# canonical package and service path even though Debian resolves it through /usr.
-	install -d $(CURDIR)/debian/creature-world/bin
+	# Policy 10.1: packages ship to /usr/bin, never to /bin (an alias on merged-/usr trixie).
+	# world (to 0.75.1), gateway (0.2.0), house (0.10.1) and body (0.2.1) shipped /bin/<name>;
+	# dpkg keeps the moved file on upgrade because both paths are the same inode (an upgrade
+	# from the /bin packages was tested on trixie, #290). CI fails on any ./bin, ./sbin or ./lib*.
+	install -d $(CURDIR)/debian/creature-world/usr/bin
 	WORLD_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_WORLD) --show-bin-path)/creature-world; \
-		install -m755 $$WORLD_BIN_PATH $(CURDIR)/debian/creature-world/bin/creature-world
-	WORLD_BIN=$(CURDIR)/debian/creature-world/bin/creature-world; \
+		install -m755 $$WORLD_BIN_PATH $(CURDIR)/debian/creature-world/usr/bin/creature-world
+	WORLD_BIN=$(CURDIR)/debian/creature-world/usr/bin/creature-world; \
 	install -d $(CURDIR)/debian/creature-world/usr/share/bash-completion/completions; \
 	$$WORLD_BIN --generate-completion-script bash > $(CURDIR)/debian/creature-world/usr/share/bash-completion/completions/creature-world; \
 	install -d $(CURDIR)/debian/creature-world/usr/share/zsh/vendor-completions; \
@@ -93,13 +101,13 @@ override_dh_auto_install:
 	install -d $(CURDIR)/debian/creature-world/etc/creature
 	install -m644 $(CURDIR)/debian/creature-world.json $(CURDIR)/debian/creature-world/etc/creature/world.json
 	install -d $(CURDIR)/debian/creature-world/etc/default
-	install -m644 $(CURDIR)/debian/creature-world.default $(CURDIR)/debian/creature-world/etc/default/creature-world
+	install -m600 $(CURDIR)/debian/creature-world.default $(CURDIR)/debian/creature-world/etc/default/creature-world
 
 	# The Communicator Gateway is an independently versioned and deployed service.
-	install -d $(CURDIR)/debian/creature-communicator-gateway/bin
+	install -d $(CURDIR)/debian/creature-communicator-gateway/usr/bin
 	GATEWAY_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_COMMUNICATOR_GATEWAY) --show-bin-path)/creature-communicator-gateway; \
-		install -m755 $$GATEWAY_BIN_PATH $(CURDIR)/debian/creature-communicator-gateway/bin/creature-communicator-gateway
-	GATEWAY_BIN=$(CURDIR)/debian/creature-communicator-gateway/bin/creature-communicator-gateway; \
+		install -m755 $$GATEWAY_BIN_PATH $(CURDIR)/debian/creature-communicator-gateway/usr/bin/creature-communicator-gateway
+	GATEWAY_BIN=$(CURDIR)/debian/creature-communicator-gateway/usr/bin/creature-communicator-gateway; \
 	install -d $(CURDIR)/debian/creature-communicator-gateway/usr/share/bash-completion/completions; \
 	$$GATEWAY_BIN --generate-completion-script bash > $(CURDIR)/debian/creature-communicator-gateway/usr/share/bash-completion/completions/creature-communicator-gateway; \
 	install -d $(CURDIR)/debian/creature-communicator-gateway/usr/share/zsh/vendor-completions; \
@@ -109,25 +117,35 @@ override_dh_auto_install:
 	install -d $(CURDIR)/debian/creature-communicator-gateway/etc/creature
 	install -m644 $(CURDIR)/debian/creature-communicator-gateway.json $(CURDIR)/debian/creature-communicator-gateway/etc/creature/communicator-gateway.json
 	install -d $(CURDIR)/debian/creature-communicator-gateway/etc/default
-	install -m644 $(CURDIR)/debian/creature-communicator-gateway.default $(CURDIR)/debian/creature-communicator-gateway/etc/default/creature-communicator-gateway
+	install -m600 $(CURDIR)/debian/creature-communicator-gateway.default $(CURDIR)/debian/creature-communicator-gateway/etc/default/creature-communicator-gateway
 
 	# The house: Home Assistant into the world, and the lights back out. Independently versioned.
-	install -d $(CURDIR)/debian/creature-house/bin
+	install -d $(CURDIR)/debian/creature-house/usr/bin
 	HOUSE_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_HOUSE) --show-bin-path)/creature-house; \
-		install -m755 $$HOUSE_BIN_PATH $(CURDIR)/debian/creature-house/bin/creature-house
+		install -m755 $$HOUSE_BIN_PATH $(CURDIR)/debian/creature-house/usr/bin/creature-house
 	install -d $(CURDIR)/debian/creature-house/etc/creature
 	install -m644 $(CURDIR)/debian/creature-house.json $(CURDIR)/debian/creature-house/etc/creature/house.json
 	install -d $(CURDIR)/debian/creature-house/etc/default
 	install -m600 $(CURDIR)/debian/creature-house.default $(CURDIR)/debian/creature-house/etc/default/creature-house
 
 	# The body: the birds' sensors into the world. Independently versioned.
-	install -d $(CURDIR)/debian/creature-body/bin
+	install -d $(CURDIR)/debian/creature-body/usr/bin
 	BODY_BIN_PATH=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_BODY) --show-bin-path)/creature-body; \
-		install -m755 $$BODY_BIN_PATH $(CURDIR)/debian/creature-body/bin/creature-body
+		install -m755 $$BODY_BIN_PATH $(CURDIR)/debian/creature-body/usr/bin/creature-body
 	install -d $(CURDIR)/debian/creature-body/etc/creature
 	install -m644 $(CURDIR)/debian/creature-body.json $(CURDIR)/debian/creature-body/etc/creature/body.json
 	install -d $(CURDIR)/debian/creature-body/etc/default
 	install -m600 $(CURDIR)/debian/creature-body.default $(CURDIR)/debian/creature-body/etc/default/creature-body
+
+	# Manual pages: options generated from each program, configuration from debian/man/.
+	# dh_installman installs them from debian/<pkg>.manpages and dh_compress gzips them;
+	# dh_clean removes debian/man-build (listed in debian/clean).
+	install -d $(CURDIR)/debian/man-build
+	GENERATOR=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_MANUAL) --show-bin-path)/generate-manual; \
+	for pkg in $(MANPAGE_PACKAGES); do \
+		$(CURDIR)/debian/generate-manpage $$GENERATOR $(CURDIR)/debian/$$pkg/usr/bin/$$pkg 8 \
+			$(CURDIR)/debian/man/$$pkg.mdoc $(CURDIR)/debian/man-build/$$pkg.8 || exit 1; \
+	done
 
 # The relay units ship disabled: they only make sense on the host that bridges the
 # animatronic VLAN (April enables them there by hand). The agent/mqtt services keep the
@@ -155,14 +173,24 @@ override_dh_gencontrol:
 		dh_gencontrol -pcreature-mqtt -- -v$$MQTT_VERSION
 	AGENT_VERSION=$$($(CURDIR)/debian/creature-agent/usr/bin/creature-agent --version); \
 		dh_gencontrol -pcreature-agent -- -v$$AGENT_VERSION
-	WORLD_VERSION=$$($(CURDIR)/debian/creature-world/bin/creature-world --version); \
+	WORLD_VERSION=$$($(CURDIR)/debian/creature-world/usr/bin/creature-world --version); \
 		dh_gencontrol -pcreature-world -- -v$$WORLD_VERSION
-	GATEWAY_VERSION=$$($(CURDIR)/debian/creature-communicator-gateway/bin/creature-communicator-gateway --version); \
+	GATEWAY_VERSION=$$($(CURDIR)/debian/creature-communicator-gateway/usr/bin/creature-communicator-gateway --version); \
 		dh_gencontrol -pcreature-communicator-gateway -- -v$$GATEWAY_VERSION
-	HOUSE_VERSION=$$($(CURDIR)/debian/creature-house/bin/creature-house --version); \
+	HOUSE_VERSION=$$($(CURDIR)/debian/creature-house/usr/bin/creature-house --version); \
 		dh_gencontrol -pcreature-house -- -v$$HOUSE_VERSION
-	BODY_VERSION=$$($(CURDIR)/debian/creature-body/bin/creature-body --version); \
+	BODY_VERSION=$$($(CURDIR)/debian/creature-body/usr/bin/creature-body --version); \
 		dh_gencontrol -pcreature-body -- -v$$BODY_VERSION
+
+# Secrets live in /etc/default/<pkg>, mode 0600 (fleet packaging policy). dh_fixperms resets
+# everything under /etc to 0644, which silently undid the install -m600 above, so the
+# HA_TOKEN file shipped world-readable until 0.10.2 (#290). Restore the mode after it runs.
+SECRET_DEFAULTS := creature-world creature-house creature-body creature-communicator-gateway creature-agent
+override_dh_fixperms:
+	dh_fixperms
+	for pkg in $(SECRET_DEFAULTS); do \
+		chmod 600 $(CURDIR)/debian/$$pkg/etc/default/$$pkg || exit 1; \
+	done
 
 override_dh_dwz:
 	# Skip dwz; binary may lack supported debug sections (static Swift).

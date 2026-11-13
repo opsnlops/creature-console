@@ -9,7 +9,7 @@ Type=exec
 User=creature-communicator-gateway
 DynamicUser=yes
 EnvironmentFile=-/etc/default/creature-communicator-gateway
-ExecStart=/bin/creature-communicator-gateway --config /etc/creature/communicator-gateway.json
+ExecStart=/usr/bin/creature-communicator-gateway --config /etc/creature/communicator-gateway.json
 Restart=on-failure
 RestartSec=5
 # Graceful shutdown cuts open Communicator streams itself; never let a regression hold a

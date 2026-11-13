@@ -123,11 +123,11 @@ MONGODB_TEST_URI='mongodb://127.0.0.1:27017/creature_world?replicaSet=creature-w
     the toolchain.
   - `clean_deb.sh` — runs `dh_clean` to clear `debian/` build outputs (parent artifacts left intact).
 - Creature World is packaged independently as `creature-world_<version>_<architecture>.deb`. It
-  installs at `/bin/creature-world`, with JSON configuration at `/etc/creature/world.json`, a
+  installs at `/usr/bin/creature-world`, with JSON configuration at `/etc/creature/world.json`, a
   hardened systemd unit, and bash, zsh, and fish completions under `/usr/share`.
 - Creature Communicator Gateway is independently packaged as
   `creature-communicator-gateway_<version>_<architecture>.deb`. It installs at
-  `/bin/creature-communicator-gateway`, with JSON configuration at
+  `/usr/bin/creature-communicator-gateway`, with JSON configuration at
   `/etc/creature/communicator-gateway.json`, a hardened systemd unit, and shell completions.
 - When a new Swift release ships:
   1) Update the CLI version in `Common/Sources/CreatureCLI/top.swift`.

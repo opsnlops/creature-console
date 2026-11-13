@@ -1,0 +1,46 @@
+.Sh ENVIRONMENT
+Options override the environment, which overrides the configuration file, which overrides
+built-in defaults.
+.Bl -tag -width Ds
+.It Ev CREATURE_WORLD_CONFIG
+Configuration file, when
+.Fl -config
+is not given.
+.It Ev SERVER_HOSTNAME , Ev SERVER_PORT
+HTTP bind address and port.
+.It Ev MONGODB_URI
+MongoDB connection; the World keeps its events, facts, timers and scenes in the
+.Li creature_world
+database.
+.It Ev OTEL_*
+OpenTelemetry export (OTEL_SERVICE_NAME, OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS,
+OTEL_EXPORTER_OTLP_PROTOCOL). Without them the World logs to the console only.
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /etc/creature/world.json
+Configuration: bind address, MongoDB, the Creature Server, scenes and when they open, house
+asks and scenes, presence, regions, the calendar, reminders, memory, retention and facts.
+A conffile; upgrades keep local edits.
+.It Pa /etc/default/creature-world
+Environment for the service, mode 0600. Secrets such as a MongoDB password or a telemetry
+key live here and nowhere else.
+.It Pa /usr/lib/systemd/system/creature-world.service
+The unit. It runs as a
+.Li DynamicUser
+and is not started on install; review the configuration, then
+.Dl systemctl enable --now creature-world
+Override it with a drop-in in
+.Pa /etc/systemd/system/creature-world.service.d/ .
+.It Pa /usr/share/doc/creature-world/creature-world-manual.md
+The operator's manual, including every configuration key.
+.El
+.Sh EXAMPLES
+Run in the foreground against a local MongoDB:
+.Dl creature-world --config /etc/creature/world.json --log-level info
+.Sh SEE ALSO
+.Xr creature-house 8 ,
+.Xr creature-body 8 ,
+.Xr creature-agent 8 ,
+.Xr creature-communicator-gateway 8 ,
+.Xr systemd.exec 5

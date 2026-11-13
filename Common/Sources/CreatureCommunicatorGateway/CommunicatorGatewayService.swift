@@ -3,7 +3,7 @@ import Logging
 import ServiceLifecycle
 
 public struct CommunicatorGatewayBuildInfo: Codable, Equatable, Sendable {
-    public static let current = CommunicatorGatewayBuildInfo(version: "0.2.0")
+    public static let current = CommunicatorGatewayBuildInfo(version: "0.2.1")
 
     public let version: String
 

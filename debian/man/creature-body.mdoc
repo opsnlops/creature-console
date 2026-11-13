@@ -1,0 +1,38 @@
+.Sh ENVIRONMENT
+Options override the environment, which overrides the configuration file.
+.Bl -tag -width Ds
+.It Ev CREATURE_BODY_CONFIG
+Configuration file, when
+.Fl -config
+is not given.
+.It Ev CREATURE_SERVER_HOST , Ev CREATURE_SERVER_PORT , Ev CREATURE_SERVER_TLS
+The Creature Server whose sensor reports are followed.
+.It Ev CREATURE_PROXY_HOST , Ev CREATURE_PROXY_API_KEY
+Reach the server through the proxy instead.
+.It Ev CREATURE_WORLD_URL
+Creature World API root.
+.It Ev OTEL_*
+OpenTelemetry export (OTEL_SERVICE_NAME, OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS,
+OTEL_EXPORTER_OTLP_PROTOCOL).
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /etc/creature/body.json
+Configuration: server and World addresses, reporting intervals, sensor thresholds and the
+characters to follow. A conffile; upgrades
+keep local edits.
+.It Pa /etc/default/creature-body
+Environment overrides for the service, mode 0600. A proxy API key lives here and nowhere else.
+.It Pa /usr/lib/systemd/system/creature-body.service
+The unit. It runs as a
+.Li DynamicUser
+and is not started on install:
+.Dl systemctl enable --now creature-body
+.It Pa /usr/share/doc/creature-body/creature-body-manual.md
+The operator's manual, including every configuration key.
+.El
+.Sh EXAMPLES
+.Dl creature-body --server-host 127.0.0.1 --server-port 8000 --log-level debug
+.Sh SEE ALSO
+.Xr creature-world 8 ,
+.Xr creature-house 8

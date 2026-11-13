@@ -19,6 +19,17 @@ This section is intentionally operational and time-sensitive. It gives the next 
 enough context to continue without reconstructing the implementation from chat history. **Keep it
 current in the same commit as the code it describes.**
 
+### 0.0 Packaging follows the fleet policy — 2026-11-12 (#290)
+
+The World's packages now meet the fleet packaging policy (agent-memory "How April distributes
+software"); `docs/packaging-policy-compliance.md` has the audit. Binaries moved from `/bin` to
+`/usr/bin`; every package ships a section-8 man page (`man creature-world`); `/etc/default/*`
+are 0600; the minds run as a `DynamicUser`, not root; packages are built on Debian in CI too,
+with a report-only lintian. Versions: world `0.75.2`, house `0.10.2`, body `0.2.2`, gateway
+`0.2.1`, agent `2.109.1`. **After deploying:** `chmod 600` the edited `/etc/default/creature-world`,
+`-communicator-gateway` and `-agent` (dpkg keeps an edited conffile's old mode), and watch the four
+minds come back: their state moves to `/var/lib/private/creature-agent/` on first start.
+
 ### 0.1 Repository and review state
 
 - `main` is at `1c3e5cb`. Merged today, in order: #150/#152 (traces), #153 (World Viewer,

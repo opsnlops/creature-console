@@ -5,6 +5,12 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
+# Never root (fleet packaging policy). DynamicUser implies ProtectSystem=strict, PrivateTmp and
+# NoNewPrivileges; the mind writes only under StateDirectory, which systemd moves to
+# /var/lib/private and re-owns on first start, keeping /var/lib/creature-agent as a symlink.
+# The EnvironmentFiles are 0600 root and read before privileges drop.
+User=creature-agent
+DynamicUser=yes
 # One mind per character: creature-agent@beaky, creature-agent@mango, ...
 # Shared settings first, then the instance's own overrides.
 EnvironmentFile=-/etc/default/creature-agent

@@ -1,0 +1,50 @@
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev OPENAI_API_KEY
+The OpenAI key, for
+.Li llmBackend: openai
+and the probe subcommands. Takes precedence over
+.Li llmApiKey
+in the configuration file.
+.It Ev OPENAI_MEMORY_API_KEY
+A separate key for the nightly memory job, billed to its own project.
+.It Ev CREATURE_SERVER_HOST , Ev CREATURE_SERVER_PORT
+Passed by the units to
+.Fl -host
+and
+.Fl -port .
+.It Ev STATE_DIRECTORY
+Set by systemd; where the mind keeps its place in the World's history.
+.It Ev OTEL_*
+OpenTelemetry export (OTEL_SERVICE_NAME, OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS,
+OTEL_EXPORTER_OTLP_PROTOCOL).
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /etc/creature/agent/ Ns Ar instance Ns Pa .yaml
+One mind per character: the configuration for
+.Li creature-agent@ Ns Ar instance ,
+such as
+.Li creature-agent@beaky .
+.It Pa /etc/creature/agent.yaml
+The configuration for the single
+.Li creature-agent
+unit.
+.It Pa /etc/creature/agent/personas/
+Each character's persona. Conffiles; an edited bird is never overwritten by an upgrade.
+.It Pa /etc/default/creature-agent , Pa /etc/default/creature-agent- Ns Ar instance
+Environment, shared then per mind, mode 0600. Keys live here and never in the YAML.
+.It Pa /var/lib/creature-agent/ Ns Ar instance Ns Pa /
+The mind's state: its World cursor, pending memory work and memory nights.
+.It Pa /usr/lib/systemd/system/creature-agent@.service , Pa /usr/lib/systemd/system/creature-agent.service
+The units. They run as a
+.Li DynamicUser ;
+upgrades restart every running mind.
+.It Pa /usr/share/doc/creature-agent/creature-agent-manual.md
+The operator's manual, including every configuration key.
+.El
+.Sh EXAMPLES
+Start Beaky's mind:
+.Dl systemctl enable --now creature-agent@beaky
+.Sh SEE ALSO
+.Xr creature-world 8

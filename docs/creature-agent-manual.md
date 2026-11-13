@@ -39,8 +39,14 @@ directory `/etc/creature/agent/` for per-character configurations, and the conff
 `/etc/default/creature-agent` (Creature Server host/port for the unit's `--host`/`--port`, and
 the optional `OTEL_*` exporter settings); upgrades preserve local edits to all of them. On a host that already had a hand-made
 `/etc/default/creature-agent` before `2.55.1`, dpkg asks about the conffile on the first upgrade —
-keep the local version. The unit declares `StateDirectory=creature-agent`, so
-`/var/lib/creature-agent` exists and is writable for the world-mode cursor. Build packages
+keep the local version. Keys (`OPENAI_API_KEY`, `OPENAI_MEMORY_API_KEY`) go in the
+`/etc/default` files, which are mode 0600 from `2.109.1` (an existing, edited file keeps its old
+mode: `chmod 600` it), never in the YAML. The units run as a systemd `DynamicUser`, never root
+(since `2.109.1`), and declare `StateDirectory=creature-agent` (`creature-agent/<instance>` for the
+template), which is the only place a mind can write: systemd moves an existing root-owned
+directory to `/var/lib/private` on first start and keeps the old path as a symlink. Leave
+`stateDirectory` unset, or point it inside that directory. `man creature-agent` covers every
+option and file. Build packages
 locally with [`./build_debs.sh`](../README.md#debian-packages) instead of waiting for CI.
 Upgrading restarts whatever is running — `creature-agent.service` and every active
 `creature-agent@<instance>` — on the new version (#144, since `2.58.1`); a fresh install starts
@@ -107,7 +113,7 @@ World mode keys:
 | `worldUrl` | `http://127.0.0.1:8001/world/v1` | Creature World API |
 | `characterEntityId` | `character:beaky` | which character this process is |
 | `personEntityId` | `person:april` | whose utterances it answers (first version) |
-| `stateDirectory` | `/var/lib/creature-agent` | where the world cursor is kept |
+| `stateDirectory` | systemd's `STATE_DIRECTORY` (`/var/lib/creature-agent/<instance>`) | where the world cursor is kept; under `DynamicUser` it must stay inside the unit's `StateDirectory` |
 | `maximumReplyAge` | `3600` | seconds; older messages become recorded `stale` silences |
 | `maximumContextTurns` | `20` | newest prior turns sent to the model |
 | `llmTimeoutSeconds` | `60` | model call deadline |
@@ -137,7 +143,6 @@ localLlmMaxTokens: 400
 worldUrl: http://10.69.66.1:8001/world/v1
 characterEntityId: character:beaky
 personEntityId: person:april
-stateDirectory: /var/lib/creature-agent
 timeZone: America/Los_Angeles
 personaPath: /etc/creature/agent/personas/beaky.yaml
 llmSystemPrompt: |

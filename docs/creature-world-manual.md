@@ -1490,7 +1490,7 @@ sudo apt install ./creature-world_0.6.2_amd64.deb
 
 The package installs:
 
-- `/bin/creature-world`;
+- `/usr/bin/creature-world`;
 - `/etc/creature/world.json`;
 - `/etc/default/creature-world`;
 - `/usr/lib/systemd/system/creature-world.service`;

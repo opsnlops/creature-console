@@ -23,7 +23,7 @@ struct CreatureHouse: AsyncParsableCommand {
 
     @Option(
         name: [.customShort("c"), .long],
-        help: "Path to the house JSON configuration (default /etc/creature/house.json)")
+        help: "Path to the house JSON configuration")
     var config: String = "/etc/creature/house.json"
 
     @Option(name: .long, help: "Log level (trace, debug, info, notice, warning, error, critical)")
@@ -66,5 +66,5 @@ struct CreatureHouse: AsyncParsableCommand {
 }
 
 enum CreatureHouseBuildInfo {
-    static let version = "0.10.1"
+    static let version = "0.10.2"
 }

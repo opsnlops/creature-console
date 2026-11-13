@@ -2,9 +2,10 @@ FROM debian:trixie-slim
 
 SHELL ["/bin/bash", "-lc"]
 
-# Keep in step with SWIFT_VERSION in .github/workflows/build-deb.yml. A minor version ("6.4")
-# floats to its newest patch release, resolved from swift.org at build time, as Swiftly does
-# in CI; a full version ("6.4.0") pins.
+# The image both CI (.github/workflows/build-deb.yml, which passes SWIFT_VERSION) and build_debs.sh
+# build packages in: Debian packages are built on Debian, never on Ubuntu. A minor version ("6.4")
+# floats to its newest patch release, resolved from swift.org at build time; a full version
+# ("6.4.0") pins.
 ARG SWIFT_VERSION=6.4
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -22,8 +23,7 @@ RUN set -eux; \
         debhelper devscripts fakeroot rsync; \
     rm -rf /var/lib/apt/lists/*
 
-# Install the Debian Swift toolchain directly from the swift.org release tarball, the same
-# toolchain Swiftly selects in CI. This image is trixie, and swift.org publishes "debian13" builds
+# Install the Debian Swift toolchain directly from the swift.org release tarball. This image is trixie, and swift.org publishes "debian13" builds
 # from 6.4.0 on (6.3.x had only "debian12"). x86_64 tarballs carry no architecture suffix
 # ("swift-6.4.0-RELEASE-debian13.tar.gz"); aarch64 ones do ("debian13-aarch64",
 # "swift-6.4.0-RELEASE-debian13-aarch64.tar.gz"). Docker caches this layer, so a floating version

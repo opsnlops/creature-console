@@ -17,67 +17,44 @@ jobs:
         include:
           - arch: amd64
             runner: ubuntu-24.04
-            container: debian:trixie-slim
           - arch: arm64
             runner: ubuntu-24.04-arm
-            container: debian:trixie-slim
     env:
-      # A minor version floats: Swiftly installs its newest patch release.
+      # Keep in step with Dockerfile.debian's default. A minor version floats to its newest
+      # patch release, resolved from swift.org when the image is built.
       SWIFT_VERSION: "6.4"
-
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Install build dependencies
+      # Packages are built on Debian, never on Ubuntu (fleet packaging policy): the runner only
+      # hosts Docker. The image and the build recipe are the ones build_debs.sh uses locally.
+      - name: Build the Debian trixie build image
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            curl ca-certificates pkg-config clang \
-            libicu-dev libxml2-dev libbsd-dev libcurl4-openssl-dev \
-            libssl-dev libsqlite3-dev libzstd-dev libedit-dev zlib1g-dev \
-            git cmake ninja-build python3 tar xz-utils build-essential \
-            debhelper devscripts fakeroot
+          docker build --build-arg "SWIFT_VERSION=${SWIFT_VERSION}" \
+            -t creature-deb-build -f Dockerfile.debian .
 
-      - name: Install Swift via Swiftly
-        run: |
-          curl -O https://download.swift.org/swiftly/linux/swiftly-$(uname -m).tar.gz
-          tar zxf swiftly-$(uname -m).tar.gz
-          ./swiftly init --quiet-shell-followup --skip-install
-          source "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
-          swiftly install "${SWIFT_VERSION}"
-          swift --version
-
-      - name: Build Debian package
-        run: |
-          source "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
-          export DEB_BUILD_OPTIONS=nocheck
-          SWIFT_BUILD_FLAGS="-c release --product creature-cli --static-swift-stdlib" \
-          SWIFT_BUILD_FLAGS_MQTT="-c release --product creature-mqtt --static-swift-stdlib" \
-          SWIFT_BUILD_FLAGS_WORLD="-c release --product creature-world --static-swift-stdlib" \
-          SWIFT_BUILD_FLAGS_COMMUNICATOR_GATEWAY="-c release --product creature-communicator-gateway --static-swift-stdlib" \
-          SWIFT_BUILD_FLAGS_HOUSE="-c release --product creature-house --static-swift-stdlib" \
-          SWIFT_BUILD_FLAGS_BODY="-c release --product creature-body --static-swift-stdlib" \
-            dpkg-buildpackage -us -uc -b
-
-      - name: Collect deb artifacts
+      - name: Build Debian packages
         run: |
           mkdir -p artifacts
-          mv ../creature-cli_*_${{ matrix.arch }}.deb artifacts/
-          mv ../creature-mqtt_*_${{ matrix.arch }}.deb artifacts/
-          mv ../creature-agent_*_${{ matrix.arch }}.deb artifacts/
-          mv ../creature-world_*_${{ matrix.arch }}.deb artifacts/
-          mv ../creature-communicator-gateway_*_${{ matrix.arch }}.deb artifacts/
-          mv ../creature-house_*_${{ matrix.arch }}.deb artifacts/
-          mv ../creature-body_*_${{ matrix.arch }}.deb artifacts/
-          mv ../creature-cli-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
-          mv ../creature-mqtt-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
-          mv ../creature-agent-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
-          mv ../creature-world-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
-          mv ../creature-communicator-gateway-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
-          mv ../creature-house-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
-          mv ../creature-body-dbgsym_*_${{ matrix.arch }}.ddeb artifacts/
+          docker run --rm \
+            -v "${PWD}:/build/creature-console" \
+            -v "${PWD}/artifacts:/out" \
+            creature-deb-build \
+            /build/creature-console/scripts/dpkg-build-in-container.sh /build/creature-console /out
+          ls -l artifacts
+
+      - name: Check package layout
+        run: scripts/check_package_layout.sh artifacts ${{ matrix.arch }}
+
+      - name: lintian report (report-only)
+        run: |
+          scripts/report_lintian.sh artifacts lintian-summary.txt
+          . ./lintian-summary.txt
+          if [ "${errors}" -gt 0 ] || [ "${warnings}" -gt 0 ]; then
+            echo "::warning::lintian: ${errors} error(s), ${warnings} warning(s); see this step's log. Report-only: no tag fails the build yet."
+          fi
 
       - name: Inspect creature-world package
         run: |
@@ -85,7 +62,7 @@ jobs:
           test -n "${package}"
           dpkg-deb --info "${package}"
           dpkg-deb --contents "${package}"
-          dpkg-deb --contents "${package}" | grep -Eq ' ./bin/creature-world$'
+          dpkg-deb --contents "${package}" | grep -Eq ' ./usr/bin/creature-world$'
           dpkg-deb --contents "${package}" | grep -Eq ' ./etc/creature/world.json$'
           dpkg-deb --contents "${package}" | grep -Eq ' ./usr/lib/systemd/system/creature-world.service$'
 
@@ -98,16 +75,16 @@ jobs:
             bash -euxc '
               apt-get update
               apt-get install -y /artifacts/creature-world_*_$(dpkg --print-architecture).deb
-              test "$(stat -c %U:%G /bin/creature-world)" = root:root
-              test "$(stat -c %a /bin/creature-world)" = 755
+              test "$(stat -c %U:%G /usr/bin/creature-world)" = root:root
+              test "$(stat -c %a /usr/bin/creature-world)" = 755
               test -f /etc/creature/world.json
               test -f /usr/lib/systemd/system/creature-world.service
-              grep -Fx "ExecStart=/bin/creature-world --config /etc/creature/world.json" /usr/lib/systemd/system/creature-world.service
+              grep -Fx "ExecStart=/usr/bin/creature-world --config /etc/creature/world.json" /usr/lib/systemd/system/creature-world.service
               grep -Fx "DynamicUser=yes" /usr/lib/systemd/system/creature-world.service
-              /bin/creature-world --version
-              /bin/creature-world --help >/dev/null
-              test "$(dpkg-query -W creature-world | cut -f2)" = "$(/bin/creature-world --version)"
-              ldd /bin/creature-world
+              /usr/bin/creature-world --version
+              /usr/bin/creature-world --help >/dev/null
+              test "$(dpkg-query -W creature-world | cut -f2)" = "$(/usr/bin/creature-world --version)"
+              ldd /usr/bin/creature-world
               cp /etc/creature/world.json /tmp/world.json.before
               apt-get install --reinstall -y /artifacts/creature-world_*_$(dpkg --print-architecture).deb
               cmp /tmp/world.json.before /etc/creature/world.json
@@ -121,7 +98,7 @@ jobs:
           test -n "${package}"
           dpkg-deb --info "${package}"
           dpkg-deb --contents "${package}"
-          dpkg-deb --contents "${package}" | grep -Eq ' ./bin/creature-communicator-gateway$'
+          dpkg-deb --contents "${package}" | grep -Eq ' ./usr/bin/creature-communicator-gateway$'
           dpkg-deb --contents "${package}" | grep -Eq ' ./etc/creature/communicator-gateway.json$'
           dpkg-deb --contents "${package}" | grep -Eq ' ./usr/lib/systemd/system/creature-communicator-gateway.service$'
 
@@ -130,7 +107,7 @@ jobs:
           package="$(find artifacts -name 'creature-body_*_${{ matrix.arch }}.deb' -print -quit)"
           test -n "${package}"
           dpkg-deb --info "${package}"
-          dpkg-deb --contents "${package}" | grep -Eq ' ./bin/creature-body$'
+          dpkg-deb --contents "${package}" | grep -Eq ' ./usr/bin/creature-body$'
           dpkg-deb --contents "${package}" | grep -Eq ' ./etc/creature/body.json$'
           dpkg-deb --contents "${package}" | grep -Eq ' ./etc/default/creature-body$'
           dpkg-deb --contents "${package}" | grep -Eq ' ./usr/lib/systemd/system/creature-body.service$'
@@ -140,7 +117,7 @@ jobs:
           package="$(find artifacts -name 'creature-house_*_${{ matrix.arch }}.deb' -print -quit)"
           test -n "${package}"
           dpkg-deb --info "${package}"
-          dpkg-deb --contents "${package}" | grep -Eq ' ./bin/creature-house$'
+          dpkg-deb --contents "${package}" | grep -Eq ' ./usr/bin/creature-house$'
           dpkg-deb --contents "${package}" | grep -Eq ' ./etc/creature/house.json$'
           dpkg-deb --contents "${package}" | grep -Eq ' ./etc/default/creature-house$'
           dpkg-deb --contents "${package}" | grep -Eq ' ./usr/lib/systemd/system/creature-house.service$'
@@ -154,21 +131,21 @@ jobs:
             bash -euxc '
               apt-get update
               apt-get install -y /artifacts/creature-communicator-gateway_*_$(dpkg --print-architecture).deb
-              test "$(stat -c %U:%G /bin/creature-communicator-gateway)" = root:root
-              test "$(stat -c %a /bin/creature-communicator-gateway)" = 755
+              test "$(stat -c %U:%G /usr/bin/creature-communicator-gateway)" = root:root
+              test "$(stat -c %a /usr/bin/creature-communicator-gateway)" = 755
               test -f /etc/creature/communicator-gateway.json
               test -f /usr/lib/systemd/system/creature-communicator-gateway.service
-              grep -Fx "ExecStart=/bin/creature-communicator-gateway --config /etc/creature/communicator-gateway.json" /usr/lib/systemd/system/creature-communicator-gateway.service
+              grep -Fx "ExecStart=/usr/bin/creature-communicator-gateway --config /etc/creature/communicator-gateway.json" /usr/lib/systemd/system/creature-communicator-gateway.service
               grep -Fx "After=network-online.target creature-world.service" /usr/lib/systemd/system/creature-communicator-gateway.service
               grep -Fx "DynamicUser=yes" /usr/lib/systemd/system/creature-communicator-gateway.service
               grep -Fx "Restart=on-failure" /usr/lib/systemd/system/creature-communicator-gateway.service
               grep -Fx "TimeoutStopSec=15" /usr/lib/systemd/system/creature-communicator-gateway.service
               grep -F "\"port\": 8002" /etc/creature/communicator-gateway.json
               grep -F "\"world_url\": \"http://127.0.0.1:8001/world/v1\"" /etc/creature/communicator-gateway.json
-              /bin/creature-communicator-gateway --version
-              /bin/creature-communicator-gateway --help >/dev/null
-              test "$(dpkg-query -W creature-communicator-gateway | cut -f2)" = "$(/bin/creature-communicator-gateway --version)"
-              ldd /bin/creature-communicator-gateway
+              /usr/bin/creature-communicator-gateway --version
+              /usr/bin/creature-communicator-gateway --help >/dev/null
+              test "$(dpkg-query -W creature-communicator-gateway | cut -f2)" = "$(/usr/bin/creature-communicator-gateway --version)"
+              ldd /usr/bin/creature-communicator-gateway
               cp /etc/creature/communicator-gateway.json /tmp/communicator-gateway.json.before
               apt-get install --reinstall -y /artifacts/creature-communicator-gateway_*_$(dpkg --print-architecture).deb
               cmp /tmp/communicator-gateway.json.before /etc/creature/communicator-gateway.json
@@ -180,9 +157,8 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: creature-packages-${{ matrix.arch }}
-          path: |
-            artifacts/*.deb
-            artifacts/*.ddeb
+          # Built on Debian, the debug symbols are -dbgsym .deb files (Ubuntu makes .ddeb).
+          path: artifacts/*.deb
           # 7-day retention so build artifacts don't pile up against the
           # account-level Actions storage quota. Long enough to grab a
           # .deb off a recent commit; older commits should be rebuilt.
