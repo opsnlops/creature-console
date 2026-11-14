@@ -380,8 +380,8 @@ struct AnimationTable: View {
                     AnimationEditor(createNew: true)
                 }
             }
-            .toolbar(id: "animationTableToolbar") {
-                ToolbarItem(id: "newAnimation", placement: .primaryAction) {
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
                     NavigationLink(
                         destination: AnimationEditor(createNew: true),
                         label: {

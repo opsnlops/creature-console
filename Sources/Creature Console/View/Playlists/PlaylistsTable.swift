@@ -111,9 +111,9 @@ struct PlaylistsTable: View {
             }
             .errorAlert($errorAlert, dismissLabel: "Shit")
             .statusBanner($successBanner)
-            .toolbar(id: "playlistList") {
+            .toolbar {
                 #if os(iOS)
-                    ToolbarItem(id: "create", placement: .topBarTrailing) {
+                    ToolbarItem(placement: .topBarTrailing) {
                         Button(action: {
                             showingCreateSheet = true
                         }) {
@@ -122,7 +122,7 @@ struct PlaylistsTable: View {
                         .help("Create a new playlist")
                     }
 
-                    ToolbarItem(id: "edit", placement: .topBarTrailing) {
+                    ToolbarItem(placement: .topBarTrailing) {
                         Button(action: {
                             if let selectedId = selection,
                                 let playlistModel = playlists.first(where: { $0.id == selectedId })
@@ -136,7 +136,7 @@ struct PlaylistsTable: View {
                         .help("Edit the selected playlist")
                     }
 
-                    ToolbarItem(id: "stop", placement: .topBarTrailing) {
+                    ToolbarItem(placement: .topBarTrailing) {
                         Button(action: {
                             stopPlayback()
                         }) {
@@ -147,7 +147,7 @@ struct PlaylistsTable: View {
                     }
 
                 #else
-                    ToolbarItem(id: "create", placement: .primaryAction) {
+                    ToolbarItem(placement: .primaryAction) {
                         Button(action: {
                             showingCreateSheet = true
                         }) {
@@ -156,7 +156,7 @@ struct PlaylistsTable: View {
                         .help("Create a new playlist")
                     }
 
-                    ToolbarItem(id: "edit", placement: .secondaryAction) {
+                    ToolbarItem(placement: .secondaryAction) {
                         Button(action: {
                             if let selectedId = selection,
                                 let playlistModel = playlists.first(where: { $0.id == selectedId })
@@ -170,7 +170,7 @@ struct PlaylistsTable: View {
                         .help("Edit the selected playlist")
                     }
 
-                    ToolbarItem(id: "stop", placement: .secondaryAction) {
+                    ToolbarItem(placement: .secondaryAction) {
                         Button(action: {
                             stopPlayback()
                         }) {

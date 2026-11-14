@@ -176,6 +176,7 @@ The CLI tools ship as Debian packages built **on Linux** by CI (`.github/workflo
 
 ## Design Principles
 - **SwiftUI First**: Use only modern SwiftUI best practices. Avoid UIKit or AppKit unless absolutely necessary
+- **No customizable toolbars (`.toolbar(id:)`) in the main window**: every `.toolbar(id:)` gives the window its own autosaved, customizable `NSToolbar`, so navigating to or from that screen swaps the whole toolbar mid-layout. On macOS that crashed the console with `NSToolbarItemViewer's min/max size is nan` (#252). Use plain `.toolbar { ToolbarItem(placement:) … }`
 - **Swift 6 Strict Concurrency**: The app builds with `SWIFT_STRICT_CONCURRENCY = complete` on Swift 6 — write fully concurrency-safe code; never silence the checker with `@unchecked Sendable` or `nonisolated(unsafe)` when a structured design (actor, `@MainActor`, message passing) can do the job
 - **Modern Swift**: Heavy use of modern Swift patterns and language features
 - **No Legacy Dependencies**: Avoid Objective-C where possible
