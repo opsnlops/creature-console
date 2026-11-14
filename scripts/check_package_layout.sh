@@ -6,8 +6,8 @@
 #
 # - Debian Policy 10.1: nothing under the aliased /bin, /sbin or /lib*. An installed, usr-merged
 #   filesystem hides this mistake behind its symlinks, so read `dpkg-deb --contents`.
-# - Every Creature World package ships its section-8 manual page and keeps /etc/default/<pkg>
-#   (where its secrets live) at 0600 - dh_fixperms once silently reset it to 0644.
+# - Every package ships its manual page, and every package with secrets keeps /etc/default/<pkg>
+#   at 0600 - dh_fixperms once silently reset it to 0644.
 # - Every binary is hardened: W^X segments, GNU_RELRO and BIND_NOW.
 #
 # Needs dpkg-deb and readelf (binutils): the CI runner has both; build_debs.sh installs binutils.
@@ -30,7 +30,12 @@ for package in "${dir}"/*_"${arch}".deb; do
     fi
 done
 
-for name in creature-world creature-house creature-body creature-communicator-gateway creature-agent; do
+# Every package ships its manual page (section 1 for creature-cli, 8 for the daemons), and every
+# package with secrets keeps /etc/default/<pkg> at 0600.
+for entry in creature-cli:1 creature-mqtt:8 creature-world:8 creature-house:8 creature-body:8 \
+    creature-communicator-gateway:8 creature-agent:8; do
+    name="${entry%:*}"
+    section="${entry#*:}"
     package="$(ls -t "${dir}/${name}"_[0-9]*_"${arch}".deb 2>/dev/null | head -n 1)"
     if [[ -z "${package}" ]]; then
         echo "error: no ${name} package for ${arch} in ${dir}" >&2
@@ -38,10 +43,13 @@ for name in creature-world creature-house creature-body creature-communicator-ga
         continue
     fi
     contents="$(dpkg-deb --contents "${package}")"
-    if ! grep -Eq " \./usr/share/man/man8/${name}\.8\.gz$" <<<"${contents}"; then
-        echo "error: ${package} has no usr/share/man/man8/${name}.8.gz" >&2
+    if ! grep -Eq " \./usr/share/man/man${section}/${name}\.${section}\.gz$" <<<"${contents}"; then
+        echo "error: ${package} has no usr/share/man/man${section}/${name}.${section}.gz" >&2
         status=1
     fi
+    case "${name}" in
+        creature-cli | creature-mqtt) continue ;; # no packaged secrets file
+    esac
     if ! grep -Eq "^-rw------- root/root .* \./etc/default/${name}$" <<<"${contents}"; then
         echo "error: ${package}: etc/default/${name} is not 0600 root:root" >&2
         status=1

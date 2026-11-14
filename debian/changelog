@@ -1,3 +1,13 @@
+creature-cli (2.109.3+world0.75.3+house0.10.3+gateway0.2.2+body0.2.3) unstable; urgency=medium
+
+  * creature-cli and creature-mqtt ship manual pages (#291): creature-cli(1),
+    every subcommand included, with how to connect, the two relays it ships
+    and /etc/default/creature-relay; creature-mqtt(8), with the
+    /etc/default/creature-mqtt settings its unit passes. Every package in
+    this repository now has one, and the layout check requires it.
+
+ -- April White <april@creature.engineering>  Fri, 13 Nov 2026 23:45:00 -0800
+
 creature-cli (2.109.2+world0.75.3+house0.10.3+gateway0.2.2+body0.2.3) unstable; urgency=medium
 
   * Every binary is linked with the toolchain's lld and -z relro -z now

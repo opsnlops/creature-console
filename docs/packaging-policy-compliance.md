@@ -9,8 +9,10 @@ rule below was checked against swift-argument-parser binaries built in `debian:t
 
 Packages in scope: `creature-world`, `creature-house`, `creature-body`,
 `creature-communicator-gateway`, `creature-agent`. `creature-cli` and `creature-mqtt` share
-`debian/rules`, so the generic pieces (lintian, the Debian build image) cover them too; their man
-pages are a follow-up.
+`debian/rules`, so the generic pieces (lintian, the Debian build image) cover them too, and since
+[#291](https://github.com/opsnlops/creature-console/issues/291) they ship man pages as well:
+`creature-cli(1)` (a command people run, so section 1) and `creature-mqtt(8)`. Still open from
+#291: `creature-mqtt.service` runs as root.
 
 ## Audit and fixes
 

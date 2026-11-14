@@ -1,0 +1,51 @@
+.Sh CONNECTING
+Every subcommand that talks to Creature Server takes the same connection options:
+.Fl -host ,
+.Fl -port
+(443 by default, over TLS),
+.Fl -insecure
+for a plain-HTTP server, and
+.Fl -proxy-host
+with
+.Fl -proxy-api-key
+to go through the proxy. The built-in host is a development name; pass the server you mean.
+A key given on the command line is visible to every user in
+.Xr ps 1 .
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev OTEL_*
+OpenTelemetry export (OTEL_SERVICE_NAME, OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS,
+OTEL_EXPORTER_OTLP_PROTOCOL). Without them the command logs to the console only.
+.El
+.Sh FILES
+.Nm
+reads no configuration file. The package also ships two relays for the host that bridges the
+animatronic network; both are installed disabled.
+.Bl -tag -width Ds
+.It Pa /usr/lib/systemd/system/creature-sacn-relay.service
+Runs
+.Ic creature-cli network sacn-listen ,
+relaying sACN (E1.31) to TCP viewers on port 1963.
+.It Pa /usr/lib/systemd/system/creature-audio-relay.service
+Runs
+.Ic creature-cli network rtp-listen ,
+relaying live RTP audio to TCP viewers on port 1964.
+.It Pa /etc/default/creature-relay
+Settings both relays share:
+.Ev RELAY_INTERFACE ,
+the interface wired to the animatronic network, and
+.Ev RELAY_SACN_EXTRA_ARGS ,
+.Ev RELAY_AUDIO_EXTRA_ARGS
+for extra options. Enable a relay with
+.Dl systemctl enable --now creature-sacn-relay
+.It Pa /usr/share/bash-completion/completions/creature-cli
+Completion for bash; zsh and fish completions are installed alongside.
+.El
+.Sh EXAMPLES
+List the creatures on a server:
+.Dl creature-cli creatures list --host server.example.com
+Help for any subcommand:
+.Dl creature-cli help animations
+.Sh SEE ALSO
+.Xr creature-mqtt 8 ,
+.Xr creature-world 8

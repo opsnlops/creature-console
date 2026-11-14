@@ -16,8 +16,10 @@ SWIFT_BUILD_FLAGS_BODY ?= -c release --product creature-body --static-swift-stdl
 # swift-argument-parser's manual generator, from the pinned dependency. It runs only at build
 # time, so it is not statically linked.
 SWIFT_BUILD_FLAGS_MANUAL ?= -c release --product generate-manual
-# Packages whose manual pages debian/generate-manpage writes (section 8: they are daemons).
-MANPAGE_PACKAGES := creature-world creature-house creature-body creature-communicator-gateway creature-agent
+# Manual pages debian/generate-manpage writes, as package:section. Section 1 is for commands
+# people run by hand (creature-cli); section 8 for daemons. Every package has one (#290, #291).
+MANPAGES := creature-cli:1 creature-mqtt:8 creature-world:8 creature-house:8 creature-body:8 \
+	creature-communicator-gateway:8 creature-agent:8
 export SWIFT_BUILD_FLAGS
 export SWIFT_BUILD_FLAGS_MQTT
 export SWIFT_BUILD_FLAGS_AGENT
@@ -147,9 +149,10 @@ override_dh_auto_install:
 	# dh_clean removes debian/man-build (listed in debian/clean).
 	install -d $(CURDIR)/debian/man-build
 	GENERATOR=$$(cd Common && swift build $(SWIFT_BUILD_FLAGS_MANUAL) --show-bin-path)/generate-manual; \
-	for pkg in $(MANPAGE_PACKAGES); do \
-		$(CURDIR)/debian/generate-manpage $$GENERATOR $(CURDIR)/debian/$$pkg/usr/bin/$$pkg 8 \
-			$(CURDIR)/debian/man/$$pkg.mdoc $(CURDIR)/debian/man-build/$$pkg.8 || exit 1; \
+	for entry in $(MANPAGES); do \
+		pkg=$${entry%:*}; section=$${entry#*:}; \
+		$(CURDIR)/debian/generate-manpage $$GENERATOR $(CURDIR)/debian/$$pkg/usr/bin/$$pkg $$section \
+			$(CURDIR)/debian/man/$$pkg.mdoc $(CURDIR)/debian/man-build/$$pkg.$$section || exit 1; \
 	done
 
 # The relay units ship disabled: they only make sense on the host that bridges the

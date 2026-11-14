@@ -1,0 +1,30 @@
+.Sh ENVIRONMENT
+The unit passes these from
+.Pa /etc/default/creature-mqtt
+to
+.Ic creature-mqtt bridge :
+.Bl -tag -width Ds
+.It Ev CREATURE_SERVER_HOST , Ev CREATURE_SERVER_PORT
+The Creature Server whose events are bridged.
+.It Ev MQTT_HOST , Ev MQTT_PORT
+The MQTT broker the events are published to.
+.It Ev OTEL_*
+OpenTelemetry export (OTEL_SERVICE_NAME, OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS,
+OTEL_EXPORTER_OTLP_PROTOCOL).
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /etc/default/creature-mqtt
+Environment for the service. It is required: copy
+.Pa /etc/default/creature-mqtt.env.example
+and edit it.
+.It Pa /usr/lib/systemd/system/creature-mqtt.service
+The unit, enabled on install. Override it with a drop-in in
+.Pa /etc/systemd/system/creature-mqtt.service.d/ .
+.El
+.Sh EXAMPLES
+Bridge a local server to a local broker in the foreground:
+.Dl creature-mqtt bridge --host 127.0.0.1 --port 8000 --insecure --mqtt-host 127.0.0.1 --mqtt-port 1883
+.Sh SEE ALSO
+.Xr creature-cli 1 ,
+.Xr creature-agent 8
