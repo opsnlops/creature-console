@@ -66,5 +66,5 @@ struct CreatureHouse: AsyncParsableCommand {
 }
 
 enum CreatureHouseBuildInfo {
-    static let version = "0.10.3"
+    static let version = "0.10.4"
 }

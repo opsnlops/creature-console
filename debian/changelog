@@ -1,3 +1,13 @@
+creature-cli (2.109.4+world0.75.4+house0.10.4+gateway0.2.3+body0.2.4) unstable; urgency=medium
+
+  * creature-mqtt runs as a DynamicUser with the World units' hardening, never
+    root (#292). It writes nothing to disk; /etc/default/creature-mqtt is read
+    by systemd before privileges drop.
+  * Every package ships debian/copyright: the MIT license (#293). The
+    repository is MIT-licensed too (LICENSE).
+
+ -- April White <april@creature.engineering>  Sat, 14 Nov 2026 09:30:00 -0800
+
 creature-cli (2.109.3+world0.75.3+house0.10.3+gateway0.2.2+body0.2.3) unstable; urgency=medium
 
   * creature-cli and creature-mqtt ship manual pages (#291): creature-cli(1),

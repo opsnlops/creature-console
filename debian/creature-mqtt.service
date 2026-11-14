@@ -1,9 +1,16 @@
 [Unit]
 Description=Creature MQTT Bridge
+Documentation=man:creature-mqtt(8)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
+Type=exec
+# Never root (fleet packaging policy, #292). The bridge only talks to Creature Server and the
+# MQTT broker over the network and writes nothing to disk. The EnvironmentFile is read by
+# systemd before privileges drop, so it can stay root-owned and 0600.
+User=creature-mqtt
+DynamicUser=yes
 EnvironmentFile=/etc/default/creature-mqtt
 ExecStart=/usr/bin/creature-mqtt bridge \
     --host ${CREATURE_SERVER_HOST} \
@@ -12,6 +19,20 @@ ExecStart=/usr/bin/creature-mqtt bridge \
     --mqtt-port ${MQTT_PORT}
 Restart=on-failure
 RestartSec=5
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectSystem=strict
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0027
 
 [Install]
 WantedBy=multi-user.target

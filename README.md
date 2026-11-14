@@ -246,7 +246,7 @@ This is a personal project for [April's Creature Workshop](https://creature.engi
 
 ## License
 
-Copyright © 2025 April White. All rights reserved.
+Copyright © 2023–2026 April White. Released under the [MIT License](LICENSE).
 
 ## Learn More
 

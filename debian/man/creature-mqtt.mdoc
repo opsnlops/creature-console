@@ -17,9 +17,12 @@ OTEL_EXPORTER_OTLP_PROTOCOL).
 .It Pa /etc/default/creature-mqtt
 Environment for the service. It is required: copy
 .Pa /etc/default/creature-mqtt.env.example
-and edit it.
+and edit it. Keep it mode 0600 if it carries a telemetry key; systemd reads it before
+dropping privileges.
 .It Pa /usr/lib/systemd/system/creature-mqtt.service
-The unit, enabled on install. Override it with a drop-in in
+The unit, enabled on install. It runs as a
+.Li DynamicUser ,
+never root, and writes nothing to disk. Override it with a drop-in in
 .Pa /etc/systemd/system/creature-mqtt.service.d/ .
 .El
 .Sh EXAMPLES
