@@ -125,6 +125,13 @@ A `facts.given` event cast by a mind shows on the Timeline as "Beaky learned: pe
 visitor.expected = "Tuesday afternoon, to finish the deck"" in mint, with a **Forget** button
 (`0.5.0`): it casts nothing in its place, valid for a second, so the world believes it no longer.
 
+### When a bird looks something up
+
+A `mind.tool_called` event shows on the Timeline as "looked it up: query_entity
+{"entity_id":"person:jesse"}" in teal (orange, with the reason, when it failed). The tool's
+arguments are shown from `0.26.0` (#294), so a look-up in April's project notebook reads
+"looked it up: agent_memory_search {"query":"music creation"}".
+
 ### When a bird remembers the day
 
 The nightly memory (`0.6.0`; World `0.22.0`, agent `2.71.0`) shows as "Beaky remembered the day:

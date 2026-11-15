@@ -10,7 +10,7 @@ import WorldCore
 @testable import creature_agent
 
 @Suite("The mind's hand on WorldMCP")
-struct WorldMCPClientTests {
+struct MCPClientTests {
     @Test(
         "A world that was not up yet is asked again: the catalogue retries, and keeps what it found"
     )
@@ -39,8 +39,8 @@ struct WorldMCPClientTests {
             let port = try #require(liveClient.port)
             let httpClient = HTTPClient(eventLoopGroupProvider: .singleton)
             defer { Task { try? await httpClient.shutdown() } }
-            let catalogue = WorldToolCatalogue(
-                mcp: WorldMCPClient(
+            let catalogue = ToolCatalogue(
+                mcp: MCPClient(
                     url: URL(string: "http://localhost:\(port)/world/mcp")!, client: httpClient,
                     logger: Logger(label: "mcp-tests")),
                 allowed: ["search_world"], logger: Logger(label: "mcp-tests"), retryAfter: 0)
@@ -127,7 +127,7 @@ struct WorldMCPClientTests {
             let port = try #require(liveClient.port)
             let httpClient = HTTPClient(eventLoopGroupProvider: .singleton)
             defer { Task { try? await httpClient.shutdown() } }
-            let mcp = WorldMCPClient(
+            let mcp = MCPClient(
                 url: URL(string: "http://localhost:\(port)/world/mcp")!, client: httpClient,
                 logger: Logger(label: "mcp-tests"),
                 mind: try EntityID(validating: "character:kenny"))
@@ -142,7 +142,7 @@ struct WorldMCPClientTests {
                 "query_entity", arguments: #"{"entity_id":"person:jesse"}"#)
             #expect(answer == "{\"facts\":[]}")
 
-            await #expect(throws: WorldMCPClient.Failure.self) {
+            await #expect(throws: MCPClient.Failure.self) {
                 try await mcp.call("drop_the_database", arguments: "{}")
             }
             let cut = try await mcp.call("long", arguments: "")

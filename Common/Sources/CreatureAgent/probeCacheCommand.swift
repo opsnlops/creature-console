@@ -191,8 +191,8 @@ struct ProbeCache: AsyncParsableCommand {
         let logger = Logger(label: "probe-cache")
         let http = HTTPClient(eventLoopGroupProvider: .singleton)
         defer { Task { try? await http.shutdown() } }
-        let mcp = WorldMCPClient(url: url, client: http, logger: logger)
-        let allowed = Set(ModelTools.defaultAllowedTools)
+        let mcp = MCPClient(url: url, client: http, logger: logger)
+        let allowed = Set(ToolServer.worldTools)
         let catalogue = try await mcp.listTools().filter { allowed.contains($0.name) }
         print("tools from the world: \(catalogue.map(\.name).joined(separator: ", "))")
         let client = OpenAIClient(

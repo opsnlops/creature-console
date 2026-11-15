@@ -1,0 +1,26 @@
+# Shared settings for every mind (creature-agent@<bird>): the flock's production values, shipped
+# with the package (#294). Each bird's own /etc/creature/agent/<bird>.yaml is laid over this file
+# key by key: a key the bird sets wins, whole (lists and maps are replaced, not merged), and a key
+# the bird sets to ~ turns the shared setting off for that bird. Every key is documented in the
+# agent manual (/usr/share/doc/creature-agent/creature-agent-manual.md).
+#
+# Secrets never go here: OPENAI_API_KEY lives in /etc/default/creature-agent[-<bird>] (0600).
+# Who a bird is - name, pronouns, voice, interests - lives in its persona file, never here.
+
+# A mind living in Creature World, thinking with OpenAI's Responses API.
+mode: world
+llmBackend: openai
+llmReasoningEffort: low
+
+# The World beside it on this host: its API, and WorldMCP as the model's read-only tools.
+worldUrl: http://127.0.0.1:8001/world/v1
+worldMcpUrl: http://127.0.0.1:8001/world/mcp
+
+# April's project notebook: agent-memory, the notes her coding agents keep on her projects, as
+# READ-ONLY tools beside the world's - agent_memory_search, _get and _list_tags; its write tools
+# are never offered and are refused in the mind. Offered on a question from a person, never on a
+# house remark.
+agentMemoryMcpUrl: http://10.19.63.10:8787/mcp
+
+# The house's clock: the mind is told the local time in words (the server runs UTC).
+timeZone: America/Los_Angeles

@@ -19,6 +19,22 @@ This section is intentionally operational and time-sensitive. It gives the next 
 enough context to continue without reconstructing the implementation from chat history. **Keep it
 current in the same commit as the code it describes.**
 
+### 0.0a The birds read April's project notebook — 2026-11-14 (#294)
+
+With `agentMemoryMcpUrl` set in a bird's yaml, a mind can read agent-memory (the notes April's
+coding agents keep on her projects) through `agent_memory_search`, `agent_memory_get` and
+`agent_memory_list_tags`, beside the world's tools and on the same turns. Read only: write tools
+are never offered and are refused in the mind. Agent `2.110.0` (CLI/MQTT with it), World Viewer
+`0.26.0` (the Timeline shows each look-up's arguments). Plan: `docs/agent-memory-tools-plan.md`.
+The flock's production configs are in the package now too (`debian/creature-agent-<bird>.yaml`,
+installed as `/etc/creature/agent/<bird>.yaml` conffiles), cleaned of the MQTT-agent copy they
+started as; `llmSystemPrompt` is no longer required beside a persona file. **On the first upgrade
+dpkg asks about all four: answer Y** (take the package's). It ships on: the package's new shared
+settings file, `/etc/creature/agent/common.yaml`, holds the
+production `agentMemoryMcpUrl`, and every `creature-agent@<bird>` lays its own yaml over it
+(`--base-config-path`; `agentMemoryMcpUrl: ~` in a bird's yaml turns it off). After deploying,
+each mind's log says "agent-memory is at hand as tools".
+
 ### 0.0 Packaging follows the fleet policy — 2026-11-12 (#290)
 
 The World's packages now meet the fleet packaging policy (agent-memory "How April distributes

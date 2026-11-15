@@ -1,0 +1,13 @@
+# Caroll's mind (creature-agent@caroll), laid over /etc/creature/agent/common.yaml.
+# One of the chorus. Who he is lives in his persona file.
+
+characterEntityId: character:caroll
+personaPath: /etc/creature/agent/personas/caroll.yaml
+# His body on Creature Server: where he speaks in the room.
+creatureId: 56665920-98f7-11f1-9c92-2ccf67b00612
+
+llmModel: gpt-6-luna
+llmServiceTier: default
+
+# Remembering the day, each night, in his own voice.
+llmMemoryModel: gpt-6.1-sol

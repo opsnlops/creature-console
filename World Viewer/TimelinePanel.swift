@@ -110,11 +110,16 @@ struct TimelineRow: View {
                 if event.type.rawValue == "mind.tool_called",
                     case .string(let tool)? = event.payload["tool"]
                 {
-                    // She looked it up rather than guessed: the world as tools, on the record.
+                    // She looked it up rather than guessed: the world as tools, and April's
+                    // project notebook (#294), on the record - with what she asked for.
                     let failed: String? =
                         if case .string(let error)? = event.payload["error"] { error } else { nil }
+                    let asked: String =
+                        if case .string(let arguments)? = event.payload["arguments"],
+                            arguments.count > 2
+                        { " " + String(arguments.prefix(120)) } else { "" }
                     Label(
-                        "looked it up: \(tool)" + (failed.map { " - failed: \($0)" } ?? ""),
+                        "looked it up: \(tool)\(asked)" + (failed.map { " - failed: \($0)" } ?? ""),
                         systemImage: "magnifyingglass"
                     )
                     .font(.caption)

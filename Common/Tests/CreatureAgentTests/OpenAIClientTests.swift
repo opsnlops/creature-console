@@ -76,7 +76,7 @@ struct OpenAIClientTests {
     )
     func requestBodyCarriesTools() throws {
         let tools = [
-            WorldMCPClient.ToolDefinition(
+            MCPClient.ToolDefinition(
                 name: "query_entity", description: "One entity, whole.",
                 inputSchema: .object([
                     "type": .string("object"),
@@ -182,11 +182,11 @@ struct OpenAIClientTests {
                 endpoint: URL(string: "http://localhost:\(port)/v1/responses")!,
                 streamingClient: httpClient,
                 logger: Logger(label: "openai-tests"), traceResponses: false)
-            let tools = ModelTools(
-                serverLabel: "world",
+            let tools = ModelTools.single(
+                label: "world",
                 catalogue: {
                     [
-                        WorldMCPClient.ToolDefinition(
+                        MCPClient.ToolDefinition(
                             name: "query_entity", description: "", inputSchema: .object([:]))
                     ]
                 },
@@ -415,7 +415,7 @@ struct OpenAIClientTests {
     @Test("The same request is the same bytes, tools and all - the cached prefix depends on it")
     func requestBytesAreStable() throws {
         let tools = (0..<10).map { index in
-            WorldMCPClient.ToolDefinition(
+            MCPClient.ToolDefinition(
                 name: "look_up_\(index)", description: "Looks up \(index).",
                 inputSchema: .object([
                     "type": .string("object"),

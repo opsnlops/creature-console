@@ -808,7 +808,7 @@ struct CharacterMind: Sendable {
             let house = HouseTag.contract(configuration.houseAsks?())
             core =
                 Self.sceneContractCore
-                + (configuration.tools == nil ? "" : " " + ModelTools.contract)
+                + (configuration.tools.map { " " + $0.contract } ?? "")
                 + (house.isEmpty ? "" : " " + house)
             situation = Self.sceneCompany(others: others)
         case .worldEvent, .houseConsideration:
@@ -1220,7 +1220,7 @@ struct CharacterMind: Sendable {
         let house = HouseTag.contract(configuration.houseAsks?())
         let shared =
             Self.contract(for: route)
-            + (configuration.tools == nil ? "" : " " + ModelTools.contract)
+            + (configuration.tools.map { " " + $0.contract } ?? "")
             + (house.isEmpty ? "" : " " + house)
         let persona = configuration.persona.renderedForEveryone()
         let moment = Self.hereNow(present, pronouns: pronouns)

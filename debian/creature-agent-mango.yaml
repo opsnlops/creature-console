@@ -1,0 +1,13 @@
+# Mango's mind (creature-agent@mango), laid over /etc/creature/agent/common.yaml.
+# One of the chorus. Who he is lives in his persona file.
+
+characterEntityId: character:mango
+personaPath: /etc/creature/agent/personas/mango.yaml
+# His body on Creature Server: where he speaks in the room.
+creatureId: e93b9a7a-1704-11ef-84b9-3b37dddeb225
+
+llmModel: gpt-6-luna
+llmServiceTier: default
+
+# Remembering the day, each night, in his own voice.
+llmMemoryModel: gpt-6.1-sol

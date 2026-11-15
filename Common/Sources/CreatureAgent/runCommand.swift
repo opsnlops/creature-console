@@ -18,6 +18,13 @@ extension CreatureAgent {
             help: "Path to the YAML configuration file (see sample_agent_config.yaml)")
         var configPath: String
 
+        @Option(
+            name: .long,
+            help:
+                "Shared settings the config file overrides key by key (the package ships /etc/creature/agent/common.yaml); a missing file is skipped"
+        )
+        var baseConfigPath: String?
+
         @Option(name: .long, help: "MQTT broker host override")
         var mqttHost: String?
 
@@ -62,7 +69,15 @@ extension CreatureAgent {
             configuredLogger.logLevel = loggerLevel
             let logger = configuredLogger
 
-            let config = try AgentConfig.load(from: URL(fileURLWithPath: configPath))
+            let base = baseConfigPath.map(URL.init(fileURLWithPath:))
+            if let base, !FileManager.default.fileExists(atPath: base.path) {
+                logger.notice(
+                    "No shared settings file; using the config file alone",
+                    metadata: ["path": "\(base.path)"])
+            }
+            let config = try AgentConfig.load(
+                from: URL(fileURLWithPath: configPath),
+                base: base.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil })
             let traceResponses = traceOpenAI || traceOpenAICompat
 
             if config.mode == .world {
@@ -509,18 +524,31 @@ private func runWorldMode(
         case .communicatorOnly:
             nil
         }
-    // The world as tools (`worldMcpUrl`): the tools are whatever WorldMCP lists at startup,
-    // the mind runs each call the model asks for, and every look-up is cast back into the
-    // world as `mind.tool_called`, so the Viewer and Why? show what she checked. A world
-    // that cannot list its tools leaves the mind without them rather than without a voice.
-    var tools: ModelTools?
+    // The world as tools (`worldMcpUrl`), and April's project notebook (`agentMemoryMcpUrl`,
+    // #294): the tools are whatever each server lists, kept to its read tools, the mind runs
+    // each call the model asks for, and every look-up is cast back into the world as
+    // `mind.tool_called`, so the Viewer and Why? show what she checked. A server that cannot
+    // list its tools leaves the mind without them rather than without a voice.
+    var servers: [(server: ToolServer, catalogue: ToolCatalogue)] = []
     if let url = world.worldMCPURL {
-        let mcp = WorldMCPClient(url: url, client: client, logger: logger, mind: characterID)
-        let catalogue = WorldToolCatalogue(
-            mcp: mcp, allowed: Set(ModelTools.defaultAllowedTools), logger: logger)
-        tools = ModelTools(
-            serverLabel: "world", catalogue: { await catalogue.definitions() },
-            call: { name, arguments in try await mcp.call(name, arguments: arguments) },
+        servers.append(
+            ToolServer.world(
+                MCPClient(url: url, client: client, logger: logger, mind: characterID),
+                logger: logger))
+    }
+    if let url = world.agentMemoryMCPURL {
+        servers.append(
+            ToolServer.agentMemory(
+                MCPClient(
+                    url: url, client: client, logger: logger, audience: nil,
+                    serverName: "agent-memory", session: MCPSession()),
+                logger: logger))
+    }
+    let tools: ModelTools? =
+        servers.isEmpty
+        ? nil
+        : ModelTools(
+            servers: servers.map(\.server),
             onCall: { call in
                 do {
                     try await responder.cast(
@@ -547,10 +575,9 @@ private func runWorldMode(
                         "Could not record a look-up", metadata: ["error": "\(error)"])
                 }
             })
-        // Ask now so the log says at startup whether the world answered; a miss is retried
-        // at the first question.
-        _ = await catalogue.definitions()
-    }
+    // Ask now so the log says at startup whether each server answered; a miss is retried at
+    // the first question.
+    for (_, catalogue) in servers { _ = await catalogue.definitions() }
     // The world's whole glossary, held by the mind and refreshed every ten minutes, so the
     // prompt's stable item is the same text call after call and the provider's cache serves it.
     let glossary = Glossary(worldURL: world.worldURL, client: client, logger: logger)

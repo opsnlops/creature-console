@@ -88,6 +88,142 @@ struct AgentConfigTests {
         #expect(throws: DecodingError.self) { try load("timeZone: Whidbey/Island") }
     }
 
+    @Test("agentMemoryMcpUrl is optional and must be an http(s) URL (#294)")
+    func parsesAgentMemoryURL() throws {
+        func load(_ extra: String) throws -> AgentConfig {
+            try AgentConfig.load(
+                from: writeTemporaryFile(
+                    contents: """
+                        mode: world
+                        creatureId: 00000000-0000-0000-0000-000000000000
+                        llmBackend: openai
+                        llmSystemPrompt: system
+                        llmModel: gpt-6-luna
+                        worldUrl: http://127.0.0.1:8001/world/v1
+                        areas: []
+                        \(extra)
+                        """))
+        }
+
+        #expect(try load("").world.agentMemoryMCPURL == nil)
+        #expect(
+            try load("agentMemoryMcpUrl: http://10.0.0.5:8787/mcp").world.agentMemoryMCPURL
+                == URL(string: "http://10.0.0.5:8787/mcp"))
+        // Independent of the world's: a mind may have one, the other, or both.
+        #expect(try load("agentMemoryMcpUrl: http://10.0.0.5:8787/mcp").world.worldMCPURL == nil)
+        #expect(throws: DecodingError.self) { try load("agentMemoryMcpUrl: notes.local") }
+    }
+
+    @Test("The shared settings sit under a bird's own: its keys win, ~ turns one off (#294)")
+    func layersOverSharedSettings() throws {
+        let base = try writeTemporaryFile(
+            contents: """
+                # the fleet's production values
+                agentMemoryMcpUrl: http://10.0.0.5:8787/mcp
+                llmModel: gpt-6-luna
+                """)
+        func load(_ own: String) throws -> AgentConfig {
+            try AgentConfig.load(
+                from: writeTemporaryFile(
+                    contents: """
+                        mode: world
+                        creatureId: 00000000-0000-0000-0000-000000000000
+                        llmBackend: openai
+                        llmSystemPrompt: system
+                        worldUrl: http://127.0.0.1:8001/world/v1
+                        \(own)
+                        """), base: base)
+        }
+
+        // Inherited when the bird says nothing.
+        let plain = try load("")
+        #expect(plain.world.agentMemoryMCPURL == URL(string: "http://10.0.0.5:8787/mcp"))
+        #expect(plain.llmModel == "gpt-6-luna")
+        // The bird's own value wins.
+        #expect(try load("llmModel: gpt-6.1-sol").llmModel == "gpt-6.1-sol")
+        // ~ turns the shared setting off for this bird.
+        #expect(try load("agentMemoryMcpUrl: ~").world.agentMemoryMCPURL == nil)
+        // An empty shared file is no settings, not an error.
+        let empty = try writeTemporaryFile(contents: "# nothing shared yet\n")
+        #expect(
+            try AgentConfig.load(
+                from: writeTemporaryFile(
+                    contents: """
+                        mode: world
+                        creatureId: 00000000-0000-0000-0000-000000000000
+                        llmSystemPrompt: system
+                        llmModel: mistral-nemo
+                        """), base: empty
+            ).world.agentMemoryMCPURL == nil)
+        // The packaged file itself decodes as shared settings.
+        let packaged = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("debian/creature-agent-common.yaml")
+        let shipped = try AgentConfig.load(
+            from: writeTemporaryFile(
+                contents: """
+                    mode: world
+                    creatureId: 00000000-0000-0000-0000-000000000000
+                    llmBackend: openai
+                    llmSystemPrompt: system
+                    llmModel: gpt-6-luna
+                    """), base: packaged)
+        #expect(shipped.world.agentMemoryMCPURL?.port == 8787)
+    }
+
+    @Test("The flock's packaged configs decode to the production minds, with no prompt (#294)")
+    func packagedFlockConfigs() throws {
+        let debian = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("debian")
+        let common = debian.appendingPathComponent("creature-agent-common.yaml")
+        let expected:
+            [(bird: String, model: String, tier: String, memory: String, librarian: Bool)] =
+                [
+                    ("beaky", "gpt-6.1-sol", "fast", "gpt-6-astra", true),
+                    ("mango", "gpt-6-luna", "default", "gpt-6.1-sol", false),
+                    ("kenny", "gpt-6-luna", "default", "gpt-6.1-sol", false),
+                    ("caroll", "gpt-6-luna", "default", "gpt-6.1-sol", false),
+                ]
+        var creatures: Set<String> = []
+        for bird in expected {
+            let config = try AgentConfig.load(
+                from: debian.appendingPathComponent("creature-agent-\(bird.bird).yaml"),
+                base: common)
+            #expect(config.mode == .world)
+            #expect(config.llmBackend == .openai)
+            #expect(config.llmModel == bird.model)
+            #expect(config.llmServiceTier == bird.tier)
+            #expect(config.llmReasoningEffort == "low")
+            #expect(config.llmMemoryModel == bird.memory)
+            #expect(config.librarian == bird.librarian)
+            #expect(config.llmSystemPrompt.isEmpty)
+            #expect(config.world.characterEntityID == "character:\(bird.bird)")
+            #expect(config.world.personaPath == "/etc/creature/agent/personas/\(bird.bird).yaml")
+            #expect(config.world.worldMCPURL?.absoluteString == "http://127.0.0.1:8001/world/mcp")
+            #expect(config.world.agentMemoryMCPURL?.port == 8787)
+            #expect(config.world.timeZone.identifier == "America/Los_Angeles")
+            creatures.insert("\(config.creatureId)")
+        }
+        // Four bodies, not one copied four times.
+        #expect(creatures.count == 4)
+    }
+
+    @Test("Without a persona file, a mind still needs its prompt")
+    func promptRequiredWithoutPersona() throws {
+        #expect(throws: DecodingError.self) {
+            try AgentConfig.load(
+                from: writeTemporaryFile(
+                    contents: """
+                        mode: world
+                        creatureId: 00000000-0000-0000-0000-000000000000
+                        llmModel: gpt-6-luna
+                        """))
+        }
+    }
+
     @Test("A reasoning effort is low, medium, or high")
     func parsesReasoningEffort() throws {
         func load(_ extra: String) throws -> AgentConfig {

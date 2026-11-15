@@ -473,14 +473,15 @@ struct CharacterMindTests {
     @Test("A question from April carries the world's tools and their contract; a scene turn never")
     func toolsGoWithQuestionsOnly() async throws {
         let tools = ModelTools(
-            serverLabel: "world", catalogue: { [] }, call: { _, _ in "" }, onCall: { _ in })
+            servers: [.stub(label: "world")], onCall: { _ in })
         let handed = Handed()
         var configuration = makeMind { _, _ in "unused" }.configuration
         configuration.tools = tools
         let mind = CharacterMind(
             configuration: configuration,
             respond: { transcript, tools in
-                await handed.note(tools?.serverLabel, contract: transcript.first?.content ?? "")
+                await handed.note(
+                    tools?.servers.first?.label, contract: transcript.first?.content ?? "")
                 return "Jesse is your contractor."
             },
             logger: Logger(label: "character-mind-tests"))
@@ -498,7 +499,8 @@ struct CharacterMindTests {
         // The same mind without tools hands the model nothing to reach for, and says nothing
         // about tools.
         let plain = makeMind { transcript, tools in
-            await handed.note(tools?.serverLabel, contract: transcript.first?.content ?? "")
+            await handed.note(
+                tools?.servers.first?.label, contract: transcript.first?.content ?? "")
             return "unused"
         }
         _ = try await plain.consider(try makeConsideration(text: "Who is Jesse?"), now: now)

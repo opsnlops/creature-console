@@ -1,0 +1,15 @@
+# Beaky's mind (creature-agent@beaky), laid over /etc/creature/agent/common.yaml.
+# The flock's lead. Who she is lives in her persona file.
+
+characterEntityId: character:beaky
+personaPath: /etc/creature/agent/personas/beaky.yaml
+# Her body on Creature Server: where she speaks in the room.
+creatureId: 4754fc0e-1706-11ef-931d-bbb95a696e2e
+
+llmModel: gpt-6.1-sol
+llmServiceTier: fast
+
+# Remembering the day, each night, in her own voice.
+llmMemoryModel: gpt-6-astra
+# After remembering, she files what all the minds kept (one bird only: the lead).
+librarian: true

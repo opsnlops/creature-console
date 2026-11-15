@@ -26,6 +26,22 @@ One mind per character: the configuration for
 .Li creature-agent@ Ns Ar instance ,
 such as
 .Li creature-agent@beaky .
+The package ships the flock's:
+.Pa beaky.yaml , mango.yaml , kenny.yaml
+and
+.Pa caroll.yaml .
+Laid over
+.Pa common.yaml
+key by key.
+.It Pa /etc/creature/agent/common.yaml
+Shared production settings for every mind, passed with
+.Fl -base-config-path ;
+such as
+.Li agentMemoryMcpUrl ,
+the read-only project notebook.
+A key a bird's own file sets wins; set to
+.Li ~
+it turns the shared setting off for that bird.
 .It Pa /etc/creature/agent.yaml
 The configuration for the single
 .Li creature-agent

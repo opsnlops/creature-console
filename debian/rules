@@ -73,9 +73,14 @@ override_dh_auto_install:
 	install -d $(CURDIR)/debian/creature-agent/etc/default
 	install -m600 $(CURDIR)/debian/creature-agent.default $(CURDIR)/debian/creature-agent/etc/default/creature-agent
 	# Agent configuration lives beside the World's in /etc/creature: agent.yaml for the single
-	# unit, agent/<instance>.yaml for creature-agent@<instance>.
+	# unit, agent/<bird>.yaml for creature-agent@<bird> (the flock's production configs), laid
+	# over the shared production settings in agent/common.yaml. All conffiles.
 	install -d $(CURDIR)/debian/creature-agent/etc/creature/agent
 	install -m644 $(CURDIR)/debian/creature-agent.yaml $(CURDIR)/debian/creature-agent/etc/creature/agent.yaml
+	install -m644 $(CURDIR)/debian/creature-agent-common.yaml $(CURDIR)/debian/creature-agent/etc/creature/agent/common.yaml
+	for bird in beaky mango kenny caroll; do \
+		install -m644 $(CURDIR)/debian/creature-agent-$$bird.yaml $(CURDIR)/debian/creature-agent/etc/creature/agent/$$bird.yaml; \
+	done
 	# Personas are April's content, versioned in docs/personas and installed as conffiles so an
 	# edited bird is never overwritten by an upgrade.
 	install -d $(CURDIR)/debian/creature-agent/etc/creature/agent/personas

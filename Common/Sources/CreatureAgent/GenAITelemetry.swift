@@ -427,7 +427,7 @@ enum GenAI {
         case OpenAIClientError.httpError(let code, _): "\(code)"
         case let error as OpenAIClientError: "\(error)".components(separatedBy: "(")[0]
         // WorldMCP's own words for it: `tool_error`, the JSON-RPC code, the HTTP status.
-        case let failure as WorldMCPClient.Failure: failure.kind
+        case let failure as MCPClient.Failure: failure.kind
         case is CancellationError: "cancelled"
         default: String(describing: type(of: error))
         }

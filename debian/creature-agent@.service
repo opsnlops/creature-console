@@ -11,12 +11,14 @@ Wants=network-online.target
 # The EnvironmentFiles are 0600 root and read before privileges drop.
 User=creature-agent
 DynamicUser=yes
-# One mind per character: creature-agent@beaky, creature-agent@mango, ...
+# One mind per character: creature-agent@beaky, creature-agent@mango, ... Each reads the
+# package's shared settings (common.yaml) with its own yaml laid over them.
 # Shared settings first, then the instance's own overrides.
 EnvironmentFile=-/etc/default/creature-agent
 EnvironmentFile=-/etc/default/creature-agent-%i
 ExecStart=/usr/bin/creature-agent run \
     --config-path /etc/creature/agent/%i.yaml \
+    --base-config-path /etc/creature/agent/common.yaml \
     --host ${CREATURE_SERVER_HOST} \
     --port ${CREATURE_SERVER_PORT}
 Restart=on-failure

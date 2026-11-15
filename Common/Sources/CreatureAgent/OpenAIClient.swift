@@ -147,12 +147,13 @@ struct OpenAIClient: Sendable {
         for call in calls {
             items.append(.functionCall(call))
             var record = ModelTools.Call(
-                server: tools.serverLabel, name: call.name, arguments: call.arguments)
+                server: await tools.server(offering: call.name)?.label ?? "none",
+                name: call.name, arguments: call.arguments)
             do {
                 let output = try await GenAI.executeTool(
                     call.name, callID: call.callID, arguments: call.arguments
                 ) {
-                    try await tools.call(call.name, call.arguments)
+                    try await tools.call(call.name, arguments: call.arguments)
                 }
                 record.output = output
                 items.append(.functionCallOutput(callID: call.callID, output: output))
@@ -161,7 +162,7 @@ struct OpenAIClient: Sendable {
                 record.error = "\(error)"
                 items.append(
                     .functionCallOutput(
-                        callID: call.callID, output: "The world could not answer: \(error)"))
+                        callID: call.callID, output: "The look-up could not answer: \(error)"))
                 logger.warning("A look-up failed: \(call.name): \(error)")
             }
             await tools.onCall(record)
@@ -296,7 +297,7 @@ struct OpenAIClient: Sendable {
 
     func makeRequest(
         for transcript: [LocalLLMClient.Message], stream: Bool, json: Bool = false,
-        tools: [WorldMCPClient.ToolDefinition] = [], extra: [ResponseRequest.Item] = [],
+        tools: [MCPClient.ToolDefinition] = [], extra: [ResponseRequest.Item] = [],
         compareWith: String? = nil
     ) -> URLRequest {
         var request = URLRequest(url: endpoint)
@@ -501,7 +502,7 @@ struct ResponseRequest: Encodable {
         let parameters: WorldJSONValue
         let strict = false
 
-        init(_ definition: WorldMCPClient.ToolDefinition) {
+        init(_ definition: MCPClient.ToolDefinition) {
             name = definition.name
             description = definition.description
             parameters = definition.inputSchema
@@ -552,7 +553,7 @@ struct ResponseRequest: Encodable {
     init(
         model: String, transcript: [LocalLLMClient.Message], temperature: Double,
         reasoningEffort: String?, serviceTier: String? = nil, stream: Bool, json: Bool = false,
-        tools: [WorldMCPClient.ToolDefinition] = [], extra: [Item] = [], cacheKey: String? = nil,
+        tools: [MCPClient.ToolDefinition] = [], extra: [Item] = [], cacheKey: String? = nil,
         cache: LLMCacheSettings = LLMCacheSettings(), compareWith: String? = nil
     ) {
         self.model = model

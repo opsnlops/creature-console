@@ -92,11 +92,11 @@ struct GenAITelemetryTests {
                 endpoint: URL(string: "http://localhost:\(port)/v1/responses")!,
                 streamingClient: httpClient,
                 logger: Logger(label: "genai-tests"), traceResponses: false)
-            let tools = ModelTools(
-                serverLabel: "world",
+            let tools = ModelTools.single(
+                label: "world",
                 catalogue: {
                     [
-                        WorldMCPClient.ToolDefinition(
+                        MCPClient.ToolDefinition(
                             name: "query_entity", description: "", inputSchema: .object([:]))
                     ]
                 },
@@ -370,7 +370,7 @@ struct GenAITelemetryTests {
             let port = try #require(liveClient.port)
             let httpClient = HTTPClient(eventLoopGroupProvider: .singleton)
             defer { Task { try? await httpClient.shutdown() } }
-            let mcp = WorldMCPClient(
+            let mcp = MCPClient(
                 url: URL(string: "http://localhost:\(port)/world/mcp")!, client: httpClient,
                 logger: Logger(label: "genai-tests"))
             #expect(try await mcp.listTools().map(\.name) == ["query_entity"])
@@ -419,14 +419,14 @@ struct GenAITelemetryTests {
             let port = try #require(liveClient.port)
             let httpClient = HTTPClient(eventLoopGroupProvider: .singleton)
             defer { Task { try? await httpClient.shutdown() } }
-            let mcp = WorldMCPClient(
+            let mcp = MCPClient(
                 url: URL(string: "http://localhost:\(port)/world/mcp")!, client: httpClient,
                 logger: Logger(label: "genai-tests"))
             try await GenAI.invokeAgent(
                 "Beaky", conversationID: conversation, kind: .scene, capture: .off,
                 model: "gpt-6-astra"
             ) { _ in
-                await #expect(throws: WorldMCPClient.Failure.self) {
+                await #expect(throws: MCPClient.Failure.self) {
                     try await GenAI.executeTool("query_entity", callID: "call_2", arguments: "{}") {
                         try await mcp.call("query_entity", arguments: "{}")
                     }
@@ -444,7 +444,7 @@ struct GenAITelemetryTests {
             "name": .string("query_entity"),
             "_meta": .object(["audience": .string("minds")]),
         ])
-        let carried = WorldMCPClient.carryingTheTrace(
+        let carried = MCPClient.carryingTheTrace(
             params,
             headers: [
                 "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
@@ -458,7 +458,7 @@ struct GenAITelemetryTests {
         #expect(carried["_meta"]?["in-memory-trace-id"] == nil)
         #expect(carried["name"] == .string("query_entity"))
         // Outside a trace, the params go as they came.
-        #expect(WorldMCPClient.carryingTheTrace(params, headers: [:]) == params)
+        #expect(MCPClient.carryingTheTrace(params, headers: [:]) == params)
     }
 
     @Test("Finish reasons follow the Responses API's status")

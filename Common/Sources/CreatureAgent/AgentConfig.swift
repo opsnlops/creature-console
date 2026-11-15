@@ -103,6 +103,9 @@ struct AgentConfig: Decodable {
         /// WorldMCP as the model's tools (`worldMcpUrl`): the public ingress, since the model
         /// provider calls it, not this process. Unset, the mind has no tools.
         let worldMCPURL: URL?
+        /// April's agent-memory MCP as read-only tools (`agentMemoryMcpUrl`, #294): the notes
+        /// her coding agents keep on her projects. Unset, the mind cannot read them.
+        let agentMemoryMCPURL: URL?
 
         /// Whether the mind may perform in the room. `physical` asks the world for the stage
         /// before each turn and streams to Creature Server when the answer is the room;
@@ -190,6 +193,7 @@ struct AgentConfig: Decodable {
         case maximumContextTurns
         case llmTimeoutSeconds
         case worldMcpUrl
+        case agentMemoryMcpUrl
     }
 
     private static let cooldownRegex = try? NSRegularExpression(
@@ -206,7 +210,16 @@ struct AgentConfig: Decodable {
             try container.decodeIfPresent(LLMBackend.self, forKey: .llmBackend) ?? .openai
         llmApiKey = try container.decodeIfPresent(String.self, forKey: .llmApiKey)
         llmModel = try container.decodeIfPresent(String.self, forKey: .llmModel) ?? "gpt-5.2"
-        llmSystemPrompt = try container.decode(String.self, forKey: .llmSystemPrompt)
+        // A world-mode mind with a persona file is that persona; the prompt is then never
+        // sent, so a config need not carry one (#294). MQTT mode and a persona-less mind still
+        // need it.
+        let declaredPersona = try container.decodeIfPresent(String.self, forKey: .personaPath)
+        if mode == .world, declaredPersona != nil {
+            llmSystemPrompt =
+                try container.decodeIfPresent(String.self, forKey: .llmSystemPrompt) ?? ""
+        } else {
+            llmSystemPrompt = try container.decode(String.self, forKey: .llmSystemPrompt)
+        }
         llmTemperature =
             try container.decodeIfPresent(Double.self, forKey: .llmTemperature) ?? 1.0
         llmReasoningEffort = try container.decodeIfPresent(
@@ -292,17 +305,16 @@ struct AgentConfig: Decodable {
                 debugDescription: "worldUrl must be an absolute URL"
             )
         }
-        let rawMCPURL = try container.decodeIfPresent(String.self, forKey: .worldMcpUrl)
-        let worldMCPURL: URL?
-        if let rawMCPURL {
-            guard let url = URL(string: rawMCPURL), url.scheme?.hasPrefix("http") == true else {
-                throw DecodingError.dataCorruptedError(
-                    forKey: .worldMcpUrl, in: container,
-                    debugDescription: "worldMcpUrl must be an absolute http(s) URL")
+        func mcpURL(_ key: CodingKeys) throws -> URL? {
+            guard let raw = try container.decodeIfPresent(String.self, forKey: key) else {
+                return nil
             }
-            worldMCPURL = url
-        } else {
-            worldMCPURL = nil
+            guard let url = URL(string: raw), url.scheme?.hasPrefix("http") == true else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: key, in: container,
+                    debugDescription: "\(key.stringValue) must be an absolute http(s) URL")
+            }
+            return url
         }
         world = WorldModeConfig(
             worldURL: worldURL,
@@ -341,14 +353,37 @@ struct AgentConfig: Decodable {
                 }
                 return zone
             } ?? TimeZone.current,
-            worldMCPURL: worldMCPURL
+            worldMCPURL: try mcpURL(.worldMcpUrl),
+            agentMemoryMCPURL: try mcpURL(.agentMemoryMcpUrl)
         )
     }
 
-    static func load(from url: URL) throws -> AgentConfig {
+    /// Loads a mind's config. With `base`, that file's top-level settings come first and the
+    /// mind's own file overrides them key by key: the package ships the fleet's production
+    /// settings in `/etc/creature/agent/common.yaml` (#294), and a bird's own yaml says only
+    /// what is its own. A key set to `~` in the bird's file turns the shared setting off.
+    static func load(from url: URL, base: URL? = nil) throws -> AgentConfig {
+        let own = try node(at: url)
+        guard let base else { return try YAMLDecoder().decode(AgentConfig.self, from: own) }
+        return try YAMLDecoder().decode(
+            AgentConfig.self, from: try merging(own, over: node(at: base)))
+    }
+
+    private static func node(at url: URL) throws -> Node {
         let contents = try String(contentsOf: url, encoding: .utf8)
-        let decoder = YAMLDecoder()
-        return try decoder.decode(AgentConfig.self, from: contents)
+        // An empty or all-comment file is no settings, not an error.
+        return try Yams.compose(yaml: contents) ?? Node.mapping([:])
+    }
+
+    /// The top-level keys of `own` laid over `base`'s; nested values are replaced whole, never
+    /// merged, so a bird that sets `areas` gets exactly its own.
+    static func merging(_ own: Node, over base: Node) throws -> Node {
+        guard case .mapping(var merged) = base, case .mapping(let mine) = own else {
+            throw DecodingError.dataCorrupted(
+                .init(codingPath: [], debugDescription: "an agent config must be a mapping"))
+        }
+        for (key, value) in mine { merged[key] = value }
+        return .mapping(merged)
     }
 
     static func parseCooldown(_ value: String) -> TimeInterval {

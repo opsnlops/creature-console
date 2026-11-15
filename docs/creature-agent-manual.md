@@ -97,7 +97,7 @@ Shared keys:
 | `creatureId` | required | Creature Server creature **UUID** Beaky speaks through (both modes; Beaky is `4754fc0e-1706-11ef-931d-bbb95a696e2e`). The sample file's `<uuid>` placeholder makes Creature Server refuse every session with `creature_id must be a UUID` |
 | `llmBackend` | `openai` | `openai` or `local`; world mode requires `local` |
 | `llmModel` | `gpt-5.2` | model name sent to the backend |
-| `llmSystemPrompt` | required | the character's persona |
+| `llmSystemPrompt` | required, except in world mode with `personaPath` | the character's persona as one prompt; a world-mode mind with a persona file never sends it, so from `2.110.0` it may be left out |
 | `llmTemperature` | `1.0` | |
 | `localLlmHost` / `localLlmPort` | `10.69.66.4` / `1234` | llama-server (OpenAI-compatible) |
 | `localLlmMaxTokens` | `100` | enough for a short reply; set `400` or so in world mode so a story fits. If the model is cut off by this cap, the unfinished last sentence is dropped rather than spoken (#157) |
@@ -105,6 +105,18 @@ Shared keys:
 MQTT mode keys (`mqttHost`, `mqttPort`, `mqttReconnectBackoff`, `fallbackSpeech`,
 `maxConcurrentTasks`, `minSentenceChars`, `areas`) are documented in the sample file. `areas` is
 required in MQTT mode and optional in world mode.
+
+**Shared settings** (`2.110.0`, #294). `creature-agent@<bird>` reads
+`/etc/creature/agent/common.yaml` (`--base-config-path`) and lays the bird's own
+`/etc/creature/agent/<bird>.yaml` over it key by key: a key the bird sets wins, whole (lists and
+maps are replaced, not merged), and a key set to `~` turns the shared setting off for that bird.
+The package ships the flock's production values there (a conffile, so an edit is kept): `mode`,
+`llmBackend`, `llmReasoningEffort`, `worldUrl`, `worldMcpUrl`, `agentMemoryMcpUrl` and `timeZone`.
+A missing file is skipped with a notice. The four birds' own files ship too
+(`/etc/creature/agent/{beaky,mango,kenny,caroll}.yaml`, from `debian/creature-agent-<bird>.yaml`):
+each holds only what is its own - `characterEntityId`, `personaPath`, `creatureId`, `llmModel`,
+`llmServiceTier`, `llmMemoryModel`, and `librarian` on Beaky. Who a bird is lives in its persona
+file, never in its config. A test decodes all of them, so a mistyped key's value fails CI.
 
 World mode keys:
 
@@ -120,6 +132,7 @@ World mode keys:
 | `regionEntityId` | `region:home` | the region this mind logs into; a character is in one region at a time |
 | `stage` | `physical` | `physical` asks the world for the stage and speaks in the room when told to; `communicator_only` never asks (2.55 behaviour) |
 | `worldMcpUrl` | unset | `2.74.1`, OpenAI backend only: WorldMCP as the model's tools, reached by **this mind** (`http://127.0.0.1:8001/world/mcp` beside the world; the LAN address elsewhere). The model asks; the mind runs the call. See *She looks things up* below |
+| `agentMemoryMcpUrl` | `http://10.19.63.10:8787/mcp` from the packaged `common.yaml` | `2.110.0`, OpenAI backend only: April's agent-memory MCP (the notes her coding agents keep on her projects) as **read-only** tools, reached by this mind on the LAN. Independent of `worldMcpUrl`. `~` in a bird's yaml turns it off for that bird. See *She reads April's project notebook* below |
 | `llmCache` | `{store: false, key: true}` | `2.77.2`: the provider's prompt cache knobs - `store` keeps responses on their side, `key` sends `prompt_cache_key`, `retention` sets `prompt_cache_retention` (e.g. `24h`). The raw usage object on every `LLM usage` line says whether a prefix was read (`cached_tokens`) or only written (`cache_write_tokens`); flip one knob at a time |
 | `llmBackend` | `local` | `local` (Mistral on the LAN) or `openai` (`2.61.0`): a mind may run on OpenAI's Responses API, streamed sentence by sentence like the local model, so one bird can be compared against Mistral live (`llm.model` is on every span). The key comes from `OPENAI_API_KEY` in `/etc/default/creature-agent-<instance>` (never in git) or `llmApiKey` |
 | `llmReasoningEffort` | none | `low`, `medium`, or `high` for OpenAI reasoning models; when set, no `temperature` is sent |
@@ -581,6 +594,20 @@ else — persona, facts, the clock, streaming to the room — is identical.
   retried after thirty seconds (`2.75.3` - deployed together, the mind came up before the
   world did and went a whole evening without tools).
   A local model has no tools.
+- **She reads April's project notebook** (`2.110.0`, #294; `agentMemoryMcpUrl`;
+  `docs/agent-memory-tools-plan.md`). April, after talking projects with Mango: it would have
+  been neat if he could look up the research she was doing as she was doing it. That research
+  is in agent-memory, the shared memory her coding agents keep. With `agentMemoryMcpUrl` set
+  (every bird has it from the packaged `/etc/creature/agent/common.yaml`),
+  the mind offers the model `agent_memory_search`, `agent_memory_get` and
+  `agent_memory_list_tags` beside the world's tools, on the same turns (a question from a
+  person; never a house remark). **Read only:** agent-memory's `remember`, `update`, `edit` and
+  `forget` are never offered, and a call to a name no server offered is refused in the mind
+  before a request is sent. The contract tells her to search with a few plain words, get one
+  entry a section at a time, and say what she read as what April's notes say, never as
+  something she saw. agent-memory keeps sessions: the mind opens one on first use and opens a
+  new one when the server restarts. Each call is a `mind.tool_called` event with
+  `server: agent_memory`; the Viewer (`0.26.0`) shows what was searched.
 - **She settles what she believes** (`2.73.0`, plan Phase 9; `docs/memory-consolidation-plan.md`).
   After the day's episodes, the same run reads the beliefs the flock holds and a month of
   episodes (paged from `GET /v1/facts?predicate_prefix=memory.`) and asks the memory model,

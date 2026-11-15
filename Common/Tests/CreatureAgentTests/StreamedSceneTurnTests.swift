@@ -122,7 +122,7 @@ struct StreamedSceneTurnTests {
         let handed = HandedTools()
         var tooled = configuration
         tooled.tools = ModelTools(
-            serverLabel: "world", catalogue: { [] }, call: { _, _ in "" }, onCall: { _ in })
+            servers: [.stub(label: "world")], onCall: { _ in })
         let mind = CharacterMind(
             configuration: tooled,
             respond: { transcript, tools in

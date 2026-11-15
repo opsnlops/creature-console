@@ -1,0 +1,13 @@
+# Kenny's mind (creature-agent@kenny), laid over /etc/creature/agent/common.yaml.
+# One of the chorus. Who he is lives in his persona file.
+
+characterEntityId: character:kenny
+personaPath: /etc/creature/agent/personas/kenny.yaml
+# His body on Creature Server: where he speaks in the room.
+creatureId: 2e431d6e-175e-11f0-b4f3-cb1f6d25c080
+
+llmModel: gpt-6-luna
+llmServiceTier: default
+
+# Remembering the day, each night, in his own voice.
+llmMemoryModel: gpt-6.1-sol

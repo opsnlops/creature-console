@@ -1,3 +1,23 @@
+creature-cli (2.110.0+world0.75.4+house0.10.4+gateway0.2.3+body0.2.4) unstable; urgency=medium
+
+  * creature-agent: a bird can read April's project notebook (#294). With
+    agentMemoryMcpUrl set, the agent-memory MCP's search, get and list_tags
+    are offered to the model as agent_memory_* tools beside the world's;
+    its write tools are never offered and a call to them is refused in the
+    mind. The MCP client keeps a session for servers that need one and reads
+    event-stream answers.
+  * creature-agent ships shared production settings for every mind in
+    /etc/creature/agent/common.yaml; creature-agent@<bird> lays its own
+    yaml over them key by key (--base-config-path), and ~ turns a shared
+    key off for one bird. It carries the notebook's address, so every bird
+    can read it after this upgrade.
+  * The flock's production configs ship as conffiles:
+    /etc/creature/agent/{beaky,mango,kenny,caroll}.yaml, holding only what is
+    each bird's own. llmSystemPrompt is no longer required in world mode
+    with a persona file.
+
+ -- April White <april@creature.engineering>  Sat, 14 Nov 2026 17:30:00 -0800
+
 creature-cli (2.109.4+world0.75.4+house0.10.4+gateway0.2.3+body0.2.4) unstable; urgency=medium
 
   * creature-mqtt runs as a DynamicUser with the World units' hardening, never
