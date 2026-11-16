@@ -1,8 +1,9 @@
 import SwiftUI
 import WorldCore
 
-/// The conversation as the World remembers it, newest turn at the top, with the router's
-/// decision beside each of Beaky's turns: the route it chose, why, and how the delivery went.
+/// The conversation as the World remembers it, newest turn at the top, with how each bird's
+/// turn reached April: the router's decision (the route, why, and how the delivery went), or,
+/// for a turn in a scene, how the scene's performance went.
 struct ConversationPanel: View {
     let store: WorldStore
     @Binding var scried: Scried?
@@ -10,11 +11,11 @@ struct ConversationPanel: View {
 
     var body: some View {
         List(store.conversationItems.reversed(), id: \.itemID, selection: $selection) { item in
-            ConversationTurnRow(item: item, delivery: delivery(for: item))
+            ConversationTurnRow(item: item, record: record(for: item))
         }
         .onChange(of: selection) { _, itemID in
             scried = store.conversationItems.first { $0.itemID == itemID }
-                .map { Scried.turn($0, delivery(for: $0)) }
+                .map { Scried.turn($0, record(for: $0)) }
         }
         .overlay {
             if store.conversationItems.isEmpty {
@@ -29,14 +30,25 @@ struct ConversationPanel: View {
         }
     }
 
-    private func delivery(for item: ConversationItem) -> CharacterDeliveryRecord? {
-        item.responseID.flatMap { store.deliveries[$0] }
+    private func record(for item: ConversationItem) -> TurnRecord {
+        TurnRecord(
+            delivery: item.responseID.flatMap { store.deliveries[$0] },
+            scene: item.responseID.flatMap { store.scenesByResponse[$0] }
+        )
     }
+}
+
+/// How a bird's turn reached April (#295): a turn answered alone goes through the router and
+/// has a delivery; a turn in a scene is performed with the scene's other lines, and the scene
+/// holds how that went. Either, or neither when the record is not among those loaded.
+struct TurnRecord: Hashable {
+    var delivery: CharacterDeliveryRecord?
+    var scene: WorldCore.Scene?
 }
 
 struct ConversationTurnRow: View {
     let item: ConversationItem
-    let delivery: CharacterDeliveryRecord?
+    let record: TurnRecord
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -61,7 +73,7 @@ struct ConversationTurnRow: View {
                 }
                 PerformedLine(item.performed ?? item.text)
                     .textSelection(.enabled)
-                if let delivery {
+                if let delivery = record.delivery {
                     DeliveryChip(delivery: delivery)
                     if let outcome = delivery.outcome, outcome.state == .failed {
                         // Why, in the refusing service's own words — the difference between
@@ -74,8 +86,22 @@ struct ConversationTurnRow: View {
                         .foregroundStyle(.red)
                         .textSelection(.enabled)
                     }
+                } else if let scene = record.scene {
+                    ScenePerformanceChip(scene: scene)
+                    if let performance = scene.performance, performance.state == .failed {
+                        Label(
+                            performance.errorMessage ?? performance.errorCode
+                                ?? "No reason was recorded.",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .textSelection(.enabled)
+                    }
                 } else if item.authorKind == .character {
-                    Text("No delivery record — this turn was cast by hand or pre-dates the router.")
+                    // Say only what is known: the Viewer holds the newest deliveries and
+                    // scenes, not all of them, so an older turn may simply be out of reach.
+                    Text("No delivery or scene record among those loaded.")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
@@ -126,6 +152,63 @@ struct WhisperedLabel: View {
         .font(.caption2)
         .foregroundStyle(.secondary)
         .help("Between April and this bird alone; the other birds are never handed it")
+    }
+}
+
+/// How the scene that spoke a bird's turn went (#295): the room heard it once the scene
+/// performed; before that it is being composed or rendered.
+struct ScenePerformanceChip: View {
+    let scene: WorldCore.Scene
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Label("scene", systemImage: "person.3.fill")
+            if let reason = scene.closeReason {
+                Text(reason.rawValue)
+            }
+            Text(state)
+                .foregroundStyle(failed ? .red : .primary)
+        }
+        .font(.caption)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .glassEffect(.regular.tint(tint.opacity(0.18)), in: .capsule)
+        .help(hint)
+    }
+
+    private var failed: Bool {
+        scene.performance?.state == .failed || scene.state == .abandoned
+    }
+
+    private var state: String {
+        if let performance = scene.performance {
+            return performance.state == .failed
+                ? "failed: \(performance.errorCode ?? "unknown")" : performance.state.rawValue
+        }
+        return switch scene.state {
+        case .open: "composing"
+        case .rendering: "rendering"
+        case .performed: "performed"
+        case .abandoned: "abandoned"
+        }
+    }
+
+    private var tint: Color {
+        if failed { return .red }
+        return scene.performance?.state == .performed || scene.state == .performed
+            ? .green : .gray
+    }
+
+    private var hint: String {
+        var parts = [
+            scene.sceneID.rawValue,
+            "opened \(scene.openedAt.formatted(.dateTime.hour().minute().second()))",
+            "\(scene.turns.filter { $0.text != nil }.count) spoken of \(scene.turns.count) turns",
+        ]
+        if let reference = scene.performance?.providerReference {
+            parts.append("performance \(reference)")
+        }
+        return parts.joined(separator: " · ")
     }
 }
 

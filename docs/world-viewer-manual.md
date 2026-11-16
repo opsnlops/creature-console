@@ -59,8 +59,14 @@ each of Beaky's turns is the router's **delivery chip**: the route it chose (`co
 the presence it saw (state, confidence, its basis — `assumed` until real evidence exists —
 and audible or not), and the outcome: `performed` when Beaky spoke in the room, `accepted` for
 the Communicator, or `failed: <error_code>`. Hover for the attempt ID, decision time, and the
-Creature Server animation ID of a performance. A turn with no chip was cast by hand or
-pre-dates the router. A whisper ("@beaky …") and the bird's answer to it carry
+Creature Server animation ID of a performance. A turn spoken in a **scene** never passes the
+router: the scene performs its lines together, so beneath it is the **scene chip** instead
+(`0.26.1`, #295) — `scene`, why the scene closed (`round_done`, `maximum_turns`,
+`interrupted`…), and how it went: `composing`, `rendering`, `performed` once the room heard it,
+or `failed: <error_code>` in red with Creature Server's reason beneath. Hover for the scene ID,
+when it opened, how many of its turns were spoken, and the performance ID. A bird's turn with
+neither chip says so — "No delivery or scene record among those loaded" — because the Viewer
+holds the newest deliveries and scenes, not all of them. A whisper ("@beaky …") and the bird's answer to it carry
 **🔒 whispered with Beaky** (`0.23.1`, World `0.64.2`, #261): it is between April and that bird,
 and no other bird hears it, live or at night. A fact a bird learned in a whisper carries the same
 mark in the Facts and Entities panels (`0.23.2`, World `0.64.3`, #263): only that bird is handed

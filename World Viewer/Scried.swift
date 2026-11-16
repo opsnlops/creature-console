@@ -5,7 +5,7 @@ import WorldCore
 /// the JSON the World actually carries — the Viewer never re-imagines a record.
 enum Scried: Hashable, Identifiable {
     case event(WorldEventEnvelope)
-    case turn(ConversationItem, CharacterDeliveryRecord?)
+    case turn(ConversationItem, TurnRecord)
     case fact(Fact)
     case timer(WorldTimer)
     case character(CharacterSession)
@@ -44,8 +44,9 @@ enum Scried: Hashable, Identifiable {
             let data: Data
             switch self {
             case .event(let event): data = try encoder.encode(event)
-            case .turn(let item, let delivery):
-                data = try encoder.encode(ScriedTurn(item: item, delivery: delivery))
+            case .turn(let item, let record):
+                data = try encoder.encode(
+                    ScriedTurn(item: item, delivery: record.delivery, scene: record.scene))
             case .fact(let fact): data = try encoder.encode(fact)
             case .timer(let timer): data = try encoder.encode(timer)
             case .character(let session): data = try encoder.encode(session)
@@ -62,4 +63,6 @@ enum Scried: Hashable, Identifiable {
 private struct ScriedTurn: Encodable {
     var item: ConversationItem
     var delivery: CharacterDeliveryRecord?
+    /// The scene that spoke the turn, when it was a scene turn (#295).
+    var scene: WorldCore.Scene?
 }

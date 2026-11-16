@@ -59,6 +59,10 @@ final class WorldStore {
     private(set) var scenes: [WorldCore.Scene] = []
     private(set) var conversationItems: [ConversationItem] = []
     private(set) var deliveries: [ResponseID: CharacterDeliveryRecord] = [:]
+    /// The scene that spoke each bird's scene turn, by the turn's response id (#295). A scene
+    /// turn never passes the router, so this - not `deliveries` - says whether the room heard
+    /// it. Kept across scene loads (a page is only the newest scenes) and bounded.
+    private(set) var scenesByResponse: [ResponseID: WorldCore.Scene] = [:]
     private(set) var conversationID: ConversationID
     private(set) var worldURI: String
     var lastError: ErrorAlert?
@@ -100,6 +104,7 @@ final class WorldStore {
         timers = []
         conversationItems = []
         deliveries = [:]
+        scenesByResponse = [:]
         characters = []
         scenes = []
         health = nil
@@ -147,6 +152,35 @@ final class WorldStore {
         let page = try await makeScryer().scenes(limit: 50)
         guard !Task.isCancelled else { return }
         scenes = page.scenes
+        scenesByResponse = Self.indexing(page.scenes, into: scenesByResponse)
+    }
+
+    /// As many scenes as the conversation window could need: a play-by-play game opens a scene
+    /// a play, and the window holds `maximumConversationItems` turns.
+    static let maximumIndexedScenes = maximumConversationItems
+
+    /// `index` with every turn of `scenes` pointing at its scene; a scene seen again replaces
+    /// the older copy (it may have performed since). Past `limit` scenes, the oldest go.
+    static func indexing(
+        _ scenes: [WorldCore.Scene],
+        into index: [ResponseID: WorldCore.Scene],
+        limit: Int = maximumIndexedScenes
+    ) -> [ResponseID: WorldCore.Scene] {
+        var index = index
+        for scene in scenes {
+            for turn in scene.turns {
+                index[turn.responseID] = scene
+            }
+        }
+        var newest: [SceneID: Date] = [:]
+        for scene in index.values {
+            newest[scene.sceneID] = scene.openedAt
+        }
+        guard newest.count > limit else { return index }
+        let kept = Set(
+            newest.sorted { ($0.value, $0.key.rawValue) > ($1.value, $1.key.rawValue) }
+                .prefix(limit).map(\.key))
+        return index.filter { kept.contains($0.value.sceneID) }
     }
 
     private func loadCharacters() async throws {

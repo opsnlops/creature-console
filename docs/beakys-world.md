@@ -26,6 +26,9 @@ coding agents keep on her projects) through `agent_memory_search`, `agent_memory
 `agent_memory_list_tags`, beside the world's tools and on the same turns. Read only: write tools
 are never offered and are refused in the mind. Agent `2.110.0` (CLI/MQTT with it), World Viewer
 `0.26.0` (the Timeline shows each look-up's arguments). Plan: `docs/agent-memory-tools-plan.md`.
+World Viewer `0.26.1` (#295, found on Family Football Night 2026-11-15): scene turns showed the
+gray "No delivery record — cast by hand or pre-dates the router" although the scene performed
+them; the Conversation panel now shows the scene chip (close reason, performance state).
 The flock's production configs are in the package now too (`debian/creature-agent-<bird>.yaml`,
 installed as `/etc/creature/agent/<bird>.yaml` conffiles), cleaned of the MQTT-agent copy they
 started as; `llmSystemPrompt` is no longer required beside a persona file. **On the first upgrade
