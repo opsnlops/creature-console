@@ -282,6 +282,10 @@ else — persona, facts, the clock, streaming to the room — is identical.
       "they should be able to be curious and sleepy if they want." Each cue costs the room up to
       1.5 s, so the contract asks for them where there is real feeling; code no longer limits
       them.
+    - **A cue colours one sentence** (`2.110.1`, #296, Family Football Night 11-15). A line
+      is voiced a sentence at a time, so a cue only colours the sentence it is in. The contract
+      says so: a feeling that lasts is given again at the start of the next sentence. Code
+      doesn't carry cues forward, since it can't tell `[happy]` from a one-off `[laughs]`.
   - **What counts as a cue.** `WorldCore.VoiceCues` decides: 1–40 characters with a letter, no
     colon, and not `[silence]`. So `[learned: …]`, `[house: …]` and `[quiet: …]` are never
     cues.

@@ -1,3 +1,12 @@
+creature-cli (2.110.1+world0.75.4+house0.10.4+gateway0.2.3+body0.2.4) unstable; urgency=medium
+
+  * creature-agent: the birds are told that a voice cue colours only the
+    sentence it is in, because a line is voiced a sentence at a time; a
+    feeling that lasts is given again at the start of the next sentence
+    (#296).
+
+ -- April White <april@creature.engineering>  Sun, 15 Nov 2026 21:30:16 -0800
+
 creature-cli (2.110.0+world0.75.4+house0.10.4+gateway0.2.3+body0.2.4) unstable; urgency=medium
 
   * creature-agent: a bird can read April's project notebook (#294). With

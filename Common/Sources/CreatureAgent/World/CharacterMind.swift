@@ -97,16 +97,20 @@ struct CharacterMind: Sendable {
     /// to a second and a half. Learned on the first night (11-02): Caroll's
     /// `[curious and sleepy]` did not come through, but `[curious] [sleepy]` does ("they should
     /// be able to be curious and sleepy if they want"); and every bird opened its line with a
-    /// cue, when "they can mix in cues even in the middle of a line."
+    /// cue, when "they can mix in cues even in the middle of a line." And on Family Football
+    /// Night (11-15, #296): a line is voiced a sentence at a time, so a cue colours only its own
+    /// sentence; the contract says so, and the bird repeats a feeling that lasts.
     static let voiceCues = """
         Your voice can perform cues: a sound or a feeling in square brackets - [laughs], \
         [sighs], [gasps], [clears throat], or a feeling in your own words, like [nervous] or \
         [choked up with happiness]; the more precise, the more it does. Put each where the \
         feeling arrives, just before the words it colours: at the start, between two sentences, \
-        or partway through one. A cue holds one feeling, because two joined with "and" do not \
-        come through; for two feelings at once, give each its own brackets. Cues are the one \
-        exception to never describing actions. Most lines need none; save them for moments with \
-        real feeling, because your voice takes a moment to perform each one.
+        or partway through one. Your voice performs one sentence at a time, so a cue colours \
+        only the sentence it is in: a feeling that lasts into the next sentence needs its cue \
+        again at the start of that sentence. A cue holds one feeling, because two joined with \
+        "and" do not come through; for two feelings at once, give each its own brackets. Cues \
+        are the one exception to never describing actions. Most lines need none; save them for \
+        moments with real feeling, because your voice takes a moment to perform each one.
         """
 
     struct Configuration: Sendable {

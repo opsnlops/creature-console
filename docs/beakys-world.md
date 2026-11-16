@@ -29,6 +29,9 @@ are never offered and are refused in the mind. Agent `2.110.0` (CLI/MQTT with it
 World Viewer `0.26.1` (#295, found on Family Football Night 2026-11-15): scene turns showed the
 gray "No delivery record — cast by hand or pre-dates the router" although the scene performed
 them; the Conversation panel now shows the scene chip (close reason, performance state).
+Agent `2.110.1` (#296, same night): a voice cue colours only its own sentence (lines are voiced
+a sentence at a time), so the cue contract now tells the birds to give a lasting feeling again
+at the start of the next sentence. See decision 4 in `docs/voice-cues-plan.md`.
 The flock's production configs are in the package now too (`debian/creature-agent-<bird>.yaml`,
 installed as `/etc/creature/agent/<bird>.yaml` conffiles), cleaned of the MQTT-agent copy they
 started as; `llmSystemPrompt` is no longer required beside a persona file. **On the first upgrade

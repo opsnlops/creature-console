@@ -40,6 +40,15 @@ Recommended on #270, and taken as recommended; each one is easy to change.
    [sleepy]", then: "they should be able to be curious and sleepy if they want." Code no longer
    limits cues; the contract asks for them where there is real feeling.
 
+4. **A cue colours one sentence** (agent 2.110.1, #296). A spoken line reaches the voice a
+   sentence at a time, and a cue only colours the sentence it arrives in. On Family Football
+   Night a bird's `[happy]` faded after its first sentence unless it repeated the cue. The
+   contract said to put a cue "just before the words it colours", which suggested a feeling holds
+   until the next cue. It now tells the truth: a feeling that lasts into the next sentence needs
+   its cue again at the start of that sentence. The bird decides. Code doesn't carry cues forward,
+   because it can't tell a lasting feeling from a one-off sound like `[laughs]` without a word
+   list.
+
 The Communicator route is text, not voice. Its contract says nothing about cues, and its replies
 are still stripped of every bracket.
 

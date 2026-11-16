@@ -728,6 +728,11 @@ struct CharacterMindTests {
         #expect(CharacterMind.voiceCues.contains("A cue holds one feeling"))
         #expect(CharacterMind.voiceCues.contains("give each its own brackets"))
         #expect(CharacterMind.voiceCues.contains("between two sentences, or partway through one"))
+        // A cue colours only its own sentence: the voice is streamed a sentence at a time, so a
+        // lasting feeling is given again at the start of the next (#296).
+        #expect(CharacterMind.voiceCues.contains("a cue colours only the sentence it is in"))
+        #expect(
+            CharacterMind.voiceCues.contains("needs its cue again at the start of that sentence"))
     }
 
     @Test("In the room the voice performs every cue; the record keeps her words (#270)")
