@@ -1,3 +1,15 @@
+creature-cli (2.110.3+world0.75.4+house0.10.4+gateway0.2.3+body0.2.4) unstable; urgency=medium
+
+  * creature-agent: Beaky's nightly memory and the librarian move from
+    gpt-6-astra to gpt-6.2-astra, which is cheaper ($8/$40 per million
+    tokens, from $10/$50); the chorus's nights (Mango, Kenny, Caroll) move
+    from gpt-6.1-sol to gpt-6.2-sol at the same price (#298). A batch
+    already submitted finishes on the model it was sent with. The bird
+    yamls in /etc/creature/agent are conffiles: answer Y to take the
+    packaged versions.
+
+ -- April White <april@creature.engineering>  Tue, 17 Nov 2026 18:44:40 -0800
+
 creature-cli (2.110.2+world0.75.4+house0.10.4+gateway0.2.3+body0.2.4) unstable; urgency=medium
 
   * creature-agent: Beaky's packaged config moves her mind from gpt-6.1-sol

@@ -10,6 +10,6 @@ llmModel: gpt-6.2-sol
 llmServiceTier: fast
 
 # Remembering the day, each night, in her own voice.
-llmMemoryModel: gpt-6-astra
+llmMemoryModel: gpt-6.2-astra
 # After remembering, she files what all the minds kept (one bird only: the lead).
 librarian: true

@@ -182,10 +182,10 @@ struct AgentConfigTests {
         let expected:
             [(bird: String, model: String, tier: String, memory: String, librarian: Bool)] =
                 [
-                    ("beaky", "gpt-6.2-sol", "fast", "gpt-6-astra", true),
-                    ("mango", "gpt-6-luna", "default", "gpt-6.1-sol", false),
-                    ("kenny", "gpt-6-luna", "default", "gpt-6.1-sol", false),
-                    ("caroll", "gpt-6-luna", "default", "gpt-6.1-sol", false),
+                    ("beaky", "gpt-6.2-sol", "fast", "gpt-6.2-astra", true),
+                    ("mango", "gpt-6-luna", "default", "gpt-6.2-sol", false),
+                    ("kenny", "gpt-6-luna", "default", "gpt-6.2-sol", false),
+                    ("caroll", "gpt-6-luna", "default", "gpt-6.2-sol", false),
                 ]
         var creatures: Set<String> = []
         for bird in expected {

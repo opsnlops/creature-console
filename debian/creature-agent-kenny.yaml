@@ -10,4 +10,4 @@ llmModel: gpt-6-luna
 llmServiceTier: default
 
 # Remembering the day, each night, in his own voice.
-llmMemoryModel: gpt-6.1-sol
+llmMemoryModel: gpt-6.2-sol
