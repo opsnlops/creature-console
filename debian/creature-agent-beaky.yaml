@@ -6,7 +6,7 @@ personaPath: /etc/creature/agent/personas/beaky.yaml
 # Her body on Creature Server: where she speaks in the room.
 creatureId: 4754fc0e-1706-11ef-931d-bbb95a696e2e
 
-llmModel: gpt-6.1-sol
+llmModel: gpt-6.2-sol
 llmServiceTier: fast
 
 # Remembering the day, each night, in her own voice.

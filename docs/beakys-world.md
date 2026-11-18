@@ -32,6 +32,9 @@ them; the Conversation panel now shows the scene chip (close reason, performance
 Agent `2.110.1` (#296, same night): a voice cue colours only its own sentence (lines are voiced
 a sentence at a time), so the cue contract now tells the birds to give a lasting feeling again
 at the start of the next sentence. See decision 4 in `docs/voice-cues-plan.md`.
+Agent `2.110.2` (#297, 2026-11-17): Beaky's mind moves to `gpt-6.2-sol` (released that day,
+same price as 6.1 Sol), still on the fast tier with `gpt-6-astra` for her nights; the chorus is
+unchanged. Watch first-sentence latency and cache reads after the deploy.
 The flock's production configs are in the package now too (`debian/creature-agent-<bird>.yaml`,
 installed as `/etc/creature/agent/<bird>.yaml` conffiles), cleaned of the MQTT-agent copy they
 started as; `llmSystemPrompt` is no longer required beside a persona file. **On the first upgrade

@@ -1,3 +1,12 @@
+creature-cli (2.110.2+world0.75.4+house0.10.4+gateway0.2.3+body0.2.4) unstable; urgency=medium
+
+  * creature-agent: Beaky's packaged config moves her mind from gpt-6.1-sol
+    to gpt-6.2-sol, at the same price; her fast tier and memory model are
+    unchanged (#297). /etc/creature/agent/beaky.yaml is a conffile: answer
+    Y to take the packaged version if it was edited locally.
+
+ -- April White <april@creature.engineering>  Tue, 17 Nov 2026 18:33:28 -0800
+
 creature-cli (2.110.1+world0.75.4+house0.10.4+gateway0.2.3+body0.2.4) unstable; urgency=medium
 
   * creature-agent: the birds are told that a voice cue colours only the

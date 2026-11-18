@@ -53,7 +53,7 @@ Side note held for later: the glossary sends the world-only kinds' meanings too.
 ## Review, 2026-10-17: where the money goes
 
 Prices from OpenAI's pricing page (per 1M tokens; cache reads 0.1x, writes 1.25x of input):
-gpt-6-astra $10 in / $50 out; gpt-6.1-sol $2 / $10; gpt-6-luna $0.10 / $0.50. **Fast tier is
+gpt-6-astra $10 in / $50 out; gpt-6.1-sol $2 / $10 (gpt-6.2-sol, Beaky's from 2026-11-17, the same); gpt-6-luna $0.10 / $0.50. **Fast tier is
 2x** (every bird runs `service_tier: fast`); **Batch is 0.5x** (the nightly memory).
 
 | Spend (~40 h of traffic, scaled to a month) | ≈ / month |
