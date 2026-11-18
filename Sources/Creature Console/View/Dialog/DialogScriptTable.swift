@@ -131,9 +131,9 @@ struct DialogScriptTable: View {
             .navigationDestination(item: $scriptToEdit) { script in
                 DialogScriptEditor(existing: script.toDTO())
             }
-            .toolbar(id: "dialogList") {
+            .toolbar {
                 #if os(iOS)
-                    ToolbarItem(id: "create", placement: .topBarTrailing) {
+                    ToolbarItem(placement: .topBarTrailing) {
                         NavigationLink {
                             DialogScriptEditor(createNew: true)
                         } label: {
@@ -141,7 +141,7 @@ struct DialogScriptTable: View {
                         }
                     }
                 #else
-                    ToolbarItem(id: "create", placement: .primaryAction) {
+                    ToolbarItem(placement: .primaryAction) {
                         NavigationLink {
                             DialogScriptEditor(createNew: true)
                         } label: {
@@ -149,7 +149,7 @@ struct DialogScriptTable: View {
                         }
                     }
 
-                    ToolbarItem(id: "edit", placement: .secondaryAction) {
+                    ToolbarItem(placement: .secondaryAction) {
                         if let selectedId = selection,
                             let script = scripts.first(where: { $0.id == selectedId })
                         {

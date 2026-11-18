@@ -136,9 +136,9 @@ struct FixturesTable: View {
             .navigationDestination(item: $fixtureToEdit) { fixture in
                 FixtureEditor(existing: fixture.toDTO())
             }
-            .toolbar(id: "fixturesList") {
+            .toolbar {
                 #if os(iOS)
-                    ToolbarItem(id: "create", placement: .topBarTrailing) {
+                    ToolbarItem(placement: .topBarTrailing) {
                         NavigationLink {
                             FixtureEditor(createNew: true)
                         } label: {
@@ -146,7 +146,7 @@ struct FixturesTable: View {
                         }
                     }
                 #else
-                    ToolbarItem(id: "create", placement: .primaryAction) {
+                    ToolbarItem(placement: .primaryAction) {
                         NavigationLink {
                             FixtureEditor(createNew: true)
                         } label: {
@@ -154,7 +154,7 @@ struct FixturesTable: View {
                         }
                     }
 
-                    ToolbarItem(id: "edit", placement: .secondaryAction) {
+                    ToolbarItem(placement: .secondaryAction) {
                         if let selectedId = selection,
                             let fixture = fixtures.first(where: { $0.id == selectedId })
                         {
