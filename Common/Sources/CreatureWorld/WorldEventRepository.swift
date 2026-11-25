@@ -202,11 +202,15 @@ struct WorldEventRepository: Sendable {
 
     private func event(withSource source: EventSource) async throws -> WorldEventEnvelope? {
         guard let sourceEventID = source.sourceEventID else { return nil }
+        // `source_event_unique` is partial, on ids that are strings. MongoDB uses a partial index
+        // only when the query states its condition - an equality to a string is not enough - so
+        // without the $type this scanned the whole log for every event accepted (#299).
+        let stringEqual: Document = ["$eq": sourceEventID, "$type": "string"]
         guard
             let document = try await events.findOne(
                 [
                     "source.id": source.id.rawValue,
-                    "source.source_event_id": sourceEventID,
+                    "source.source_event_id": stringEqual,
                 ])
         else { return nil }
         return try decode(document)

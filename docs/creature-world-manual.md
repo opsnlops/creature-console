@@ -963,6 +963,11 @@ Event ingestion is idempotent in two ways:
 - Reusing an `event_id` returns the event already accepted.
 - Reusing a source ID and source event ID returns the event already accepted.
 
+The second check asks for the source event ID as `{"$eq": id, "$type": "string"}` (`0.75.5`, #299).
+Its index, `source_event_unique`, is partial on string IDs, and MongoDB uses a partial index only
+when the query states the index's condition. Without the `$type` the check scanned all of
+`world_events` for every event: about 180 ms by November 2026, and growing with the log.
+
 `world_sequence` is allocated atomically and is unique and increasing. It is not promised to be
 gap-free: a sequence may be allocated before an insert loses a deduplication race or fails.
 Consumers must order by the value, not infer missing events from a gap.

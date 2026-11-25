@@ -350,6 +350,7 @@ let package = Package(
                 .product(name: "Instrumentation", package: "swift-distributed-tracing"),
                 .product(name: "InMemoryTracing", package: "swift-distributed-tracing"),
                 .product(name: "Tracing", package: "swift-distributed-tracing"),
+                .product(name: "MongoCore", package: "MongoKitten"),
                 .product(name: "MongoKitten", package: "MongoKitten"),
             ]
         ),

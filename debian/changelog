@@ -1,3 +1,12 @@
+creature-cli (2.110.3+world0.75.5+house0.10.4+gateway0.2.3+body0.2.4) unstable; urgency=medium
+
+  * creature-world: accepting an event no longer scans the whole event log.
+    The check for an event already accepted could not use its partial index,
+    so it took about 180 ms for each event and grew with the log; it now
+    states the index's condition and uses it (#299). No migration.
+
+ -- April White <april@creature.engineering>  Tue, 24 Nov 2026 19:02:17 -0800
+
 creature-cli (2.110.3+world0.75.4+house0.10.4+gateway0.2.3+body0.2.4) unstable; urgency=medium
 
   * creature-agent: Beaky's nightly memory and the librarian move from

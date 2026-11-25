@@ -19,6 +19,18 @@ This section is intentionally operational and time-sensitive. It gives the next 
 enough context to continue without reconstructing the implementation from chat history. **Keep it
 current in the same commit as the code it describes.**
 
+### 0.0b Accepting an event no longer scans the log — 2026-11-24 (#299)
+
+World `0.75.5`. The duplicate check by source could not use its partial index, so every event
+accepted scanned `world_events`: 54 ms at its lowest in October, 211 ms on 2026-11-24 (median
+`world.event.accept`), and about 0.54 s of one measured reply before the first bird's model started.
+The query now states the index's condition; there is no migration. After deploying, watch the median of
+`world.event.accept` fall. Any new partial index needs its condition in the query too.
+
+**Next: #300** (not started). An old event the house re-sends on starting can end a newer fact
+before that fact began. The unreadable record then fails the librarian's read of overwritten facts
+and the night is lost (the records of 2026-11-15 and 2026-11-22). The plan is in the issue.
+
 ### 0.0a The birds read April's project notebook — 2026-11-14 (#294)
 
 With `agentMemoryMcpUrl` set in a bird's yaml, a mind can read agent-memory (the notes April's
