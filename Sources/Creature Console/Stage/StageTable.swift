@@ -144,9 +144,9 @@ struct StageTable: View {
                     Task { await store.load() }
                 }
             }
-            .toolbar(id: "stageList") {
+            .toolbar {
                 #if os(iOS)
-                    ToolbarItem(id: "create", placement: .topBarTrailing) {
+                    ToolbarItem(placement: .topBarTrailing) {
                         NavigationLink {
                             StageEditor(createNew: true)
                         } label: {
@@ -154,14 +154,14 @@ struct StageTable: View {
                         }
                     }
                 #else
-                    ToolbarItem(id: "create", placement: .primaryAction) {
+                    ToolbarItem(placement: .primaryAction) {
                         NavigationLink {
                             StageEditor(createNew: true)
                         } label: {
                             Image(systemName: "plus")
                         }
                     }
-                    ToolbarItem(id: "edit", placement: .secondaryAction) {
+                    ToolbarItem(placement: .secondaryAction) {
                         if let id = selection,
                             let stage = store.stages.first(where: { $0.id == id })
                         {
@@ -175,7 +175,7 @@ struct StageTable: View {
                         }
                     }
                 #endif
-                ToolbarItem(id: "refresh", placement: .secondaryAction) {
+                ToolbarItem(placement: .secondaryAction) {
                     Button {
                         Task { await store.load() }
                     } label: {

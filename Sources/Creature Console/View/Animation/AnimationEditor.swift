@@ -108,9 +108,9 @@ struct AnimationEditor: View {
         #if os(macOS)
             .navigationSubtitle("Active Universe: \(activeUniverse)")
         #endif
-        .toolbar(id: "animationEditor") {
+        .toolbar {
             if !effectiveReadOnly {
-                ToolbarItem(id: "save", placement: .secondaryAction) {
+                ToolbarItem(placement: .secondaryAction) {
                     Button(action: {
                         saveAnimationToServer()
                     }) {
@@ -119,7 +119,7 @@ struct AnimationEditor: View {
                     }
                 }
             }
-            ToolbarItem(id: "play", placement: .secondaryAction) {
+            ToolbarItem(placement: .secondaryAction) {
                 Button(action: {
                     playAnimationOnServer()
                 }) {
@@ -132,7 +132,7 @@ struct AnimationEditor: View {
             }
 
             if !effectiveReadOnly {
-                ToolbarItem(id: "newTrack", placement: .primaryAction) {
+                ToolbarItem(placement: .primaryAction) {
                     Menu {
                         if availableCreatures.isEmpty {
                             Label(
