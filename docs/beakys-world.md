@@ -36,8 +36,9 @@ before its start, facts already stored that way are read as ending when they beg
 librarian files without that page when it cannot be read. `TestWorldStore` had hidden it: it left
 out facts that begin later, and MongoDB does not.
 
-**Next: #301** (not started). `creature-body` asks for the birds' names once, so if it starts before
-Creature Server answers it says nothing about any bird. Restart it after a whole-server restart.
+`creature-body` `0.2.5` (#301, same night): it asked Creature Server for the birds' names once, so
+started first, as on the restart that evening, it said nothing about any bird. It now asks again
+whenever a creature that has not been named reports.
 
 ### 0.0a The birds read April's project notebook — 2026-11-14 (#294)
 

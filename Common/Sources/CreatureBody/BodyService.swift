@@ -14,33 +14,85 @@ struct BodyService: Service {
     let logger: Logger
 
     func run() async throws {
-        let names = await creatureNames()
         logger.info(
             "creature-body \(CreatureBodyBuildInfo.version)",
             metadata: [
                 "creature_server": "\(server.serverHostname):\(server.serverPort)",
                 "world.url": "\(configuration.worldURL)",
-                "creatures": "\(names.count)",
             ])
         let world = WorldGate(url: configuration.worldURL, client: client, logger: logger)
+        let state = BodyState(configuration: configuration, logger: logger) {
+            await world.deliver($0)
+        }
+        let server = server
+        let rollCall = RollCall(state: state, logger: logger) {
+            await server.getAllCreatures().map { creatures in
+                Dictionary(creatures.map { ($0.id, $0.name) }) { _, latest in latest }
+            }
+        }
+        _ = await rollCall.ask()
         await world.seedGlossary(BodyFacts.meanings)
-        let processor = BodyProcessor(
-            configuration: configuration, names: names, world: world, logger: logger)
-        await server.connectWebsocket(processor: processor)
+        await server.connectWebsocket(processor: BodyProcessor(state: state))
         logger.info("Listening to the birds' bodies")
-        try await gracefulShutdown()
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { await rollCall.run() }
+            try await gracefulShutdown()
+            group.cancelAll()
+        }
         _ = await server.disconnectWebsocket()
     }
+}
 
-    private func creatureNames() async -> [CreatureIdentifier: String] {
-        switch await server.getAllCreatures() {
-        case .success(let creatures):
-            return Dictionary(uniqueKeysWithValues: creatures.map { ($0.id, $0.name) })
+/// Who the creatures are, asked of Creature Server: once at the start, and again when one it has
+/// not named reports. The server may not be up yet - both start with the machine - and asking once
+/// left every bird without a body until creature-body was restarted (#301). It asks apart from the
+/// reports, so a server slow to answer never holds them up.
+struct RollCall: Sendable {
+    /// How long after the server could not say before it is asked again.
+    static let afterNoAnswer: Duration = .seconds(10)
+    /// How long after an answer: a creature still not named then is one the server does not know.
+    static let afterAnswer: Duration = .seconds(300)
+
+    let state: BodyState
+    let logger: Logger
+    let pause: @Sendable (Duration) async throws -> Void
+    let list: @Sendable () async -> Result<[CreatureIdentifier: String], ServerError>
+
+    init(
+        state: BodyState, logger: Logger,
+        pause: @escaping @Sendable (Duration) async throws -> Void = {
+            try await Task.sleep(for: $0)
+        },
+        list: @escaping @Sendable () async -> Result<[CreatureIdentifier: String], ServerError>
+    ) {
+        self.state = state
+        self.logger = logger
+        self.pause = pause
+        self.list = list
+    }
+
+    /// Asks, until cancelled, whenever a creature without a name has reported.
+    func run() async {
+        for await _ in state.unnamedReports {
+            let answered = await ask()
+            do { try await pause(answered ? Self.afterAnswer : Self.afterNoAnswer) } catch {
+                return
+            }
+        }
+    }
+
+    /// Whether the server named any creatures. One that names none has not loaded them yet.
+    func ask() async -> Bool {
+        switch await list() {
+        case .success(let names):
+            await state.learn(names)
+            logger.info("Learned the creatures' names", metadata: ["creatures": "\(names.count)"])
+            return !names.isEmpty
         case .failure(let error):
             logger.warning(
-                "Could not list the creatures; names will be looked up as they report",
+                "Could not list the creatures; asking again when one reports",
                 metadata: ["error": "\(error)"])
-            return [:]
+            return false
         }
     }
 }
@@ -125,14 +177,7 @@ actor WorldGate {
 
 /// Every message from the server; only the sensor reports matter here.
 struct BodyProcessor: MessageProcessor {
-    private let state: BodyState
-
-    init(
-        configuration: BodyConfiguration, names: [CreatureIdentifier: String], world: WorldGate,
-        logger: Logger
-    ) {
-        state = BodyState(configuration: configuration, names: names, world: world, logger: logger)
-    }
+    let state: BodyState
 
     func processBoardSensorReport(_ report: BoardSensorReport) async {
         await state.take(creatureID: report.creatureId, facts: BodyFacts.facts(from: report))
@@ -166,21 +211,32 @@ struct BodyProcessor: MessageProcessor {
 /// The change detector and the names, behind an actor so reports from the socket queue up.
 actor BodyState {
     private let configuration: BodyConfiguration
-    private var names: [CreatureIdentifier: String]
-    private let world: WorldGate
+    private var names: [CreatureIdentifier: String] = [:]
+    private let deliver: @Sendable ([WorldEventEnvelope]) async -> Void
     private let logger: Logger
     private var ledger = BodyLedger()
-    private var unknown: Set<CreatureIdentifier> = []
+    /// The creatures a warning has been given about, so each is said once.
+    private var warned: Set<CreatureIdentifier> = []
     private var lastCounters: (counters: SystemCountersDTO, at: Date)?
+    /// Says that a creature without a name has reported; only the latest waits.
+    nonisolated let unnamedReports: AsyncStream<Void>
+    private let unnamedReport: AsyncStream<Void>.Continuation
 
     init(
-        configuration: BodyConfiguration, names: [CreatureIdentifier: String], world: WorldGate,
-        logger: Logger
+        configuration: BodyConfiguration, logger: Logger,
+        deliver: @escaping @Sendable ([WorldEventEnvelope]) async -> Void
     ) {
         self.configuration = configuration
-        self.names = names
-        self.world = world
+        self.deliver = deliver
         self.logger = logger
+        (unnamedReports, unnamedReport) = AsyncStream.makeStream(
+            bufferingPolicy: .bufferingNewest(1))
+    }
+
+    /// What the server says its creatures are called.
+    func learn(_ named: [CreatureIdentifier: String]) {
+        names.merge(named) { _, latest in latest }
+        warned.subtract(named.keys)
     }
 
     /// The server's counters: its own vital signs, and each bird's runtime state.
@@ -205,12 +261,20 @@ actor BodyState {
         if let reported, !reported.isEmpty, names[creatureID] == nil {
             names[creatureID] = reported
         }
-        guard let name = names[creatureID], let subject = configuration.character(named: name)
-        else {
-            if unknown.insert(creatureID).inserted {
+        guard let name = names[creatureID] else {
+            if warned.insert(creatureID).inserted {
                 logger.warning(
-                    "A creature the server never named is reporting; ignoring it",
+                    "A creature the server has not named is reporting; asking who it is",
                     metadata: ["creature_id": "\(creatureID)"])
+            }
+            unnamedReport.yield()
+            return
+        }
+        guard let subject = configuration.character(named: name) else {
+            if warned.insert(creatureID).inserted {
+                logger.warning(
+                    "A creature's name is no entity's; ignoring it",
+                    metadata: ["creature_id": "\(creatureID)", "creature_name": "\(name)"])
             }
             return
         }
@@ -233,7 +297,7 @@ actor BodyState {
                     subject: subject, predicate: $0.predicate, value: $0.value,
                     validFor: configuration.validForSeconds, at: now)
             }
-            await world.deliver(events)
+            await deliver(events)
             logger.debug(
                 "Told the world",
                 metadata: [

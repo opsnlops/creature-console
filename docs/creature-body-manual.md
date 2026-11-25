@@ -48,6 +48,16 @@ keeps such telemetry out of the birds' story regardless. The
 meanings are seeded into the world's glossary the first time, for the minds; a Wizard's
 rewording is never overwritten.
 
+## Who the birds are
+
+Most reports carry a creature's id and no name, so the names come from Creature Server's list. It
+is asked for at the start, and again whenever a creature that has not been named reports (`0.2.5`,
+#301): ten seconds later at the soonest while the server cannot say, five minutes after an answer.
+So it does not matter which of the two starts first, and a creature added later is found. Until it
+is named, a creature's readings are left out. The log says "Learned the creatures' names" with how
+many. Before `0.2.5` the list was asked for once, and a body that started before the server said
+nothing about any bird until it was restarted.
+
 ## Configuration
 
 Configured like the world: `/etc/creature/body.json` for the non-secret defaults, environment

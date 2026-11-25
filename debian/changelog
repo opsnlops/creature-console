@@ -1,3 +1,11 @@
+creature-cli (2.110.4+world0.75.6+house0.10.4+gateway0.2.3+body0.2.5) unstable; urgency=medium
+
+  * creature-body: it asks Creature Server for the creatures' names again when
+    one that has not been named reports. It asked once, so started before the
+    server it said nothing about any bird until it was restarted (#301).
+
+ -- April White <april@creature.engineering>  Tue, 24 Nov 2026 20:15:02 -0800
+
 creature-cli (2.110.4+world0.75.6+house0.10.4+gateway0.2.3+body0.2.4) unstable; urgency=medium
 
   * creature-world: news told late ends nothing newer. The house says every
