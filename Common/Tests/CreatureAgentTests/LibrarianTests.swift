@@ -587,6 +587,65 @@ struct LibrarianTests {
         #expect(await casts.events.first?.payload["heard"] == .number(0))
     }
 
+    @Test("A World that cannot say what was written over still has the night filed (#300)")
+    func filesWithoutTheOverwritten() async throws {
+        let (learned, _) = try record()
+        let router = Router(context: BasicRequestContext.self)
+        router.get("world/v1/facts") { request, _ in
+            let origin = request.uri.queryParameters["origin_prefix"].map(String.init)
+            return Response(
+                status: .ok, headers: [.contentType: "application/json"],
+                body: ResponseBody(
+                    byteBuffer: ByteBuffer(
+                        bytes: try WorldJSON.makeEncoder().encode(
+                            WorldFactPage(
+                                facts: origin == "mind:" ? learned : [], nextFactID: nil,
+                                hasMore: false)))))
+        }
+        // As on 2026-11-23: one fact on the page could not be read, and the World refused it all.
+        router.get("world/v1/facts/overwritten") { _, _ in
+            Response(status: .badRequest)
+        }
+        router.get("world/v1/fact-kinds") { _, _ in
+            Response(
+                status: .ok, headers: [.contentType: "application/json"],
+                body: ResponseBody(
+                    byteBuffer: ByteBuffer(
+                        bytes: try WorldJSON.makeEncoder().encode(FactKindPage(kinds: [])))))
+        }
+        let application = Application(
+            router: router, configuration: .init(address: .hostname("127.0.0.1", port: 0)))
+        let casts = Casts()
+        let asked = Asked()
+        let beaky = self.beaky
+        let now = self.now
+        try await application.test(.live) { liveClient in
+            let port = try #require(liveClient.port)
+            let client = HTTPClient(eventLoopGroupProvider: .singleton)
+            defer { Task { try? await client.shutdown() } }
+            try await Librarian(
+                worldURL: URL(string: "http://localhost:\(port)/world/v1")!, characterID: beaky,
+                persona: .text("You are Beaky."),
+                model: MemoryModel(
+                    modelName: "gpt-6-astra",
+                    ask: { transcript in
+                        await asked.note(transcript.last?.content ?? "")
+                        return Data("{}".utf8)
+                    }),
+                cast: { await casts.note($0) }, client: client,
+                logger: Logger(label: "librarian-tests")
+            ).file(
+                day: "2026-10-14",
+                run: try EventID(validating: "5a8b0c8e-0000-4000-8000-000000000231"), now: now)
+        }
+        #expect(await asked.prompts.count == 1)
+        #expect(
+            await casts.events.map(\.type) == [
+                try WorldEventType(validating: LibrarianFiling.filedEventType)
+            ])
+        #expect(await casts.events.first?.payload["overwritten"] == .number(0))
+    }
+
     @Test("A night with nothing kept asks nothing")
     func nothingKeptAsksNothing() async throws {
         let router = Router(context: BasicRequestContext.self)

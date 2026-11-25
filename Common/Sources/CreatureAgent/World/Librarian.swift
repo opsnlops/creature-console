@@ -57,7 +57,7 @@ struct Librarian: Sendable {
                 return
             }
             let overwritten = Self.shelf(
-                try await fetchOverwritten(since: now.addingTimeInterval(-Self.overwrittenWindow)),
+                await fetchOverwritten(since: now.addingTimeInterval(-Self.overwrittenWindow)),
                 merged: merged)
             span.attributes["librarian.overwritten"] = overwritten.count
             let kindPage = try await fetchKinds()
@@ -541,17 +541,25 @@ struct Librarian: Sendable {
         return facts
     }
 
-    private func fetchOverwritten(since: Date) async throws -> [OverwrittenFact] {
+    /// What was written over since `since`; an origin the World cannot answer for is left out, so
+    /// the night files the rest (#300).
+    private func fetchOverwritten(since: Date) async -> [OverwrittenFact] {
         var items: [OverwrittenFact] = []
         for origin in Self.origins {
-            let page: OverwrittenFactPage = try await get(
-                "facts/overwritten",
-                query: [
-                    URLQueryItem(name: "origin_prefix", value: origin),
-                    URLQueryItem(name: "since", value: WorldJSON.timestamp(since)),
-                    URLQueryItem(name: "limit", value: "200"), Self.roomOnly,
-                ])
-            items += page.items
+            do {
+                let page: OverwrittenFactPage = try await get(
+                    "facts/overwritten",
+                    query: [
+                        URLQueryItem(name: "origin_prefix", value: origin),
+                        URLQueryItem(name: "since", value: WorldJSON.timestamp(since)),
+                        URLQueryItem(name: "limit", value: "200"), Self.roomOnly,
+                    ])
+                items += page.items
+            } catch {
+                logger.warning(
+                    "The world could not say what was written over; filing without it",
+                    metadata: ["facts.origin_prefix": "\(origin)", "error": "\(error)"])
+            }
         }
         return items
     }

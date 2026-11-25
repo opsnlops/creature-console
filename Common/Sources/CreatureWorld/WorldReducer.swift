@@ -45,6 +45,13 @@ struct FactRetraction: Equatable, Sendable {
             && fact.value != .null
     }
 
+    /// Whether `event` ends `fact`: one this covers, that had begun when the event happened. News
+    /// told late - the house says every state again when it starts, as of when it changed - says
+    /// nothing about what was learned since (#300).
+    func ends(_ fact: Fact, by event: WorldEventEnvelope) -> Bool {
+        covers(fact) && fact.validFrom <= event.occurredAt
+    }
+
     /// The fact that ends `fact`: `null`, from `event`, gone again a second later.
     func ending(_ fact: Fact, by event: WorldEventEnvelope) throws -> Fact {
         try Fact(

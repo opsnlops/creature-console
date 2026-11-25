@@ -180,6 +180,38 @@ struct WorldTests {
         #expect(ended.supersededBy == changed["presence.location"]?.factID)
     }
 
+    @Test("News told late ends nothing learned since it happened (#300)")
+    func lateNewsEndsNothingNewer() async throws {
+        let store = TestWorldStore()
+        let april = try EntityID(validating: "person:april")
+        let left = Date(timeIntervalSince1970: 1_788_999_000)
+        func place(_ predicate: String, _ date: Date) throws -> Fact {
+            try Fact(
+                subjectID: april, predicate: predicate, value: .string("out"),
+                epistemic: EpistemicState(type: .reported, confidence: 1), validFrom: date,
+                derivedFrom: [], producer: FactProducer(kind: "reducer", id: "given", version: "1"))
+        }
+        // Told before she left, the moment she left, and since.
+        let before = try place("presence.expected", left.addingTimeInterval(-60))
+        let same = try place("presence.location", left)
+        let since = try place("presence.place", left.addingTimeInterval(900))
+        for fact in [before, same, since] { try await store.save(fact) }
+        let world = World(
+            eventStore: store, factStore: store, reducers: [HouseReducer()],
+            clock: FixedWorldClock(now: Self.receivedAt))
+        _ = try await world.accept(
+            try WorldEventEnvelope(
+                eventID: EventID(validating: "00000000-0000-0000-0000-000000000300"),
+                type: HouseEvents.personLeft, occurredAt: left,
+                source: EventSource(
+                    id: SourceID(validating: "home-assistant:tracker"), kind: "house"),
+                subjectIDs: [april], epistemic: EpistemicState(type: .observed, confidence: 1),
+                payload: [:]))
+        #expect(await store.fact(before.factID)?.supersededBy != nil)
+        #expect(await store.fact(same.factID)?.supersededBy != nil)
+        #expect(await store.fact(since.factID) == since)
+    }
+
     @Test("A visit that ends, ends: what it was for goes with who was expected (#228)")
     func endingAVisitorEndsTheVisit() async throws {
         // 2026-10-14: the birds kept the propane supplier as expected and as "to refill the
@@ -818,7 +850,7 @@ private actor TestWorldStore: WorldEventStore, WorldFactStore {
         where existing.subjectID == fact.subjectID && existing.predicate == fact.predicate
             && id != fact.factID && existing.supersededBy == nil
         {
-            factsByID[id]?.validTo = fact.validFrom
+            factsByID[id]?.validTo = max(existing.validFrom, fact.validFrom)
             factsByID[id]?.supersededBy = fact.factID
         }
     }
@@ -826,7 +858,7 @@ private actor TestWorldStore: WorldEventStore, WorldFactStore {
     func currentFacts(subjectID: EntityID?, at now: Date) -> [Fact] {
         factInsertionOrder.compactMap { factsByID[$0] }.filter {
             (subjectID == nil || $0.subjectID == subjectID) && $0.supersededBy == nil
-                && $0.validFrom <= now && ($0.validTo.map { $0 > now } ?? true)
+                && ($0.validTo.map { $0 > now } ?? true)
         }
     }
 

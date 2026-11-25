@@ -360,7 +360,7 @@ private struct WorldEventProcessor: Sendable {
                     for retraction in reduction.retractions {
                         let moot = try await factStore.currentFacts(
                             subjectID: retraction.subjectID, at: acceptedEvent.occurredAt
-                        ).filter(retraction.covers)
+                        ).filter { retraction.ends($0, by: acceptedEvent) }
                         for old in moot {
                             let gone = try retraction.ending(old, by: acceptedEvent)
                             try await factStore.supersede(by: gone)

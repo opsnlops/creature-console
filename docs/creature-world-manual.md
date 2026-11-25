@@ -390,6 +390,13 @@ where I am." Under the hood a reducer sees one event and never the store, so it 
 retraction by subject and predicate prefix (`WorldReduction.retractions`) and the world
 resolves it against the current facts when it applies the reduction.
 
+**News told late ends nothing newer** (`0.75.6`, #300). The house says every state again when it
+starts, as of when it changed, so "she left" can arrive after she has said where she is. A
+retraction ends only facts that had begun when its event happened. A fact superseded by one that
+begins earlier ends when it began, never before: such a fact could not be read back, and one of
+them failed every page it was on with a 400. Those stored before `0.75.6` are read as ending when
+they began; nothing is rewritten.
+
 **The envelope, by the numbers** (`0.35.0`): "what time is it" cost 8.7k input tokens, 4.5k
 of them the facts of the moment, three times over. A mind is now handed at most 30 facts,
 12 happenings, 6 episodes, and 8 beliefs (`memory.episodes_in_prompt`,

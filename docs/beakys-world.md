@@ -27,9 +27,17 @@ accepted scanned `world_events`: 54 ms at its lowest in October, 211 ms on 2026-
 The query now states the index's condition; there is no migration. After deploying, watch the median of
 `world.event.accept` fall. Any new partial index needs its condition in the query too.
 
-**Next: #300** (not started). An old event the house re-sends on starting can end a newer fact
-before that fact began. The unreadable record then fails the librarian's read of overwritten facts
-and the night is lost (the records of 2026-11-15 and 2026-11-22). The plan is in the issue.
+World `0.75.6`, agent `2.110.4` (#300, same night): the librarian's nights of 2026-11-15 and
+2026-11-22 were lost. The house restarted while April was out and said again, as of when it
+happened, that she had left; that ended where she had since told Beaky she was, before it began;
+the World could not read that fact back and answered 400 for the whole page of overwritten facts. A
+retraction now ends only what had begun when its event happened, `supersede` never ends a fact
+before its start, facts already stored that way are read as ending when they began, and the
+librarian files without that page when it cannot be read. `TestWorldStore` had hidden it: it left
+out facts that begin later, and MongoDB does not.
+
+**Next: #301** (not started). `creature-body` asks for the birds' names once, so if it starts before
+Creature Server answers it says nothing about any bird. Restart it after a whole-server restart.
 
 ### 0.0a The birds read April's project notebook — 2026-11-14 (#294)
 

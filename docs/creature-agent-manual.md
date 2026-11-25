@@ -692,7 +692,8 @@ Beaky's five minutes after she kept it. Two things keep learning durable:
 - **Filing at night.** The mind with `librarian: true` (Beaky), after its own memory step,
   reads every current fact a mind kept (`GET /v1/facts?origin_prefix=mind:`), what a later
   keeping replaced in the last day (`/v1/facts/overwritten`), and the meanings of the families
-  in use, and asks its memory model - batched when it can be - for a proposal: rewrites (facts
+  in use (a World that cannot say what was replaced has the rest filed without it, with a
+  warning, since `2.110.4`, #300), and asks its memory model - batched when it can be - for a proposal: rewrites (facts
   on one topic folded into one, under one name), retires (no longer so), same (ids that are one
   thing; *sure* only when the record says so, never a person from a role alone), kinds (a
   meaning per family), and questions for April. The answer is held to the record: only ids it

@@ -1,3 +1,15 @@
+creature-cli (2.110.4+world0.75.6+house0.10.4+gateway0.2.3+body0.2.4) unstable; urgency=medium
+
+  * creature-world: news told late ends nothing newer. The house says every
+    state again when it starts, and an old "left" ended what April had since
+    told a bird, before it began (#300). A fact is never ended before its
+    start, and one already stored that way no longer fails the page it is on.
+  * creature-agent: the librarian files the night without the list of what
+    was written over when the World cannot give it, instead of losing the
+    night (#300).
+
+ -- April White <april@creature.engineering>  Tue, 24 Nov 2026 19:38:15 -0800
+
 creature-cli (2.110.3+world0.75.5+house0.10.4+gateway0.2.3+body0.2.4) unstable; urgency=medium
 
   * creature-world: accepting an event no longer scans the whole event log.

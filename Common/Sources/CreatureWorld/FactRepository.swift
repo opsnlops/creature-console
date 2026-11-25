@@ -73,7 +73,22 @@ struct FactRepository: Sendable {
         .execute()
     }
 
+    /// Ends every current fact with `fact`'s subject and predicate where `fact` begins - but never
+    /// before it began itself: `fact` may come from news told late, or be filed as old as what it
+    /// came from, and a fact that ends before it begins cannot be read back (#300).
     func supersede(by fact: Fact) async throws {
+        let end: Document = ["$max": ["$valid_from", fact.validFrom] as Document]
+        let superseded: Document = [
+            "$set": [
+                "valid_to": end,
+                "superseded_by": ["$literal": fact.factID.rawValue] as Document,
+            ] as Document
+        ]
+        // Out of the search: history must never be what a word is scored against, nor an old pin
+        // what a place is found near.
+        let unsearchable: Document = [
+            "$unset": [Self.searchTextField, Self.geoField] as Document
+        ]
         _ = try await facts.updateMany(
             where: [
                 "subject_id": fact.subjectID.rawValue,
@@ -81,15 +96,7 @@ struct FactRepository: Sendable {
                 "superseded_by": Null(),
                 "_id": ["$ne": fact.factID.rawValue],
             ],
-            to: [
-                "$set": [
-                    "valid_to": fact.validFrom,
-                    "superseded_by": fact.factID.rawValue,
-                ] as Document,
-                // Out of the search: history must never be what a word is scored against, nor
-                // an old pin what a place is found near.
-                "$unset": [Self.searchTextField: "", Self.geoField: ""] as Document,
-            ]
+            to: [superseded, unsearchable]
         )
     }
 
@@ -602,6 +609,13 @@ struct FactRepository: Sendable {
         var readable = document
         if readable["value"] == nil {
             readable["value"] = Null()
+        }
+        // Facts superseded before 0.75.6 could end before they began, and one such fact failed
+        // every page it was on (#300). It never held: it ended when it began.
+        if let begins = readable["valid_from"] as? Date, let ends = readable["valid_to"] as? Date,
+            ends < begins
+        {
+            readable["valid_to"] = begins
         }
         var fact = try BSONDecoder().decode(Fact.self, from: readable)
         fact.value = try MongoWorldJSON.value(from: readable["value"] ?? Null())
