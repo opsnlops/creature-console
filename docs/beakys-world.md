@@ -19,6 +19,15 @@ This section is intentionally operational and time-sensitive. It gives the next 
 enough context to continue without reconstructing the implementation from chat history. **Keep it
 current in the same commit as the code it describes.**
 
+### 0.0c A duplicate can join a character — 2026-11-28 (#306)
+
+World `0.75.7`. The birds knew Hopper, April's car, as `thing:hopper`, while the car writes to
+`character:hopper`, so "what did Hopper say?" never reached his trips. "Birds are never merged"
+also refused merging a duplicate *into* a character. Now only a merge that would merge a bird
+away is guarded, and a merge into a character never starts checked. After deploying: file and
+apply `thing:hopper` into `character:hopper`. `character:hopper` also carries a `vehicle.identity`
+fact (given 2026-11-28 by agent:claude-code) so a search for "Hopper" finds him.
+
 ### 0.0b Accepting an event no longer scans the log — 2026-11-24 (#299)
 
 World `0.75.5`. The duplicate check by source could not use its partial index, so every event

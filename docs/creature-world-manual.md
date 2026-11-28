@@ -1281,13 +1281,15 @@ barn (the new workshop).
     - a kind that already has a meaning
     - a rewrite onto a name that holds a fact it doesn't fold in (keeping it would end that
       fact)
-    - a merge naming a bird
+    - a merge that would merge a bird away (a duplicate may be merged *into* a character, as
+      `thing:hopper` into `character:hopper`, `0.75.7`, #306)
     - an id already merged
   - `applied`: applied before, from this filing
 
   A rewrite carries `valid_to`, the earliest end of what it replaces. A merge lists `moves`
   (the facts a mind or the librarian kept on the merged ids) and `stays` (those whose name the
-  kept id already holds). Ready items start `checked`, except merges not marked *sure*. The
+  kept id already holds). Ready items start `checked`, except merges not marked *sure* and merges into a
+  character, which April always ticks herself. The
   response includes the named facts as they are now.
 - `POST /v1/filings/{event_id}/apply` with `{"rewrites": [0], "retires": [], "same": [],
   "kinds": [2]}` runs the review again and applies only checked items that are `ready` now.

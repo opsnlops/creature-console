@@ -177,11 +177,14 @@ struct FilingReviewTests {
         #expect(!items[1].checked)
     }
 
-    @Test("Birds are never merged, and an id already merged is not merged again")
+    @Test("A bird is never merged away, and an id already merged is not merged again")
     func birdsAndMergedIdsAreGuarded() {
         let proposal = LibrarianProposal(same: [
             .init(
-                ids: [id("character:kenny"), id("thing:kenny-test")], keep: id("character:kenny"),
+                ids: [id("character:kenny"), id("thing:kenny-test")], keep: id("thing:kenny-test"),
+                sure: true, reason: ""),
+            .init(
+                ids: [id("character:kenny"), id("character:mango")], keep: id("character:mango"),
                 sure: true, reason: ""),
             .init(
                 ids: [id("place:workshop-test"), id("thing:old-barn-test")],
@@ -191,7 +194,26 @@ struct FilingReviewTests {
             proposal: proposal,
             record: .init(sameAs: [id("thing:old-barn-test"): id("place:pole-barn-test")], now: now)
         ).items
-        #expect(items.map(\.status) == [.guarded, .guarded])
+        #expect(items.map(\.status) == [.guarded, .guarded, .guarded])
+    }
+
+    /// The birds knew Hopper, April's car, as `thing:hopper`; the car writes to
+    /// `character:hopper`, his mind's id. The duplicate joins the character; the character
+    /// stays. Never checked for her, even when sure: "Kenny's foot" is not Kenny (#306).
+    @Test("A thing may be merged into a character, but April ticks it herself")
+    func aThingMergesIntoACharacterUnchecked() throws {
+        let keep = id("character:hopper-test")
+        let other = id("thing:hopper-test")
+        let plate = try kept(other, "vehicle.license_plate", "HOPPER")
+        let proposal = LibrarianProposal(same: [
+            .init(ids: [other, keep], keep: keep, sure: true, reason: "the same car")
+        ])
+        let items = FilingReviewer(
+            proposal: proposal, record: .init(kept: [other: [plate]], now: now)
+        ).items
+        #expect(items[0].status == .ready)
+        #expect(!items[0].checked)
+        #expect(items[0].moves == [plate.factID])
     }
 
     @Test("A rename moves everything on the misfiled id, memories too; a person stays a person")
