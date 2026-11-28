@@ -53,13 +53,17 @@ time.
     "event_id": "…",
     "type": "car.parked",
     "occurred_at": "2026-11-27T18:04:11Z",
-    "source": {"id": "hopper", "kind": "car", "source_event_id": "…"},
+    "source": {"id": "car:hopper", "kind": "car", "source_event_id": "…"},
     "subject_ids": ["character:hopper"],
     "epistemic": {"type": "observed", "confidence": 1},
     "payload": {}
   }
   ```
 
+- **`source.id` is `namespace:name`.** It needs exactly one colon, with both halves non-empty, as
+  every source has (`body:sensors`, `bridge:app`). The car is `car:hopper`. A bare `hopper` is
+  refused as malformed.
+- **`payload` is always a JSON object**, `{}` when empty, never `null`.
 - **Retries are free.** `source.id` plus `source.source_event_id` identifies an event. Mint the
   `source_event_id` when the item is queued and keep it across retries. A repeat answers
   `200` with the first acceptance; a new event answers `202`.
