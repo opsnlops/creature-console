@@ -1,3 +1,13 @@
+creature-cli (2.110.4+world0.75.7+house0.10.4+gateway0.2.3+body0.2.5) unstable; urgency=medium
+
+  * creature-world: a duplicate can be merged into a character. The birds
+    knew Hopper, April's car, as thing:hopper, while the car writes to
+    character:hopper; "birds are never merged" also refused joining a
+    duplicate onto a character. A bird is still never merged away, and a
+    merge into a character never starts checked (#306).
+
+ -- April White <april@creature.engineering>  Sat, 28 Nov 2026 00:05:55 -0800
+
 creature-cli (2.110.4+world0.75.6+house0.10.4+gateway0.2.3+body0.2.5) unstable; urgency=medium
 
   * creature-body: it asks Creature Server for the creatures' names again when

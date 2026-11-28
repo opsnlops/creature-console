@@ -109,9 +109,13 @@ struct FilingReviewer: Sendable {
         let key = FilingItemKey(.same, index)
         let item = proposal.same[index]
         if record.applied.contains(key) { return applied(key) }
-        if let bird = item.ids.first(where: { $0.rawValue.hasPrefix("character:") }) {
+        // A bird is never merged away. A duplicate may join a character - the birds knew
+        // Hopper as `thing:hopper`, the car writes to `character:hopper` (#306) - but April
+        // ticks that herself, however sure: "Kenny's foot" is not Kenny.
+        if let bird = item.merged.first(where: Self.isCharacter) {
             return .init(key: key, .guarded("\(bird.rawValue) is a bird; birds are never merged"))
         }
+        let intoBird = Self.isCharacter(item.keep)
         if let merged = item.ids.first(where: { record.sameAs[$0] != nil }) {
             return .init(
                 key: key,
@@ -134,8 +138,15 @@ struct FilingReviewer: Sendable {
         }
         return FilingReviewItem(
             key: key, status: .ready,
-            reason: item.sure ? nil : "not sure: April's to decide", checked: item.sure,
+            reason: intoBird
+                ? "into \(item.keep.rawValue), a character: April's to decide"
+                : item.sure ? nil : "not sure: April's to decide",
+            checked: item.sure && !intoBird,
             moves: moves, stays: stays)
+    }
+
+    private static func isCharacter(_ id: EntityID) -> Bool {
+        id.rawValue.hasPrefix("character:")
     }
 
     /// An id filed as the wrong kind, renamed: a merge into an id that may not exist yet, and
