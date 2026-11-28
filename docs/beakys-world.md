@@ -19,6 +19,25 @@ This section is intentionally operational and time-sensitive. It gives the next 
 enough context to continue without reconstructing the implementation from chat history. **Keep it
 current in the same commit as the code it describes.**
 
+### 0.0c Hopper, April's car, has a contract with the World — 2026-11-27 (#303)
+
+No code yet. [hopper.md](hopper.md) holds the agreed contract with the car (the `hopper`
+daemon on a Pi in the car, its own repo).
+- **What the car sends:** `car.*` events, readings via `environment.measurement_changed` on
+  `character:hopper`, a trip summary, and April's fixes while driving as `person.located`, which
+  stay switched off on the car.
+- **Route and stored history:** the car goes through creature-proxy everywhere. Today's World
+  stores all of it, and none of it reaches a mind.
+- **Not built:**
+  - the `mi` unit on pages
+  - the stale-event guard
+  - the car/phone switch, which has to come before the car's fixes are switched on: a late burst
+    of them could leave April at a place and home at once
+  - Hopper's mind, his news of leaving and of the trip
+  - moving the mind between server and car (design only)
+- **His voice:** a voice-only creature type with a speaker near the garage: creature-server#274,
+  creature-controller#48, #304.
+
 ### 0.0b Accepting an event no longer scans the log — 2026-11-24 (#299)
 
 World `0.75.5`. The duplicate check by source could not use its partial index, so every event
